@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Send to Clip2Pod",
+  "version": "0.1.0",
+  "description": "Send the article you are reading to Clip2Pod for narration.",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["http://127.0.0.1:4737/*"],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "Send to Clip2Pod"
+  }
+}
