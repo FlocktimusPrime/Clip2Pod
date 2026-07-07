@@ -360,6 +360,37 @@ pub fn set_theme(state: State<AppState>, theme: Theme) {
     state.save_config();
 }
 
+/// How many mp3s the feed currently lists; feeds the delete confirmation.
+#[tauri::command]
+pub fn episode_count(state: State<AppState>) -> usize {
+    clip2pod_core::feed::scan_episodes(&crate::worker::output_dir(&state)).len()
+}
+
+/// Delete every mp3 the feed lists, except files reserved by queued or
+/// in-flight jobs (an active render must never lose its output mid-write).
+#[tauri::command]
+pub fn delete_episodes(state: State<AppState>) -> CmdResult<usize> {
+    let dir = crate::worker::output_dir(&state);
+    let reserved: HashSet<String> =
+        state.queue.lock().unwrap().reserved_filenames().into_iter().collect();
+    let mut deleted = 0;
+    let mut failed = Vec::new();
+    for episode in clip2pod_core::feed::scan_episodes(&dir) {
+        if reserved.contains(&episode.filename) {
+            continue;
+        }
+        match std::fs::remove_file(dir.join(&episode.filename)) {
+            Ok(()) => deleted += 1,
+            Err(_) => failed.push(episode.filename),
+        }
+    }
+    if failed.is_empty() {
+        Ok(deleted)
+    } else {
+        Err(format!("deleted {deleted}, but could not delete: {}", failed.join(", ")))
+    }
+}
+
 /// Subscribe URL for the LAN podcast feed, shown in the Feed dialog.
 #[tauri::command]
 pub fn feed_url() -> String {

@@ -99,6 +99,8 @@ pub fn run() {
             commands::set_prefix,
             commands::set_author_gender,
             commands::set_theme,
+            commands::episode_count,
+            commands::delete_episodes,
             commands::feed_url,
         ])
         .run(tauri::generate_context!())

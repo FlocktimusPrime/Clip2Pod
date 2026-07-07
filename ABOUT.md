@@ -106,6 +106,15 @@ All of the following are remembered between sessions: output directory, filename
 
 A rocker-style switch in the header toggles between a dark "night" theme and a light "day" theme. The choice is saved and restored on next launch.
 
+### 13. Episode cleanup
+
+Once your podcast app has downloaded the generated episodes, the **Delete episodes** button (sidebar, Output section) clears the output folder in one click:
+
+- Deletes every `.mp3` the podcast feed currently lists — exactly the set your podcatcher sees.
+- Asks for confirmation first, showing how many files will be removed (the output folder may contain more than you think).
+- Never deletes the output file of a job that is still queued or rendering.
+- If the folder has no episodes, it says so instead of showing an empty confirmation.
+
 ---
 
 ## Keyboard shortcuts
@@ -132,6 +141,7 @@ A rocker-style switch in the header toggles between a dark "night" theme and a l
 4. Review/edit the auto-filled Title, Author, Filename title, and Author gender.
 5. Press **Generate MP3**. The job is queued, a voice is picked (respecting gender preference and rotation), and the app keeps working while it renders.
 6. The finished MP3 lands in your chosen output folder, ID3-tagged, with a collision-safe filename — and a permanent record in the Log.
+7. After your podcatcher refreshes the feed and downloads the episodes, **Delete episodes** clears the output folder for the next batch.
 
 ## Replicating this app
 
