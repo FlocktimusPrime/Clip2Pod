@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
-  <img src="https://img.shields.io/badge/version-0.1.0-orange.svg" alt="Version 0.1.0">
+  <img src="https://img.shields.io/badge/version-0.2.0-orange.svg" alt="Version 0.2.0">
   <img src="https://img.shields.io/badge/Tauri-2-24C8DB.svg" alt="Tauri 2">
   <img src="https://img.shields.io/badge/Rust-stable-dea584.svg" alt="Rust">
   <img src="https://img.shields.io/badge/Svelte-5-ff3e00.svg" alt="Svelte 5">
