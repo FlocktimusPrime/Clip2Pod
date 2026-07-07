@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
   <img src="https://img.shields.io/badge/version-0.1.0-orange.svg" alt="Version 0.1.0">
   <img src="https://img.shields.io/badge/Tauri-2-24C8DB.svg" alt="Tauri 2">
   <img src="https://img.shields.io/badge/Rust-stable-dea584.svg" alt="Rust">
@@ -162,7 +162,9 @@ Issues and pull requests are welcome. For anything non-trivial, please open an i
 
 ## License
 
-[MIT](LICENSE) © FlocktimusPrime
+[GNU AGPL-3.0](LICENSE) © 2026 FlocktimusPrime
+
+Clip2Pod is free software: you can use, study, modify, and redistribute it, but any distributed or network-hosted derivative must be released under the same license, with full source code. Commercial redistribution without source disclosure is not permitted.
 
 ## Acknowledgements
 
