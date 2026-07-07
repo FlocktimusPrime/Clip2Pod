@@ -34,6 +34,7 @@ Clip2Pod is a desktop "production desk" for converting written content into audi
 - **Background queue** — generation never blocks the UI. A status lamp shows `IDLE` / `QUEUED n` / `ON AIR`, and a full log records every job with the voice used.
 - **Proper MP3s** — ID3 tags (title, artist, album, narrating voice), sanitized collision-safe filenames, optional `C2P_` prefix.
 - **Built-in podcast feed** — a local RSS server (port `4738`) lists every generated episode with cover art. Scan the QR code in the app with your phone and subscribe in any podcast client on your network.
+- **One-click cleanup** — once your podcatcher has downloaded the episodes, **Delete episodes** in the sidebar clears every MP3 the feed lists from the output folder. It asks for confirmation with a file count first, and never touches a file still being rendered.
 - **Quality of life** — light/dark themes, system tray (closing the window keeps it running), and every setting persisted between sessions.
 
 ## Installation
@@ -96,6 +97,7 @@ The extension only acts when clicked, only on the active tab, and only talks to 
 1. Click **Feed** in the header.
 2. Scan the QR code with your phone (or type the shown `http://<your-ip>:4738/feed.xml` URL into any podcast app).
 3. Episodes appear as they're generated. Your phone must be on the same network as the desktop app.
+4. After your podcast app has downloaded the episodes, click **Delete episodes** in the sidebar's Output section to clear them from the output folder — a confirmation shows how many files will be removed.
 
 ### Keyboard shortcuts
 
@@ -173,3 +175,4 @@ Clip2Pod is free software: you can use, study, modify, and redistribute it, but 
 - [dom_smoothie](https://crates.io/crates/dom_smoothie) — Readability-style article extraction
 - [CodeMirror](https://codemirror.net) — the script editor
 - [Mozilla Readability](https://github.com/mozilla/readability) — powers the browser extension's extraction
+- [Claude Code](https://claude.com/claude-code) — Clip2Pod was developed with Claude Code using the Claude Fable 5 model

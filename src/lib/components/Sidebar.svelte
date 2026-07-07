@@ -1,7 +1,7 @@
 <script lang="ts">
   import { open } from "@tauri-apps/plugin-dialog";
   import * as api from "$lib/api";
-  import { app, loadVoices } from "$lib/stores.svelte";
+  import { app, loadVoices, toast } from "$lib/stores.svelte";
 
   let {
     onpaste,
@@ -48,6 +48,33 @@
     app.config.prefix_c2p = on;
     await api.setPrefix(on);
   }
+
+  /** Episode count pending delete confirmation; null = no confirm active. */
+  let confirmCount = $state<number | null>(null);
+
+  async function askDeleteEpisodes() {
+    try {
+      const count = await api.episodeCount();
+      if (count === 0) {
+        toast("No episodes in output folder");
+        return;
+      }
+      confirmCount = count;
+    } catch (e) {
+      toast(String(e), "error");
+    }
+  }
+
+  async function confirmDeleteEpisodes() {
+    try {
+      const deleted = await api.deleteEpisodes();
+      toast(`Deleted ${deleted} episode${deleted === 1 ? "" : "s"}`);
+    } catch (e) {
+      toast(String(e), "error");
+    } finally {
+      confirmCount = null;
+    }
+  }
 </script>
 
 <aside class="side">
@@ -86,6 +113,15 @@
       <input type="checkbox" checked={app.config?.prefix_c2p ?? false} onchange={togglePrefix} />
       <span>Prefix filenames with C2P</span>
     </label>
+    {#if confirmCount === null}
+      <button class="btn" onclick={askDeleteEpisodes}>Delete episodes</button>
+    {:else}
+      <div class="folder-row confirm" role="alertdialog" aria-label="Confirm episode deletion">
+        <span>Delete {confirmCount} episode{confirmCount === 1 ? "" : "s"}?</span>
+        <button class="btn" onclick={confirmDeleteEpisodes}>Confirm</button>
+        <button class="btn" onclick={() => (confirmCount = null)}>Cancel</button>
+      </div>
+    {/if}
   </div>
 
   <div class="rack">
@@ -178,6 +214,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .confirm {
+    flex-wrap: wrap;
+    font-size: 12px;
   }
 
   .check {
