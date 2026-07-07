@@ -2,6 +2,7 @@
 name = "clip2pod-core"
 version = "0.1.0"
 edition = "2021"
+license = "AGPL-3.0-only"
 description = "Clip2Pod application logic: text cleaning, junk matching, voice cycling, queue, naming, tagging, config"
 
 [dependencies]
