@@ -47,8 +47,93 @@ pub fn fetch_voices() -> Result<Vec<VoiceInfo>, TtsError> {
         .collect())
 }
 
+/// Max characters per Edge TTS request. A single websocket turn silently
+/// returns zero audio frames when the text is too long, so long articles
+/// must be split. Kept well under the observed failure threshold.
+const MAX_CHUNK_CHARS: usize = 2500;
+
+/// Break narration text into request-sized chunks. Splits on sentence and
+/// line boundaries; a single oversized sentence falls back to word packing.
+/// Never cuts mid-word.
+fn chunk_text(text: &str) -> Vec<String> {
+    let mut chunks: Vec<String> = Vec::new();
+    let mut cur = String::new();
+
+    let flush = |cur: &mut String, chunks: &mut Vec<String>| {
+        if !cur.is_empty() {
+            chunks.push(std::mem::take(cur));
+        }
+    };
+
+    for sentence in split_sentences(text) {
+        if sentence.chars().count() > MAX_CHUNK_CHARS {
+            flush(&mut cur, &mut chunks);
+            chunks.extend(word_pack(&sentence));
+            continue;
+        }
+        let sep = usize::from(!cur.is_empty());
+        if cur.chars().count() + sep + sentence.chars().count() > MAX_CHUNK_CHARS {
+            flush(&mut cur, &mut chunks);
+        }
+        if !cur.is_empty() {
+            cur.push(' ');
+        }
+        cur.push_str(&sentence);
+    }
+    flush(&mut cur, &mut chunks);
+    chunks
+}
+
+/// Split on terminal punctuation and newlines, keeping the delimiter with
+/// its sentence. Blank spans are dropped.
+fn split_sentences(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    for c in text.chars() {
+        cur.push(c);
+        if matches!(c, '.' | '!' | '?' | '\n') {
+            let trimmed = cur.trim();
+            if !trimmed.is_empty() {
+                out.push(trimmed.to_string());
+            }
+            cur.clear();
+        }
+    }
+    let trimmed = cur.trim();
+    if !trimmed.is_empty() {
+        out.push(trimmed.to_string());
+    }
+    out
+}
+
+/// Greedily pack whitespace-separated words into under-budget chunks. Last
+/// resort for a sentence with no usable internal boundary.
+fn word_pack(text: &str) -> Vec<String> {
+    let mut chunks = Vec::new();
+    let mut cur = String::new();
+    for word in text.split_whitespace() {
+        let sep = usize::from(!cur.is_empty());
+        if !cur.is_empty()
+            && cur.chars().count() + sep + word.chars().count() > MAX_CHUNK_CHARS
+        {
+            chunks.push(std::mem::take(&mut cur));
+        }
+        if !cur.is_empty() {
+            cur.push(' ');
+        }
+        cur.push_str(word);
+    }
+    if !cur.is_empty() {
+        chunks.push(cur);
+    }
+    chunks
+}
+
 /// Synthesize `text` with the given voice (VoiceInfo::name) to MP3 bytes.
-/// Edge TTS emits MP3 frames natively, so no re-encoding happens.
+/// Edge TTS emits MP3 frames natively, so no re-encoding happens. Long text
+/// is split into per-request chunks and the resulting MP3 frames are
+/// concatenated — valid because every chunk uses the same constant-bitrate
+/// format.
 pub fn synthesize_bytes(voice_name: &str, text: &str) -> Result<Vec<u8>, TtsError> {
     let config = msedge_tts::tts::SpeechConfig {
         voice_name: voice_name.to_string(),
@@ -57,15 +142,27 @@ pub fn synthesize_bytes(voice_name: &str, text: &str) -> Result<Vec<u8>, TtsErro
         rate: 0,
         volume: 0,
     };
-    let mut client =
-        msedge_tts::tts::client::connect().map_err(|e| TtsError::Service(e.to_string()))?;
-    let audio = client
-        .synthesize(text, &config)
-        .map_err(|e| TtsError::Service(e.to_string()))?;
-    if audio.audio_bytes.is_empty() {
+
+    let chunks = chunk_text(text);
+    if chunks.is_empty() {
         return Err(TtsError::EmptyAudio(voice_name.to_string()));
     }
-    Ok(audio.audio_bytes)
+
+    let mut out = Vec::new();
+    for chunk in &chunks {
+        // Fresh connection per chunk: the client returns once a turn ends and
+        // its socket state afterward is not guaranteed reusable.
+        let mut client =
+            msedge_tts::tts::client::connect().map_err(|e| TtsError::Service(e.to_string()))?;
+        let audio = client
+            .synthesize(chunk, &config)
+            .map_err(|e| TtsError::Service(e.to_string()))?;
+        if audio.audio_bytes.is_empty() {
+            return Err(TtsError::EmptyAudio(voice_name.to_string()));
+        }
+        out.extend_from_slice(&audio.audio_bytes);
+    }
+    Ok(out)
 }
 
 /// Synthesize straight to an MP3 file.
@@ -79,6 +176,69 @@ pub fn synthesize_to_file(voice_name: &str, text: &str, out_path: &Path) -> Resu
 mod tests {
     use super::*;
     use tempfile::tempdir;
+
+    #[test]
+    fn short_text_is_a_single_chunk() {
+        let chunks = chunk_text("Hello world. This is fine.");
+        assert_eq!(chunks, vec!["Hello world. This is fine.".to_string()]);
+    }
+
+    #[test]
+    fn empty_text_yields_no_chunks() {
+        assert!(chunk_text("").is_empty());
+        assert!(chunk_text("   \n  ").is_empty());
+    }
+
+    #[test]
+    fn long_text_splits_under_budget_without_losing_words() {
+        // ~40k chars of sentences, forcing many chunks.
+        let sentence = "The quick brown fox jumps over the lazy dog. ";
+        let text = sentence.repeat(900);
+        let chunks = chunk_text(&text);
+
+        assert!(chunks.len() > 1, "expected multiple chunks");
+        for c in &chunks {
+            assert!(c.chars().count() <= MAX_CHUNK_CHARS, "chunk over budget: {}", c.chars().count());
+            assert!(!c.is_empty());
+        }
+
+        // Every word survives the split.
+        let original_words: usize = text.split_whitespace().count();
+        let chunked_words: usize = chunks.iter().map(|c| c.split_whitespace().count()).sum();
+        assert_eq!(original_words, chunked_words);
+    }
+
+    #[test]
+    fn oversized_single_sentence_falls_back_to_word_packing() {
+        // One sentence with no terminal punctuation, longer than the budget.
+        let text = "word ".repeat(1000);
+        let chunks = chunk_text(&text);
+        assert!(chunks.len() > 1);
+        for c in &chunks {
+            assert!(c.chars().count() <= MAX_CHUNK_CHARS);
+        }
+    }
+
+    #[test]
+    #[ignore = "hits the live Edge TTS service"]
+    fn synthesizes_long_multichunk_article() {
+        let voices = fetch_voices().unwrap();
+        let voice = voices
+            .iter()
+            .find(|v| v.locale == "en-US" && v.gender == Gender::Male)
+            .expect("an en-US male voice exists");
+
+        // ~8k chars -> forces several chunks past MAX_CHUNK_CHARS.
+        let para = "Modern weight loss medications have transformed obesity treatment, helping many people lose significant amounts of weight. But these drugs often come with an important drawback. They can also reduce muscle mass. ";
+        let text = para.repeat(40);
+        assert!(text.chars().count() > MAX_CHUNK_CHARS * 2);
+
+        let bytes = synthesize_bytes(&voice.name, &text).unwrap();
+        // Concatenated frames should be a sizable MP3 with the classic
+        // frame sync bits (0xFF 0xEx / 0xFx) somewhere in the head.
+        assert!(bytes.len() > 100_000, "audio too small: {} bytes", bytes.len());
+        assert!(bytes.windows(2).any(|w| w[0] == 0xFF && (w[1] & 0xE0) == 0xE0));
+    }
 
     /// Real-network spike: `cargo test -p clip2pod-core -- --ignored`
     #[test]
