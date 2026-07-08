@@ -3,7 +3,7 @@ members = ["crates/clip2pod-core"]
 
 [package]
 name = "clip2podv2"
-version = "0.2.0"
+version = "0.2.1"
 description = "Clip2Pod — clipboard text to narrated MP3"
 authors = ["kketover"]
 edition = "2021"
