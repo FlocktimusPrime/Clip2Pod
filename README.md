@@ -134,7 +134,7 @@ A full feature walkthrough lives in [ABOUT.md](ABOUT.md).
 | `src-tauri/crates/clip2pod-core/` | Pure-Rust core — extraction, text cleaning, TTS, voice cycling, queue, tagging, feed generation |
 | `extension/` | Manifest V3 browser extension — posts rendered page HTML to the capture server |
 
-Narration is synthesized by **Microsoft Edge's neural TTS service** (via [`msedge-tts`](https://crates.io/crates/msedge-tts)); article extraction uses [`dom_smoothie`](https://crates.io/crates/dom_smoothie), a Rust port of Mozilla's Readability.
+Narration is synthesized by **Microsoft Edge's neural TTS service** (via [`msedge-tts`](https://crates.io/crates/msedge-tts)); article extraction uses [`dom_smoothie`](https://crates.io/crates/dom_smoothie), a Rust port of Mozilla's Readability. Long articles are split into per-request chunks on sentence boundaries before synthesis and the MP3 frames are concatenated, so full-length articles narrate in one file rather than hitting Edge TTS's per-request text limit.
 
 ## Privacy
 
