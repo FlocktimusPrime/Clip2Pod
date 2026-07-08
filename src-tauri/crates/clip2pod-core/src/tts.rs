@@ -47,6 +47,24 @@ pub fn fetch_voices() -> Result<Vec<VoiceInfo>, TtsError> {
         .collect())
 }
 
+/// Escape text for embedding in the SSML request. msedge-tts interpolates
+/// the text into XML verbatim, and the service answers malformed XML (any
+/// bare & < > " ') with an empty turn — no audio, no error.
+fn xml_escape(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for c in text.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&apos;"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 /// Max characters per Edge TTS request. A single websocket turn silently
 /// returns zero audio frames when the text is too long, so long articles
 /// must be split. Kept well under the observed failure threshold.
@@ -143,7 +161,11 @@ pub fn synthesize_bytes(voice_name: &str, text: &str) -> Result<Vec<u8>, TtsErro
         volume: 0,
     };
 
-    let chunks = chunk_text(text);
+    // Escape before chunking so the per-request budget counts the escaped
+    // length actually sent. Entities contain no whitespace, so chunk
+    // boundaries can never split one.
+    let text = xml_escape(text);
+    let chunks = chunk_text(&text);
     if chunks.is_empty() {
         return Err(TtsError::EmptyAudio(voice_name.to_string()));
     }
@@ -176,6 +198,27 @@ pub fn synthesize_to_file(voice_name: &str, text: &str, out_path: &Path) -> Resu
 mod tests {
     use super::*;
     use tempfile::tempdir;
+
+    #[test]
+    fn xml_escape_replaces_all_five_specials() {
+        assert_eq!(
+            xml_escape("AT&T says x < y > z, \"quoted\" and it's"),
+            "AT&amp;T says x &lt; y &gt; z, &quot;quoted&quot; and it&apos;s"
+        );
+    }
+
+    #[test]
+    fn xml_escape_leaves_clean_text_untouched() {
+        let text = "Plain sentence. No specials here!";
+        assert_eq!(xml_escape(text), text);
+    }
+
+    #[test]
+    fn xml_escape_does_not_double_escape_output() {
+        // '&amp;' escaped again would be '&amp;amp;' — input '&' maps once.
+        assert_eq!(xml_escape("&"), "&amp;");
+        assert_eq!(xml_escape("&&"), "&amp;&amp;");
+    }
 
     #[test]
     fn short_text_is_a_single_chunk() {
@@ -238,6 +281,23 @@ mod tests {
         // frame sync bits (0xFF 0xEx / 0xFx) somewhere in the head.
         assert!(bytes.len() > 100_000, "audio too small: {} bytes", bytes.len());
         assert!(bytes.windows(2).any(|w| w[0] == 0xFF && (w[1] & 0xE0) == 0xE0));
+    }
+
+    #[test]
+    #[ignore = "hits the live Edge TTS service"]
+    fn synthesizes_text_with_xml_special_chars() {
+        let voices = fetch_voices().unwrap();
+        let voice = voices
+            .iter()
+            .find(|v| v.locale == "en-US" && v.gender == Gender::Male)
+            .expect("an en-US male voice exists");
+
+        // Symbols that survive clean_for_tts and would break the SSML XML
+        // if sent unescaped.
+        let text = "AT&T and Q&A sessions. We know x < y and y > z. \
+                    She said \"hello\" and it's fine.";
+        let bytes = synthesize_bytes(&voice.name, text).unwrap();
+        assert!(bytes.len() > 1000, "audio too small: {} bytes", bytes.len());
     }
 
     /// Real-network spike: `cargo test -p clip2pod-core -- --ignored`
