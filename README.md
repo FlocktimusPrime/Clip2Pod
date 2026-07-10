@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="extension/icons/icon128.png" alt="Clip2Pod logo" width="96" />
+  <img src="extension/chrome/icons/icon128.png" alt="Clip2Pod logo" width="96" />
 </p>
 
 <h1 align="center">Clip2Pod</h1>
@@ -71,13 +71,20 @@ For development with hot reload:
 npm run tauri dev
 ```
 
-### Browser extension (Chrome / Brave / Edge)
+### Browser extension (Chrome / Brave / Edge / Firefox)
 
 The extension sends the article you're reading — as rendered in your logged-in browser session — straight to the Clip2Pod editor.
 
+**Chrome / Brave / Edge:**
+
 1. Open `chrome://extensions` (or `brave://extensions`, `edge://extensions`).
 2. Enable **Developer mode** (top-right toggle).
-3. Click **Load unpacked** and choose the [`extension/`](extension/) folder.
+3. Click **Load unpacked** and choose the [`extension/chrome/`](extension/chrome/) folder.
+
+**Firefox** (temporary — resets on restart):
+
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Click **Load Temporary Add-on…** and pick [`extension/firefox/manifest.json`](extension/firefox/manifest.json).
 
 The extension only acts when clicked, only on the active tab, and only talks to `127.0.0.1:4737` — the Clip2Pod app on your own machine. See [`extension/README.md`](extension/README.md) for details.
 
@@ -132,7 +139,7 @@ A full feature walkthrough lives in [ABOUT.md](ABOUT.md).
 | `src/` | SvelteKit 5 frontend — editor (CodeMirror), metadata slate, dialogs |
 | `src-tauri/src/` | Tauri 2 shell — tray, global hotkey, capture server (`:4737`), feed server (`:4738`) |
 | `src-tauri/crates/clip2pod-core/` | Pure-Rust core — extraction, text cleaning, TTS, voice cycling, queue, tagging, feed generation |
-| `extension/` | Manifest V3 browser extension — posts rendered page HTML to the capture server |
+| `extension/` | Manifest V3 browser extension (Chrome + Firefox variants) — posts rendered page HTML to the capture server |
 
 Narration is synthesized by **Microsoft Edge's neural TTS service** (via [`msedge-tts`](https://crates.io/crates/msedge-tts)); article extraction uses [`dom_smoothie`](https://crates.io/crates/dom_smoothie), a Rust port of Mozilla's Readability. Long articles are split into per-request chunks on sentence boundaries before synthesis and the MP3 frames are concatenated, so full-length articles narrate in one file rather than hitting Edge TTS's per-request text limit. Text is XML-escaped before it goes into the SSML request — the service silently returns no audio when characters like `&` or `<` reach it raw.
 
