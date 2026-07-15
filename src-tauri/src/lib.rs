@@ -29,25 +29,19 @@ pub fn run() {
     let hotkey = config.global_hotkey.clone();
     let (wake_tx, wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    // Registration can fail (e.g. Wayland) — the tray menu is the fallback.
+    // Intake, not generate: surface the window and let the frontend run
+    // its normal paste-clipboard flow.
     let shortcut_plugin = {
         use tauri_plugin_global_shortcut::{Builder, ShortcutState};
-        // Intake, not generate: surface the window and let the frontend run
-        // its normal paste-clipboard flow.
-        let builder = Builder::new().with_handler(|app, _shortcut, event| {
-            if event.state() == ShortcutState::Pressed {
-                use tauri::Emitter;
-                tray::show_main(app);
-                let _ = app.emit("intake-clipboard", ());
-            }
-        });
-        match builder.with_shortcuts([hotkey.as_str()]) {
-            Ok(b) => b.build(),
-            Err(e) => {
-                eprintln!("global hotkey '{hotkey}' not registered: {e}");
-                Builder::new().build()
-            }
-        }
+        Builder::new()
+            .with_handler(|app, _shortcut, event| {
+                if event.state() == ShortcutState::Pressed {
+                    use tauri::Emitter;
+                    tray::show_main(app);
+                    let _ = app.emit("intake-clipboard", ());
+                }
+            })
+            .build()
     };
 
     tauri::Builder::default()
@@ -64,6 +58,14 @@ pub fn run() {
             wake_worker: wake_tx,
         })
         .setup(move |app| {
+            // Registration can fail (hotkey taken by another app, Wayland, …) —
+            // the tray menu is the fallback, so never let this kill startup.
+            {
+                use tauri_plugin_global_shortcut::GlobalShortcutExt;
+                if let Err(e) = app.global_shortcut().register(hotkey.as_str()) {
+                    eprintln!("global hotkey '{hotkey}' not registered: {e}");
+                }
+            }
             worker::spawn(app.handle().clone(), wake_rx);
             tray::setup(app.handle())?;
             capture::serve(app.handle().clone());
