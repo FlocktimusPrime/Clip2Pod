@@ -635,7 +635,7 @@ dependencies = [
 
 [[package]]
 name = "clip2podv2"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "chrono",
  "clip2pod-core",
