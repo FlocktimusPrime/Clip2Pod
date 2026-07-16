@@ -24,6 +24,8 @@ pub struct Config {
     /// Set once the bundled cover has been copied into the output dir, so a
     /// user who deletes cover.jpg on purpose doesn't get it back every launch.
     pub cover_installed: bool,
+    /// Launch with the main window hidden — tray icon only.
+    pub start_minimized: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -123,6 +125,7 @@ mod tests {
         assert!(c.output_dir.is_none());
         assert!(c.args_template.is_none());
         assert!(!c.cover_installed);
+        assert!(!c.start_minimized);
     }
 
     #[test]
