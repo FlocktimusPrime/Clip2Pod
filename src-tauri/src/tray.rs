@@ -9,18 +9,24 @@ pub fn toggle_main(app: &AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
-    if window.is_visible().unwrap_or(true) {
+    // A minimized window still reports is_visible() == true; treat it as "show".
+    let minimized = window.is_minimized().unwrap_or(false);
+    if !minimized && window.is_visible().unwrap_or(true) {
         let _ = window.hide();
     } else {
-        let _ = window.show();
-        let _ = window.set_focus();
+        show_main(app);
     }
 }
 
 pub fn show_main(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
         let _ = window.show();
+        // Windows denies SetForegroundWindow from a background process; the
+        // always-on-top pulse reliably brings the window to front anyway.
+        let _ = window.set_always_on_top(true);
         let _ = window.set_focus();
+        let _ = window.set_always_on_top(false);
     }
 }
 
