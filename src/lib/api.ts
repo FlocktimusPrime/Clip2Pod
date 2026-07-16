@@ -62,10 +62,13 @@ export const setAuthorGender = (gender: AuthorGender) =>
 
 export const setTheme = (theme: Theme) => invoke<void>("set_theme", { theme });
 
+export const setStartMinimized = (minimized: boolean) =>
+  invoke<void>("set_start_minimized", { minimized });
+
 export const extractUrl = (url: string) => invoke<Extracted>("extract_url", { url });
 
 export const feedUrl = () => invoke<string>("feed_url");
 
 export const episodeCount = () => invoke<number>("episode_count");
 
-export const deleteEpisodes = () => invoke<number>("delete_episodes");
+export const deleteAllEpisodes = () => invoke<number>("delete_all_episodes");

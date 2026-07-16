@@ -3,7 +3,7 @@
 // it into editor content via the shared readability pipeline.
 
 use serde::Deserialize;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tiny_http::{Header, Method, Response, Server};
 
 pub const CAPTURE_ADDR: &str = "127.0.0.1:4737";
@@ -51,10 +51,7 @@ fn handle(app: &AppHandle, body: &str) -> (u16, String) {
                     url: payload.url.clone(),
                 },
             );
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+            crate::tray::show_main(app);
             (200, "captured".into())
         }
         Err(e) => (422, e.to_string()),

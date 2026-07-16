@@ -38,8 +38,7 @@ fn status(request: Request, code: u16, message: &str) {
 }
 
 fn output_dir(app: &AppHandle) -> std::path::PathBuf {
-    let state = app.state::<AppState>();
-    crate::worker::output_dir(&state)
+    app.state::<AppState>().output_dir()
 }
 
 fn handle(app: &AppHandle, request: Request) {

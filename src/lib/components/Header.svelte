@@ -1,13 +1,8 @@
 <script lang="ts">
-  import type { Lamp, Theme } from "$lib/types";
+  import type { Lamp } from "$lib/types";
   import StatusLamp from "./StatusLamp.svelte";
 
-  let {
-    lamp,
-    theme,
-    ontheme,
-    onfeed,
-  }: { lamp: Lamp; theme: Theme; ontheme: (t: Theme) => void; onfeed: () => void } = $props();
+  let { lamp, onfeed }: { lamp: Lamp; onfeed: () => void } = $props();
 </script>
 
 <header class="desk-header">
@@ -19,25 +14,6 @@
   <StatusLamp {lamp} />
 
   <button class="btn-feed" onclick={onfeed}>FEED</button>
-
-  <div class="rocker" role="group" aria-label="Theme">
-    <button
-      class="rocker-cell"
-      class:active={theme === "light"}
-      onclick={() => ontheme("light")}
-      aria-pressed={theme === "light"}
-    >
-      DAY
-    </button>
-    <button
-      class="rocker-cell"
-      class:active={theme === "dark"}
-      onclick={() => ontheme("dark")}
-      aria-pressed={theme === "dark"}
-    >
-      NIGHT
-    </button>
-  </div>
 </header>
 
 <style>
@@ -63,30 +39,6 @@
     font-weight: 700;
     letter-spacing: 0.22em;
     color: var(--text);
-  }
-
-  .rocker {
-    display: flex;
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .rocker-cell {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    padding: 6px 12px;
-    background: var(--panel-raised);
-    color: var(--muted);
-    border: none;
-    cursor: pointer;
-  }
-
-  .rocker-cell.active {
-    background: var(--amber);
-    color: var(--amber-ink);
   }
 
   .btn-feed {

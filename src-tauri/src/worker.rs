@@ -40,24 +40,9 @@ pub fn log_and_emit(app: &AppHandle, entry: LogEntry) {
     let _ = app.emit("log-appended", entry);
 }
 
-pub(crate) fn output_dir(state: &AppState) -> std::path::PathBuf {
-    state
-        .config
-        .lock()
-        .unwrap()
-        .output_dir
-        .clone()
-        .unwrap_or_else(|| {
-            dirs::audio_dir()
-                .or_else(dirs::download_dir)
-                .or_else(dirs::home_dir)
-                .unwrap_or_else(|| std::path::PathBuf::from("."))
-        })
-}
-
 async fn render_job(app: &AppHandle, job: &Job) -> Result<(), String> {
     let state = app.state::<AppState>();
-    let dir = output_dir(&state);
+    let dir = state.output_dir();
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let out_path = dir.join(&job.filename);
 

@@ -12,8 +12,8 @@
     setText,
     showJunkMatch,
   } from "$lib/editor";
-  import { app, applyTheme, initApp, toast } from "$lib/stores.svelte";
-  import type { AuthorGender, CapturedArticle, Extracted, Theme } from "$lib/types";
+  import { app, initApp, toast } from "$lib/stores.svelte";
+  import type { AuthorGender, CapturedArticle, Extracted } from "$lib/types";
   import Header from "$lib/components/Header.svelte";
   import Slate from "$lib/components/Slate.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
@@ -22,6 +22,8 @@
   import QueueDialog from "$lib/components/QueueDialog.svelte";
   import LogDialog from "$lib/components/LogDialog.svelte";
   import FeedDialog from "$lib/components/FeedDialog.svelte";
+  import SettingsDialog from "$lib/components/SettingsDialog.svelte";
+  import Toasts from "$lib/components/Toasts.svelte";
 
   let editorHost: HTMLDivElement;
   let view: EditorView;
@@ -211,12 +213,6 @@
     await api.setAuthorGender(g);
   }
 
-  async function changeTheme(t: Theme) {
-    if (app.config) app.config.theme = t;
-    applyTheme(t);
-    await api.setTheme(t);
-  }
-
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
       if (app.dialog) app.dialog = null;
@@ -250,12 +246,7 @@
 <svelte:window onkeydowncapture={onKeydown} />
 
 <div class="desk">
-  <Header
-    lamp={app.lamp}
-    theme={app.config?.theme ?? "dark"}
-    ontheme={changeTheme}
-    onfeed={() => (app.dialog = "feed")}
-  />
+  <Header lamp={app.lamp} onfeed={() => (app.dialog = "feed")} />
   <Slate {slate} gender={app.config?.author_gender ?? "Unknown"} ongender={changeGender} />
 
   <div class="deck">
@@ -292,13 +283,11 @@
   <LogDialog />
 {:else if app.dialog === "feed"}
   <FeedDialog />
+{:else if app.dialog === "settings"}
+  <SettingsDialog />
 {/if}
 
-<div class="toasts">
-  {#each app.toasts as t (t.id)}
-    <div class="toast" data-kind={t.kind}>{t.text}</div>
-  {/each}
-</div>
+<Toasts />
 
 <style>
   .desk {
@@ -344,41 +333,4 @@
     white-space: nowrap;
   }
 
-  .toasts {
-    position: fixed;
-    bottom: 16px;
-    right: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 70;
-  }
-
-  .toast {
-    background: var(--panel-raised);
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    padding: 9px 14px 9px 28px;
-    font-size: 12.5px;
-    box-shadow: 0 8px 24px var(--shadow);
-    max-width: 340px;
-    overflow-wrap: anywhere;
-    position: relative;
-  }
-
-  .toast::before {
-    content: "";
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--ok);
-  }
-
-  .toast[data-kind="error"]::before {
-    background: var(--onair);
-  }
 </style>

@@ -13,13 +13,6 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 type CmdResult<T> = Result<T, String>;
 
-fn fallback_output_dir() -> PathBuf {
-    dirs::audio_dir()
-        .or_else(dirs::download_dir)
-        .or_else(dirs::home_dir)
-        .unwrap_or_else(|| PathBuf::from("."))
-}
-
 #[derive(Serialize)]
 pub struct CleanResult {
     pub cleaned: String,
@@ -223,15 +216,15 @@ pub fn do_enqueue(
     }
     let enabled = state.enabled_set();
 
-    let (voice, prefix, out_dir) = {
+    let (voice, prefix) = {
         let mut cfg = state.config.lock().unwrap();
         let voice = voices::pick_voice(&voices, &enabled, cfg.author_gender, &mut cfg.cycling)
             .ok_or("no enabled voice matches the author gender — enable more voices")?;
-        (voice, cfg.prefix_c2p, cfg.output_dir.clone())
+        (voice, cfg.prefix_c2p)
     };
     state.save_config(); // persist advanced cycling state
 
-    let dir = out_dir.unwrap_or_else(fallback_output_dir);
+    let dir = state.output_dir();
 
     let (id, filename) = {
         let mut q = state.queue.lock().unwrap();
@@ -321,18 +314,30 @@ pub struct ConfigView {
     pub author_gender: AuthorGender,
     pub theme: Theme,
     pub global_hotkey: String,
+    pub start_minimized: bool,
 }
 
 #[tauri::command]
 pub fn get_config(state: State<AppState>) -> ConfigView {
-    let cfg = state.config.lock().unwrap();
-    let dir = cfg.output_dir.clone().unwrap_or_else(fallback_output_dir);
+    // Read config fields in a scoped lock first: output_dir() takes the
+    // config lock itself, and std Mutex is not reentrant.
+    let (prefix_c2p, author_gender, theme, global_hotkey, start_minimized) = {
+        let cfg = state.config.lock().unwrap();
+        (
+            cfg.prefix_c2p,
+            cfg.author_gender,
+            cfg.theme,
+            cfg.global_hotkey.clone(),
+            cfg.start_minimized,
+        )
+    };
     ConfigView {
-        output_dir: dir.display().to_string(),
-        prefix_c2p: cfg.prefix_c2p,
-        author_gender: cfg.author_gender,
-        theme: cfg.theme,
-        global_hotkey: cfg.global_hotkey.clone(),
+        output_dir: state.output_dir().display().to_string(),
+        prefix_c2p,
+        author_gender,
+        theme,
+        global_hotkey,
+        start_minimized,
     }
 }
 
@@ -360,17 +365,23 @@ pub fn set_theme(state: State<AppState>, theme: Theme) {
     state.save_config();
 }
 
+#[tauri::command]
+pub fn set_start_minimized(state: State<AppState>, minimized: bool) {
+    state.config.lock().unwrap().start_minimized = minimized;
+    state.save_config();
+}
+
 /// How many mp3s the feed currently lists; feeds the delete confirmation.
 #[tauri::command]
 pub fn episode_count(state: State<AppState>) -> usize {
-    clip2pod_core::feed::scan_episodes(&crate::worker::output_dir(&state)).len()
+    clip2pod_core::feed::scan_episodes(&state.output_dir()).len()
 }
 
 /// Delete every mp3 the feed lists, except files reserved by queued or
 /// in-flight jobs (an active render must never lose its output mid-write).
 #[tauri::command]
-pub fn delete_episodes(state: State<AppState>) -> CmdResult<usize> {
-    let dir = crate::worker::output_dir(&state);
+pub fn delete_all_episodes(state: State<AppState>) -> CmdResult<usize> {
+    let dir = state.output_dir();
     let reserved: HashSet<String> =
         state.queue.lock().unwrap().reserved_filenames().into_iter().collect();
     let mut deleted = 0;
