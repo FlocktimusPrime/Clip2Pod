@@ -172,9 +172,4 @@
     z-index: 60;
     box-shadow: 0 8px 24px var(--shadow);
   }
-
-  .btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
 </style>

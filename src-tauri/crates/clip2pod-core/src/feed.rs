@@ -41,6 +41,7 @@ pub fn scan_episodes(dir: &Path) -> Vec<Episode> {
                 title: tag
                     .as_ref()
                     .and_then(|t| t.title())
+                    .filter(|t| !t.is_empty())
                     .map(str::to_string)
                     .unwrap_or(stem),
                 // Empty tag strings read as absent: an empty TPE1/COMM/WOAF must
@@ -275,6 +276,23 @@ mod tests {
         assert!(eps[0].artist.is_none());
         let xml = build_rss(&eps, "http://192.168.1.5:4738");
         assert!(!xml.contains("itunes:author"));
+    }
+
+    #[test]
+    fn scan_falls_back_to_stem_on_empty_title() {
+        use id3::TagLike;
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("empty-title.mp3");
+        let mut bytes = vec![0xFF, 0xFB, 0x90, 0x00];
+        bytes.extend(std::iter::repeat(0u8).take(128));
+        std::fs::write(&path, &bytes).unwrap();
+        let mut tag = id3::Tag::new();
+        tag.set_title(""); // empty TIT2 must not become <title></title>
+        tag.write_to_path(&path, id3::Version::Id3v24).unwrap();
+
+        let eps = scan_episodes(dir.path());
+        assert_eq!(eps.len(), 1);
+        assert_eq!(eps[0].title, "empty-title");
     }
 
     #[test]

@@ -30,6 +30,18 @@ impl AppState {
         }
     }
 
+    /// Effective episode folder: configured dir, or the platform default.
+    /// Takes the config lock — callers must not hold it (std Mutex is not
+    /// reentrant).
+    pub fn output_dir(&self) -> PathBuf {
+        self.config
+            .lock()
+            .unwrap()
+            .output_dir
+            .clone()
+            .unwrap_or_else(clip2pod_core::config::default_output_dir)
+    }
+
     pub fn save_config(&self) {
         let cfg = self.config.lock().unwrap();
         if let Err(e) = clip2pod_core::config::save_config(&self.config_dir, &cfg) {

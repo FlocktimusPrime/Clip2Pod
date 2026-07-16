@@ -75,6 +75,7 @@ export interface ConfigView {
   author_gender: AuthorGender;
   theme: Theme;
   global_hotkey: string;
+  start_minimized: boolean;
 }
 
 export interface Extracted {

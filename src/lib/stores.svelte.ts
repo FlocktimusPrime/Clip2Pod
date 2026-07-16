@@ -5,7 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import * as api from "./api";
 import type { ConfigView, Job, Lamp, LogEntry, Theme, VoicesView } from "./types";
 
-export type DialogName = "voices" | "junk" | "queue" | "log" | "feed" | null;
+export type DialogName = "voices" | "junk" | "queue" | "log" | "feed" | "settings" | null;
 
 export const app = $state({
   lamp: { state: "Idle" } as Lamp,

@@ -117,6 +117,24 @@ select:focus-visible {
   filter: brightness(1.08);
 }
 
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* labelled checkbox row */
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.check input {
+  accent-color: var(--amber);
+}
+
 .btn kbd {
   float: right;
   font-family: var(--mono);

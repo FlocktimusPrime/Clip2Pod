@@ -27,6 +27,7 @@ pub fn run() {
     let config = clip2pod_core::config::load_config(&config_dir);
     let cached_voices = config.cached_voices.clone();
     let hotkey = config.global_hotkey.clone();
+    let start_minimized = config.start_minimized;
     let (wake_tx, wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
     // Intake, not generate: surface the window and let the frontend run
@@ -70,6 +71,14 @@ pub fn run() {
             tray::setup(app.handle())?;
             capture::serve(app.handle().clone());
             feed::serve(app.handle().clone());
+            // Window is created hidden (visible:false in tauri.conf.json);
+            // only surface it when the user hasn't opted into tray-only start.
+            if !start_minimized {
+                use tauri::Manager;
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.show();
+                }
+            }
             Ok(())
         })
         // Close-to-tray: the app (and the capture listener) stays resident;
@@ -101,8 +110,9 @@ pub fn run() {
             commands::set_prefix,
             commands::set_author_gender,
             commands::set_theme,
+            commands::set_start_minimized,
             commands::episode_count,
-            commands::delete_episodes,
+            commands::delete_all_episodes,
             commands::feed_url,
         ])
         .run(tauri::generate_context!())

@@ -29,6 +29,7 @@ pub struct Config {
     pub cycling: CyclingState,
     pub cached_voices: Vec<VoiceInfo>,
     pub global_hotkey: String,
+    pub start_minimized: bool,
 }
 
 impl Default for Config {
@@ -43,6 +44,7 @@ impl Default for Config {
             cycling: CyclingState::default(),
             cached_voices: Vec::new(),
             global_hotkey: "Ctrl+Alt+G".to_string(),
+            start_minimized: false,
         }
     }
 }
@@ -70,6 +72,15 @@ pub fn default_config_dir() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("Clip2Pod2")
+}
+
+/// Default episode folder when none is configured: ~/Music, falling back to
+/// Downloads, home, then the current dir.
+pub fn default_output_dir() -> PathBuf {
+    dirs::audio_dir()
+        .or_else(dirs::download_dir)
+        .or_else(dirs::home_dir)
+        .unwrap_or_else(|| PathBuf::from("."))
 }
 
 fn write_atomic(path: &Path, contents: &str) -> io::Result<()> {
@@ -137,6 +148,7 @@ mod tests {
         assert_eq!(c.global_hotkey, "Ctrl+Alt+G");
         assert_eq!(c.theme, Theme::Dark);
         assert!(c.enabled_voices.is_none());
+        assert!(!c.start_minimized);
     }
 
     #[test]

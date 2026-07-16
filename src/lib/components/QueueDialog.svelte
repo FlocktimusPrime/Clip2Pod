@@ -102,7 +102,7 @@
   }
 
   .status[data-status="Processing"] {
-    color: var(--onair);
+    color: var(--amber);
   }
 
   .status[data-status="Queued"] {
@@ -125,10 +125,5 @@
     color: var(--muted);
     text-align: center;
     padding: 18px;
-  }
-
-  .btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
   }
 </style>
