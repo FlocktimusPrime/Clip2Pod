@@ -44,6 +44,6 @@
   }
 
   .toast[data-kind="error"]::before {
-    background: var(--onair);
+    background: var(--danger);
   }
 </style>

@@ -28,7 +28,6 @@ pub struct Config {
     pub theme: Theme,
     pub cycling: CyclingState,
     pub cached_voices: Vec<VoiceInfo>,
-    pub global_hotkey: String,
     pub start_minimized: bool,
 }
 
@@ -43,7 +42,6 @@ impl Default for Config {
             theme: Theme::Dark,
             cycling: CyclingState::default(),
             cached_voices: Vec::new(),
-            global_hotkey: "Ctrl+Alt+G".to_string(),
             start_minimized: false,
         }
     }
@@ -145,7 +143,6 @@ mod tests {
     fn missing_config_yields_defaults() {
         let dir = tempdir().unwrap();
         let c = load_config(dir.path());
-        assert_eq!(c.global_hotkey, "Ctrl+Alt+G");
         assert_eq!(c.theme, Theme::Dark);
         assert!(c.enabled_voices.is_none());
         assert!(!c.start_minimized);

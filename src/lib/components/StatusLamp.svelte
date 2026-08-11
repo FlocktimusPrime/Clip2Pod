@@ -4,7 +4,7 @@
   let { lamp }: { lamp: Lamp } = $props();
 
   const text = $derived(
-    lamp.state === "OnAir" ? "ON AIR" : lamp.state === "Queued" ? `QUEUED ${lamp.queued}` : "IDLE",
+    lamp.state === "OnAir" ? "RENDERING" : lamp.state === "Queued" ? `QUEUED ${lamp.queued}` : "IDLE",
   );
 </script>
 
@@ -29,32 +29,32 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: var(--lamp-off);
+    background: var(--idle);
     transition: background 200ms, box-shadow 200ms;
   }
 
   .lamp[data-state="Queued"] .bulb {
-    background: var(--amber);
-    box-shadow: 0 0 8px var(--amber);
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
   }
 
   .lamp[data-state="OnAir"] .bulb {
-    background: var(--onair);
-    box-shadow: 0 0 10px var(--onair);
+    background: var(--danger);
+    box-shadow: 0 0 10px var(--danger);
     animation: onair-pulse 1.4s ease-in-out infinite;
   }
 
   .lamp[data-state="OnAir"] .lamp-text {
-    color: var(--onair);
+    color: var(--danger);
   }
 
   .lamp[data-state="Queued"] .lamp-text {
-    color: var(--amber);
+    color: var(--accent);
   }
 
   @keyframes onair-pulse {
     50% {
-      box-shadow: 0 0 3px var(--onair);
+      box-shadow: 0 0 3px var(--danger);
       opacity: 0.75;
     }
   }

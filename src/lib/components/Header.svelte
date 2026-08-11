@@ -5,10 +5,13 @@
   let { lamp, onfeed }: { lamp: Lamp; onfeed: () => void } = $props();
 </script>
 
-<header class="desk-header">
+<header class="app-header">
   <div class="brand">
     <span class="brand-mark">CLIP2POD</span>
-    <span class="label">production desk</span>
+    <span class="tagline"
+      >Turn any article into a narrated MP3 — and listen to it as your own
+      private podcast feed.</span
+    >
   </div>
 
   <StatusLamp {lamp} />
@@ -17,7 +20,7 @@
 </header>
 
 <style>
-  .desk-header {
+  .app-header {
     display: flex;
     align-items: center;
     gap: 16px;
@@ -31,6 +34,7 @@
     align-items: baseline;
     gap: 10px;
     margin-right: auto;
+    min-width: 0;
   }
 
   .brand-mark {
@@ -39,6 +43,21 @@
     font-weight: 700;
     letter-spacing: 0.22em;
     color: var(--text);
+    flex-shrink: 0;
+  }
+
+  .tagline {
+    font-size: 11.5px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 900px) {
+    .tagline {
+      display: none;
+    }
   }
 
   .btn-feed {

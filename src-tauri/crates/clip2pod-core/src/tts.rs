@@ -47,10 +47,11 @@ pub fn fetch_voices() -> Result<Vec<VoiceInfo>, TtsError> {
         .collect())
 }
 
-/// Escape text for embedding in the SSML request. msedge-tts interpolates
-/// the text into XML verbatim, and the service answers malformed XML (any
-/// bare & < > " ') with an empty turn — no audio, no error.
-fn xml_escape(text: &str) -> String {
+/// Escape text for embedding in XML (SSML requests and the RSS feed share
+/// this). msedge-tts interpolates the text into XML verbatim, and the
+/// service answers malformed XML (any bare & < > " ') with an empty turn —
+/// no audio, no error.
+pub(crate) fn xml_escape(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for c in text.chars() {
         match c {

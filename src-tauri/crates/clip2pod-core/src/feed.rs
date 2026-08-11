@@ -2,6 +2,7 @@
 // RSS 2.0 (iTunes namespace). Pure functions — the HTTP layer lives in the
 // Tauri shell.
 
+use crate::tts::xml_escape;
 use id3::TagLike;
 use std::path::Path;
 use std::time::SystemTime;
@@ -13,6 +14,7 @@ pub struct Episode {
     pub modified: SystemTime, // pubDate
     pub artist: Option<String>,
     pub summary: Option<String>,
+    pub voice: Option<String>,
     pub source_url: Option<String>,
     pub duration_ms: Option<u32>,
 }
@@ -59,6 +61,14 @@ pub fn scan_episodes(dir: &Path) -> Vec<Episode> {
                             .map(|c| c.text.clone())
                     })
                     .filter(|s| !s.is_empty()),
+                voice: tag
+                    .as_ref()
+                    .and_then(|t| {
+                        t.comments()
+                            .find(|c| c.description == "voice")
+                            .map(|c| c.text.clone())
+                    })
+                    .filter(|s| !s.is_empty()),
                 source_url: tag
                     .as_ref()
                     .and_then(|t| t.get("WOAF"))
@@ -74,13 +84,6 @@ pub fn scan_episodes(dir: &Path) -> Vec<Episode> {
         .collect();
     episodes.sort_by(|a, b| b.modified.cmp(&a.modified));
     episodes
-}
-
-fn xml_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
 }
 
 /// RFC 3986 path-segment percent-encoding (unreserved chars pass through).
@@ -136,11 +139,17 @@ pub fn build_rss(episodes: &[Episode], base_url: &str) -> String {
         let pub_date = chrono::DateTime::<chrono::Utc>::from(ep.modified).to_rfc2822();
         items.push_str("<item>");
         items.push_str(&format!("<title>{}</title>", xml_escape(&ep.title)));
-        if let Some(summary) = &ep.summary {
-            items.push_str(&format!(
-                "<description>{}</description>",
-                xml_escape(summary)
-            ));
+        let desc_lines: Vec<&str> = [ep.summary.as_deref(), ep.voice.as_deref(), ep.source_url.as_deref()]
+            .into_iter()
+            .flatten()
+            .collect();
+        if !desc_lines.is_empty() {
+            let body = desc_lines
+                .iter()
+                .map(|l| xml_escape(l))
+                .collect::<Vec<_>>()
+                .join("\n");
+            items.push_str(&format!("<description>{body}</description>"));
         }
         if let Some(url) = &ep.source_url {
             items.push_str(&format!("<link>{}</link>", xml_escape(url)));
@@ -196,6 +205,7 @@ mod tests {
             modified: SystemTime::UNIX_EPOCH + Duration::from_secs(1_750_000_000),
             artist: None,
             summary: None,
+            voice: None,
             source_url: None,
             duration_ms: None,
         }
@@ -227,6 +237,11 @@ mod tests {
             description: "summary".into(),
             text: "The gist.".into(),
         });
+        tag.add_frame(id3::frame::Comment {
+            lang: "eng".into(),
+            description: "voice".into(),
+            text: "Narrated by en-US-JennyNeural".into(),
+        });
         tag.add_frame(id3::Frame::with_content(
             "WOAF",
             id3::Content::Link("https://example.com/old".into()),
@@ -254,6 +269,7 @@ mod tests {
         assert_eq!(old_ep.title, "Old Article");
         assert_eq!(old_ep.artist.as_deref(), Some("Jane"));
         assert_eq!(old_ep.summary.as_deref(), Some("The gist."));
+        assert_eq!(old_ep.voice.as_deref(), Some("Narrated by en-US-JennyNeural"));
         assert_eq!(old_ep.source_url.as_deref(), Some("https://example.com/old"));
         assert_eq!(old_ep.duration_ms, Some(90_000));
     }
@@ -326,13 +342,24 @@ mod tests {
         let mut e = ep("T", "t.mp3");
         e.artist = Some("Jane".into());
         e.summary = Some("A & B".into());
+        e.voice = Some("Narrated by en-US-JennyNeural".into());
         e.source_url = Some("https://example.com/x?a=1&b=2".into());
         e.duration_ms = Some(3_723_000); // 1h 2m 3s
         let xml = build_rss(&[e], "http://h:4738");
-        assert!(xml.contains("<description>A &amp; B</description>"));
+        assert!(xml.contains(
+            "<description>A &amp; B\nNarrated by en-US-JennyNeural\nhttps://example.com/x?a=1&amp;b=2</description>"
+        ));
         assert!(xml.contains("<link>https://example.com/x?a=1&amp;b=2</link>"));
         assert!(xml.contains("<itunes:author>Jane</itunes:author>"));
         assert!(xml.contains("<itunes:duration>01:02:03</itunes:duration>"));
+    }
+
+    #[test]
+    fn rss_description_appears_when_only_voice_set() {
+        let mut e = ep("T", "t.mp3");
+        e.voice = Some("Narrated by en-US-JennyNeural".into());
+        let xml = build_rss(&[e], "http://h:4738");
+        assert!(xml.contains("<description>Narrated by en-US-JennyNeural</description>"));
     }
 
     #[test]

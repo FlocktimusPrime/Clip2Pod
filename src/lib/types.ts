@@ -74,7 +74,6 @@ export interface ConfigView {
   prefix_c2p: boolean;
   author_gender: AuthorGender;
   theme: Theme;
-  global_hotkey: string;
   start_minimized: boolean;
 }
 

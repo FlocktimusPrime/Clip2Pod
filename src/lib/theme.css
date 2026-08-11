@@ -1,40 +1,38 @@
-/* Clip2Pod — broadcast production desk.
-   Two functional accents from radio hardware: amber = working light,
-   red = transmission. Labels are engraved: uppercase, letterspaced mono. */
+/* Clip2Pod theme tokens. */
 
 :root,
 :root[data-theme='dark'] {
-  --bg: #1a1917;
-  --panel: #232220;
-  --panel-raised: #2a2825;
-  --line: #3a3833;
-  --line-soft: #2e2c29;
-  --text: #e8e4da;
-  --muted: #98928a;
-  --amber: #e8a33d;
-  --amber-dim: #8a6526;
-  --onair: #e4483c;
-  --ok: #7bae6c;
-  --lamp-off: #454138;
-  --shadow: rgba(0, 0, 0, 0.5);
-  --amber-ink: #1a1917;
+  --bg: #161826;
+  --panel: #1d1f3d;
+  --panel-raised: #262a60;
+  --line: rgba(233, 233, 237, 0.16);
+  --line-soft: rgba(233, 233, 237, 0.10);
+  --text: #e9e9ed;
+  --muted: #9b9bb8;
+  --accent: #b5abfc;
+  --accent-dim: #6f63b0;
+  --accent-ink: #161826;
+  --danger: #ef5b6a;
+  --ok: #5fd0a0;
+  --idle: #3a3d5c;
+  --shadow: rgba(10, 10, 20, 0.55);
 }
 
 :root[data-theme='light'] {
-  --bg: #edeae3;
-  --panel: #f7f5f0;
-  --panel-raised: #fffdf8;
-  --line: #cdc8bc;
-  --line-soft: #ddd8cc;
-  --text: #26241f;
-  --muted: #6e685e;
-  --amber: #9a6410;
-  --amber-dim: #c8a869;
-  --onair: #c43c31;
-  --ok: #4c7a3d;
-  --lamp-off: #c9c3b5;
-  --shadow: rgba(60, 50, 30, 0.18);
-  --amber-ink: #fffdf8;
+  --bg: #f2f1fa;
+  --panel: #ffffff;
+  --panel-raised: #ffffff;
+  --line: rgba(38, 42, 96, 0.14);
+  --line-soft: rgba(38, 42, 96, 0.08);
+  --text: #1f2140;
+  --muted: #6b6d94;
+  --accent: #5b4fc4;
+  --accent-dim: #b5abfc;
+  --accent-ink: #ffffff;
+  --danger: #c8283f;
+  --ok: #2f8f6c;
+  --idle: #d8d6ec;
+  --shadow: rgba(38, 42, 96, 0.18);
 }
 
 :root {
@@ -57,7 +55,6 @@ body {
   overflow: hidden;
 }
 
-/* engraved console label */
 .label {
   font-family: var(--mono);
   font-size: 10px;
@@ -93,7 +90,7 @@ textarea {
 }
 
 .btn:hover {
-  border-color: var(--amber-dim);
+  border-color: var(--accent-dim);
 }
 
 .btn:active {
@@ -103,14 +100,14 @@ textarea {
 .btn:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
 .btn.primary {
-  background: var(--amber);
-  color: var(--amber-ink);
-  border-color: var(--amber);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
 }
 
 .btn.primary:hover {
@@ -132,7 +129,7 @@ select:focus-visible {
 }
 
 .check input {
-  accent-color: var(--amber);
+  accent-color: var(--accent);
 }
 
 .btn kbd {
@@ -158,7 +155,6 @@ select:focus-visible {
   opacity: 0.7;
 }
 
-/* modal rack unit */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -228,7 +224,7 @@ td {
 }
 
 tr.selected td {
-  background: color-mix(in srgb, var(--amber) 14%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

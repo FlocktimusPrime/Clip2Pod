@@ -72,3 +72,5 @@ export const feedUrl = () => invoke<string>("feed_url");
 export const episodeCount = () => invoke<number>("episode_count");
 
 export const deleteAllEpisodes = () => invoke<number>("delete_all_episodes");
+
+export const openFirewallPort = () => invoke<string>("open_firewall_port");
