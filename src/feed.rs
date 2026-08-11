@@ -187,10 +187,16 @@ pub fn build_rss(episodes: &[Episode], base_url: &str) -> String {
         let pub_date = chrono::DateTime::<chrono::Utc>::from(ep.modified).to_rfc2822();
         items.push_str("<item>");
         items.push_str(&format!("<title>{}</title>", xml_escape(&ep.title)));
-        if let Some(summary) = &ep.summary {
+        let description = match (&ep.summary, &ep.source_url) {
+            (Some(summary), Some(url)) => Some(format!("{summary}\n\nSource: {url}")),
+            (Some(summary), None) => Some(summary.clone()),
+            (None, Some(url)) => Some(format!("Source: {url}")),
+            (None, None) => None,
+        };
+        if let Some(description) = description {
             items.push_str(&format!(
                 "<description>{}</description>",
-                xml_escape(summary)
+                xml_escape(&description)
             ));
         }
         if let Some(url) = &ep.source_url {
@@ -406,10 +412,22 @@ mod tests {
         e.source_url = Some("https://example.com/x?a=1&b=2".into());
         e.duration_ms = Some(3_723_000); // 1h 2m 3s
         let xml = build_rss(&[e], "http://h:4740");
-        assert!(xml.contains("<description>A &amp; B</description>"));
+        // description carries the summary AND the source URL, so the video
+        // link is visible even in podcast apps that only show the description
+        assert!(xml.contains(
+            "<description>A &amp; B\n\nSource: https://example.com/x?a=1&amp;b=2</description>"
+        ));
         assert!(xml.contains("<link>https://example.com/x?a=1&amp;b=2</link>"));
         assert!(xml.contains("<itunes:author>Chan</itunes:author>"));
         assert!(xml.contains("<itunes:duration>01:02:03</itunes:duration>"));
+    }
+
+    #[test]
+    fn rss_description_falls_back_to_url_only_when_no_summary() {
+        let mut e = ep("T", "t.mp3");
+        e.source_url = Some("https://example.com/x".into());
+        let xml = build_rss(&[e], "http://h:4740");
+        assert!(xml.contains("<description>Source: https://example.com/x</description>"));
     }
 
     #[test]
