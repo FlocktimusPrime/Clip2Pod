@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
-  <img src="https://img.shields.io/badge/version-0.2.0-orange.svg" alt="Version 0.2.0">
+  <img src="https://img.shields.io/badge/version-0.3.1-orange.svg" alt="Version 0.3.1">
   <img src="https://img.shields.io/badge/Tauri-2-24C8DB.svg" alt="Tauri 2">
   <img src="https://img.shields.io/badge/Rust-stable-dea584.svg" alt="Rust">
   <img src="https://img.shields.io/badge/Svelte-5-ff3e00.svg" alt="Svelte 5">
@@ -18,7 +18,10 @@
 
 ---
 
-![Clip2Pod main window](docs/screenshots/main-window.png)
+<p align="center">
+  <img src="docs/screenshots/main-window-dark.png" alt="Clip2Pod main window, dark theme" width="49%" />
+  <img src="docs/screenshots/main-window-light.png" alt="Clip2Pod main window, light theme" width="49%" />
+</p>
 
 Clip2Pod is a desktop app for converting written content into audio. Paste an article (or send it straight from your browser), clean it up, and generate an MP3 narrated by one of Microsoft Edge's neural text-to-speech voices. Finished episodes are tagged, named safely, and served over a local RSS feed — so your phone's podcast app can subscribe and download them like any other show.
 
