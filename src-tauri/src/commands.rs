@@ -313,7 +313,6 @@ pub struct ConfigView {
     pub prefix_c2p: bool,
     pub author_gender: AuthorGender,
     pub theme: Theme,
-    pub global_hotkey: String,
     pub start_minimized: bool,
 }
 
@@ -321,22 +320,15 @@ pub struct ConfigView {
 pub fn get_config(state: State<AppState>) -> ConfigView {
     // Read config fields in a scoped lock first: output_dir() takes the
     // config lock itself, and std Mutex is not reentrant.
-    let (prefix_c2p, author_gender, theme, global_hotkey, start_minimized) = {
+    let (prefix_c2p, author_gender, theme, start_minimized) = {
         let cfg = state.config.lock().unwrap();
-        (
-            cfg.prefix_c2p,
-            cfg.author_gender,
-            cfg.theme,
-            cfg.global_hotkey.clone(),
-            cfg.start_minimized,
-        )
+        (cfg.prefix_c2p, cfg.author_gender, cfg.theme, cfg.start_minimized)
     };
     ConfigView {
         output_dir: state.output_dir().display().to_string(),
         prefix_c2p,
         author_gender,
         theme,
-        global_hotkey,
         start_minimized,
     }
 }
@@ -410,4 +402,13 @@ pub fn feed_url() -> String {
         crate::feed::lan_ip(),
         crate::feed::FEED_PORT
     )
+}
+
+/// Open the inbound firewall port the feed server listens on, so a phone's
+/// podcatcher app can reach it. Elevates per-OS; never fails the app itself.
+#[tauri::command]
+pub async fn open_firewall_port() -> CmdResult<String> {
+    tauri::async_runtime::spawn_blocking(crate::firewall::open_port)
+        .await
+        .map_err(|e| e.to_string())?
 }

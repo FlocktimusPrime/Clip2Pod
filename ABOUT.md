@@ -1,12 +1,14 @@
 # About Clip2Pod
 
+Turn any article into a narrated MP3 — and listen to it as your own private podcast feed.
+
 Clip2Pod turns clipboard text — articles, blog posts, newsletters, anything you've copied — into clean MP3 audio files you can listen to later, like a personal podcast feed. Paste text in, strip out the junk that clutters a web page (ads, bylines, "read more" links), and generate narration using Microsoft Edge's text-to-speech voices. Files are tagged and named automatically, and everything is queued in the background so you can keep working while audio renders.
 
 The core loop: **clipboard → script → voice → MP3.**
 
 ## Who it's for
 
-Anyone who wants to consume written content by ear — commuters, people who read a lot of long-form web articles, or anyone converting text into a personal audio library. It's built around a "production desk" workflow: intake text, clean it like a radio script, hand it to a voice, monitor the output queue.
+Anyone who wants to consume written content by ear — commuters, people who read a lot of long-form web articles, or anyone converting text into a personal audio library. The workflow: intake text, clean it up, hand it to a voice, monitor the output queue.
 
 ---
 
@@ -39,7 +41,7 @@ Web articles are full of boilerplate that reads badly aloud ("Getty Images", "mi
 - **Edit Junk Phrases** (`Ctrl+J`) opens an editor for the phrase list: one phrase per line, case-insensitive substring match, with a "Restore Defaults" button. Custom lists persist between sessions; if you set it back to exactly the defaults, it's stored as "using defaults" rather than a redundant copy.
 - Default junk phrases: `credit:`, `getty images`, `http`, `listen to article`, `min read`, `read more`, `read this article for free`, `related links`, `related stories`, `unsplash`, `view image in full size`, `view original`.
 
-### 4. Metadata slate
+### 4. Metadata bar
 
 Four fields above the script editor control the output file:
 
@@ -72,7 +74,7 @@ Clip2Pod deliberately avoids using the same voice every time, so a backlog of ge
 
 - **Generate MP3** (`Ctrl+Enter`) doesn't block the UI — it cleans the current text, picks a voice, and queues a job.
 - A single background worker processes jobs one at a time, in order.
-- A status lamp in the header reflects real-time state: `● IDLE`, `● QUEUED n`, or `● ON AIR` while actively encoding.
+- A status lamp in the header reflects real-time state: `● IDLE`, `● QUEUED n`, or `● RENDERING` while actively encoding.
 - **Open Queue** (`Ctrl+Q`) shows pending/in-progress jobs with status, title, output filename, voice, and timestamps.
 - **Clear Pending** cancels every job that hasn't started yet (logged as "Cancelled") without interrupting whatever job is currently rendering.
 

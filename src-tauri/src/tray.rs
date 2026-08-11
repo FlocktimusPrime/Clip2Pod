@@ -5,6 +5,11 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager};
 
+// ponytail: static light-glyph icon, not theme-reactive. Upgrade path if
+// ever reported illegible on a light taskbar: swap in the -dark variant
+// based on the OS theme at startup.
+const TRAY_ICON: &[u8] = include_bytes!("../assets/tray-icon.png");
+
 pub fn toggle_main(app: &AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
@@ -36,7 +41,7 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
     let menu = Menu::with_items(app, &[&toggle, &quit])?;
 
     TrayIconBuilder::new()
-        .icon(app.default_window_icon().expect("bundled window icon").clone())
+        .icon(tauri::image::Image::from_bytes(TRAY_ICON)?)
         .tooltip("Clip2Pod")
         .menu(&menu)
         .on_menu_event(|app, event| match event.id.as_ref() {

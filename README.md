@@ -20,7 +20,7 @@
 
 ![Clip2Pod main window](docs/screenshots/main-window.png)
 
-Clip2Pod is a desktop "production desk" for converting written content into audio. Paste an article (or send it straight from your browser), clean it up like a radio script, and generate an MP3 narrated by one of Microsoft Edge's neural text-to-speech voices. Finished episodes are tagged, named safely, and served over a local RSS feed — so your phone's podcast app can subscribe and download them like any other show.
+Clip2Pod is a desktop app for converting written content into audio. Paste an article (or send it straight from your browser), clean it up, and generate an MP3 narrated by one of Microsoft Edge's neural text-to-speech voices. Finished episodes are tagged, named safely, and served over a local RSS feed — so your phone's podcast app can subscribe and download them like any other show.
 
 **The core loop:** article → script → voice → MP3 → podcast feed.
 
@@ -31,7 +31,7 @@ Clip2Pod is a desktop "production desk" for converting written content into audi
 - **Script cleanup tools** — one-click *Clean for TTS* normalizes smart punctuation, strips emoji and decorative symbols, and collapses whitespace. A *junk phrase finder* walks you through lines that read badly aloud ("Getty Images", "min read", raw URLs…), with a fully editable phrase list.
 - **Spoken intros** — each episode opens with its title and author ("*My Title. By Jane Doe.*"), skipped automatically if the text already starts that way.
 - **A real voice library** — audition, enable, and disable any of Edge's English neural voices. Voices rotate round-robin (and alternate gender when the author's gender is unknown) so a backlog of episodes doesn't sound monotonous.
-- **Background queue** — generation never blocks the UI. A status lamp shows `IDLE` / `QUEUED n` / `ON AIR`, and a full log records every job with the voice used.
+- **Background queue** — generation never blocks the UI. A status lamp shows `IDLE` / `QUEUED n` / `RENDERING`, and a full log records every job with the voice used.
 - **Proper MP3s** — ID3 tags (title, artist, album, narrating voice), sanitized collision-safe filenames, optional `C2P_` prefix.
 - **Built-in podcast feed** — a local RSS server (port `4738`) lists every generated episode with cover art. Scan the QR code in the app with your phone and subscribe in any podcast client on your network.
 - **One-click cleanup** — once your podcatcher has downloaded the episodes, **Delete episodes** in the sidebar clears every MP3 the feed lists from the output folder. It asks for confirmation with a file count first, and never touches a file still being rendered.
@@ -95,7 +95,7 @@ The extension only acts when clicked, only on the active tab, and only talks to 
 1. Copy an article (or click the browser extension, or paste a URL into the **Intake** field and hit **Fetch**).
 2. **Paste Clipboard** (`Ctrl+Shift+V`) drops it into the editor; title and author auto-fill.
 3. Run **Find Junk** (`Ctrl+F`) to review lines that read badly aloud, deleting flagged ones with `Ctrl+D` — or skip straight to **Clean for TTS** (`Ctrl+L`).
-4. Check the metadata slate: Title and Author become ID3 tags; Author gender steers voice selection.
+4. Check the metadata bar: Title and Author become ID3 tags; Author gender steers voice selection.
 5. **Generate MP3** (`Ctrl+Enter`). The job queues, a voice is picked from the rotation, and you can keep working while it renders.
 6. The finished MP3 lands in your output folder — tagged, collision-safe, and already listed in your podcast feed.
 
@@ -136,7 +136,7 @@ A full feature walkthrough lives in [ABOUT.md](ABOUT.md).
 
 | Component | Role |
 |---|---|
-| `src/` | SvelteKit 5 frontend — editor (CodeMirror), metadata slate, dialogs |
+| `src/` | SvelteKit 5 frontend — editor (CodeMirror), metadata bar, dialogs |
 | `src-tauri/src/` | Tauri 2 shell — tray, global hotkey, capture server (`:4737`), feed server (`:4738`) |
 | `src-tauri/crates/clip2pod-core/` | Pure-Rust core — extraction, text cleaning, TTS, voice cycling, queue, tagging, feed generation |
 | `extension/` | Manifest V3 browser extension (Chrome + Firefox variants) — posts rendered page HTML to the capture server |

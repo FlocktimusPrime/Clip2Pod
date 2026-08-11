@@ -15,7 +15,7 @@
   import { app, initApp, toast } from "$lib/stores.svelte";
   import type { AuthorGender, CapturedArticle, Extracted } from "$lib/types";
   import Header from "$lib/components/Header.svelte";
-  import Slate from "$lib/components/Slate.svelte";
+  import MetaBar from "$lib/components/MetaBar.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
   import VoicesDialog from "$lib/components/VoicesDialog.svelte";
   import JunkDialog from "$lib/components/JunkDialog.svelte";
@@ -28,7 +28,7 @@
   let editorHost: HTMLDivElement;
   let view: EditorView;
 
-  const slate = $state({ title: "", author: "", filenameTitle: "" });
+  const meta = $state({ title: "", author: "", filenameTitle: "" });
 
   /** Origin URL of the current script when it came from fetch/capture. */
   let sourceUrl = $state<string | null>(null);
@@ -63,10 +63,10 @@
     if (view) clearJunkMatch(view);
   }
 
-  function resetSlate() {
-    slate.title = "";
-    slate.author = "";
-    slate.filenameTitle = "";
+  function resetMeta() {
+    meta.title = "";
+    meta.author = "";
+    meta.filenameTitle = "";
   }
 
   async function pasteClipboard() {
@@ -82,7 +82,7 @@
     }
     setText(view, text);
     sourceUrl = null;
-    resetSlate();
+    resetMeta();
     resetFind();
   }
 
@@ -159,22 +159,22 @@
     setText(view, cleaned);
     if (sourceUrl === null) {
       // Pasted text: "Title / By Author / body…" so the positional autofill applies.
-      slate.title = autofill.title;
-      slate.author = autofill.author;
-      slate.filenameTitle = autofill.filename_title;
+      meta.title = autofill.title;
+      meta.author = autofill.author;
+      meta.filenameTitle = autofill.filename_title;
     } else {
       // Extracted content: readability already separated the real title/author,
-      // so line 1 of the body is prose. Keep the slate; only fill gaps in the
-      // titles, and never guess the author from body lines.
-      if (!slate.title) slate.title = autofill.title;
-      if (!slate.filenameTitle) slate.filenameTitle = autofill.filename_title;
+      // so line 1 of the body is prose. Keep the existing fields; only fill
+      // gaps in the titles, and never guess the author from body lines.
+      if (!meta.title) meta.title = autofill.title;
+      if (!meta.filenameTitle) meta.filenameTitle = autofill.filename_title;
     }
     resetFind();
   }
 
   async function generate() {
     try {
-      await api.enqueueGenerate(getText(view), slate.title, slate.author, slate.filenameTitle, sourceUrl);
+      await api.enqueueGenerate(getText(view), meta.title, meta.author, meta.filenameTitle, sourceUrl);
       toast("Queued for narration");
     } catch (e) {
       toast(String(e), "error");
@@ -190,12 +190,12 @@
   function applyArticle({ title, author, text }: Extracted, url: string | null) {
     setText(view, text);
     sourceUrl = url;
-    resetSlate();
+    resetMeta();
     if (title) {
-      slate.title = title;
-      slate.filenameTitle = title;
+      meta.title = title;
+      meta.filenameTitle = title;
     }
-    if (author) slate.author = author;
+    if (author) meta.author = author;
     resetFind();
     toast("Article extracted — review, then clean");
   }
@@ -247,7 +247,7 @@
 
 <div class="desk">
   <Header lamp={app.lamp} onfeed={() => (app.dialog = "feed")} />
-  <Slate {slate} gender={app.config?.author_gender ?? "Unknown"} ongender={changeGender} />
+  <MetaBar {meta} gender={app.config?.author_gender ?? "Unknown"} ongender={changeGender} />
 
   <div class="deck">
     <main class="script">
@@ -325,7 +325,7 @@
     align-items: center;
     gap: 10px;
     background: var(--panel-raised);
-    border: 1px solid var(--amber-dim);
+    border: 1px solid var(--accent-dim);
     border-radius: 6px;
     padding: 8px 14px;
     font-size: 12.5px;

@@ -34,7 +34,7 @@
 </script>
 
 <aside class="side">
-  <div class="rack">
+  <div class="group">
     <span class="label">Intake</span>
     <div class="folder-row">
       <input
@@ -49,7 +49,7 @@
     </div>
   </div>
 
-  <div class="rack">
+  <div class="group">
     <span class="label">Transport</span>
     <button class="btn" onclick={onpaste}>Paste clipboard <kbd>Ctrl+Shift+V</kbd></button>
     <button class="btn" onclick={onfind}>Find junk <kbd>Ctrl+F</kbd></button>
@@ -59,8 +59,8 @@
     </button>
   </div>
 
-  <div class="rack">
-    <span class="label">Desk</span>
+  <div class="group">
+    <span class="label">Tools</span>
     <button class="btn" onclick={() => (app.dialog = "voices")}>Manage voices <kbd>Ctrl+M</kbd></button>
     <button class="btn" onclick={() => (app.dialog = "junk")}>Junk phrases <kbd>Ctrl+J</kbd></button>
     <button class="btn" onclick={() => (app.dialog = "queue")}>Queue <kbd>Ctrl+Q</kbd></button>
@@ -68,7 +68,7 @@
     <button class="btn" onclick={() => (app.dialog = "settings")}>Settings</button>
   </div>
 
-  <div class="rack">
+  <div class="group">
     <span class="label">Voices enabled</span>
     {#if app.voices}
       <p class="mono-line">
@@ -104,13 +104,13 @@
     overflow-y: auto;
   }
 
-  .rack {
+  .group {
     display: flex;
     flex-direction: column;
     gap: 5px;
   }
 
-  .rack > .label {
+  .group > .label {
     margin-bottom: 2px;
   }
 
@@ -140,11 +140,11 @@
   }
 
   .banner {
-    border: 1px solid var(--onair);
+    border: 1px solid var(--danger);
     border-radius: 4px;
     padding: 10px;
     font-size: 12px;
-    background: color-mix(in srgb, var(--onair) 10%, transparent);
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
   }
 
   .banner p {

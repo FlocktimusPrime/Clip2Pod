@@ -14,10 +14,11 @@
       {
         "title": "Clip2Pod",
         "width": 1100,
-        "height": 860,
+        "height": 660,
         "minWidth": 860,
         "minHeight": 640,
-        "visible": false
+        "visible": false,
+        "center": true
       }
     ],
     "security": {

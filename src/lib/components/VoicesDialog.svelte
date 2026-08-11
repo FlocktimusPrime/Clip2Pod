@@ -141,11 +141,11 @@
   }
 
   .arrow {
-    color: var(--amber);
+    color: var(--accent);
   }
 
   input[type="checkbox"] {
-    accent-color: var(--amber);
+    accent-color: var(--accent);
   }
 
   .empty {

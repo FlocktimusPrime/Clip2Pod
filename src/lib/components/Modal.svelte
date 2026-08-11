@@ -12,7 +12,7 @@
 
   $effect(() => dialogEl.focus());
 
-  // Keep Tab cycling inside the dialog; the desk behind it stays inert.
+  // Keep Tab cycling inside the dialog; the page behind it stays inert.
   function trapTab(e: KeyboardEvent) {
     if (e.key !== "Tab") return;
     const focusables = dialogEl.querySelectorAll<HTMLElement>(

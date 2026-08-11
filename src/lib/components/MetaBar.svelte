@@ -1,14 +1,14 @@
 <script lang="ts">
   import type { AuthorGender } from "$lib/types";
 
-  // slate is a $state proxy owned by the page; mutating its fields here
+  // meta is a $state proxy owned by the page; mutating its fields here
   // is reactive without bind:.
   let {
-    slate,
+    meta,
     gender,
     ongender,
   }: {
-    slate: { title: string; author: string; filenameTitle: string };
+    meta: { title: string; author: string; filenameTitle: string };
     gender: AuthorGender;
     ongender: (g: AuthorGender) => void;
   } = $props();
@@ -16,18 +16,18 @@
   const genders: AuthorGender[] = ["Unknown", "Male", "Female"];
 </script>
 
-<div class="slate">
+<div class="meta-bar">
   <label class="cell wide">
     <span class="label">Title</span>
-    <input class="field" bind:value={slate.title} placeholder="ID3 title tag" />
+    <input class="field" bind:value={meta.title} placeholder="ID3 title tag" />
   </label>
   <label class="cell">
     <span class="label">Author</span>
-    <input class="field" bind:value={slate.author} placeholder="ID3 artist tag" />
+    <input class="field" bind:value={meta.author} placeholder="ID3 artist tag" />
   </label>
   <label class="cell">
     <span class="label">Filename title</span>
-    <input class="field" bind:value={slate.filenameTitle} placeholder="output filename" />
+    <input class="field" bind:value={meta.filenameTitle} placeholder="output filename" />
   </label>
   <div class="cell">
     <span class="label" id="gender-label">Author gender</span>
@@ -42,7 +42,7 @@
 </div>
 
 <style>
-  .slate {
+  .meta-bar {
     display: grid;
     grid-template-columns: 2fr 1.2fr 1.2fr auto;
     gap: 10px;
@@ -78,12 +78,12 @@
   }
 
   .seg-cell.active {
-    background: var(--amber);
-    color: var(--amber-ink);
+    background: var(--accent);
+    color: var(--accent-ink);
   }
 
   @media (max-width: 900px) {
-    .slate {
+    .meta-bar {
       grid-template-columns: 1fr 1fr;
     }
   }

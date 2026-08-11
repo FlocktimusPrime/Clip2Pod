@@ -31,6 +31,20 @@
       toast(`Copy failed: ${e}`, "error");
     }
   }
+
+  let openingPort = $state(false);
+
+  async function openPort() {
+    openingPort = true;
+    try {
+      const message = await api.openFirewallPort();
+      toast(message);
+    } catch (e) {
+      toast(`${e}`, "error");
+    } finally {
+      openingPort = false;
+    }
+  }
 </script>
 
 <Modal title="Podcast feed" onclose={() => (app.dialog = null)}>
@@ -47,6 +61,12 @@
       <img class="qr" src={qr} alt="QR code for feed URL" />
     </div>
   {/if}
+  <p class="hint firewall-hint">
+    Phone can't reach the feed? It may be blocked by your firewall.
+    <button class="btn" onclick={openPort} disabled={openingPort}>
+      {openingPort ? "Opening…" : "Open firewall port"}
+    </button>
+  </p>
 </Modal>
 
 <style>
@@ -87,5 +107,13 @@
     background: #fff;
     border: 1px solid var(--line);
     border-radius: 4px;
+  }
+
+  .firewall-hint {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 </style>

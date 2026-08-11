@@ -1,6 +1,7 @@
 mod capture;
 mod commands;
 mod feed;
+mod firewall;
 mod state;
 mod tray;
 mod worker;
@@ -22,11 +23,11 @@ fn install_panic_hook(config_dir: std::path::PathBuf) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    const HOTKEY: &str = "Ctrl+Alt+G";
     let config_dir = clip2pod_core::config::default_config_dir();
     install_panic_hook(config_dir.clone());
     let config = clip2pod_core::config::load_config(&config_dir);
     let cached_voices = config.cached_voices.clone();
-    let hotkey = config.global_hotkey.clone();
     let start_minimized = config.start_minimized;
     let (wake_tx, wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -46,11 +47,18 @@ pub fn run() {
     };
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
         .plugin(shortcut_plugin)
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::POSITION
+                        | tauri_plugin_window_state::StateFlags::SIZE
+                        | tauri_plugin_window_state::StateFlags::MAXIMIZED,
+                )
+                .build(),
+        )
         .manage(AppState {
             config_dir,
             config: Mutex::new(config),
@@ -63,8 +71,8 @@ pub fn run() {
             // the tray menu is the fallback, so never let this kill startup.
             {
                 use tauri_plugin_global_shortcut::GlobalShortcutExt;
-                if let Err(e) = app.global_shortcut().register(hotkey.as_str()) {
-                    eprintln!("global hotkey '{hotkey}' not registered: {e}");
+                if let Err(e) = app.global_shortcut().register(HOTKEY) {
+                    eprintln!("global hotkey '{HOTKEY}' not registered: {e}");
                 }
             }
             worker::spawn(app.handle().clone(), wake_rx);
@@ -114,6 +122,7 @@ pub fn run() {
             commands::episode_count,
             commands::delete_all_episodes,
             commands::feed_url,
+            commands::open_firewall_port,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

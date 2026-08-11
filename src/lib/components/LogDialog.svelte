@@ -117,7 +117,7 @@
   }
 
   .arrow {
-    color: var(--amber);
+    color: var(--accent);
   }
 
   .clip {
@@ -140,7 +140,7 @@
   }
 
   .status[data-status="Queued"] {
-    color: var(--amber);
+    color: var(--accent);
   }
 
   .status[data-status="Done"] {
@@ -148,7 +148,7 @@
   }
 
   .status[data-status="Failed"] {
-    color: var(--onair);
+    color: var(--danger);
   }
 
   .status[data-status="Cancelled"] {

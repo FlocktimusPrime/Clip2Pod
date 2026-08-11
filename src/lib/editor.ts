@@ -41,20 +41,20 @@ const deskTheme = EditorView.theme({
   },
   ".cm-content": {
     fontFamily: "var(--sans)",
-    caretColor: "var(--amber)",
+    caretColor: "var(--accent)",
     padding: "10px 0",
   },
   ".cm-line": { padding: "0 12px" },
   ".cm-scroller": { overflow: "auto" },
   "&.cm-focused": { outline: "none" },
-  "&.cm-focused .cm-cursor": { borderLeftColor: "var(--amber)" },
+  "&.cm-focused .cm-cursor": { borderLeftColor: "var(--accent)" },
   "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
-    backgroundColor: "color-mix(in srgb, var(--amber) 22%, transparent) !important",
+    backgroundColor: "color-mix(in srgb, var(--accent) 22%, transparent) !important",
   },
   ".cm-placeholder": { color: "var(--muted)" },
   ".junk-hit": {
-    backgroundColor: "color-mix(in srgb, var(--onair) 30%, transparent)",
-    outline: "1px solid var(--onair)",
+    backgroundColor: "color-mix(in srgb, var(--danger) 30%, transparent)",
+    outline: "1px solid var(--danger)",
     borderRadius: "2px",
   },
 });
