@@ -21,9 +21,6 @@ pub struct Config {
     pub output_dir: Option<PathBuf>,
     pub args_template: Option<String>,
     pub theme: Theme,
-    /// Set once the bundled cover has been copied into the output dir, so a
-    /// user who deletes cover.jpg on purpose doesn't get it back every launch.
-    pub cover_installed: bool,
     /// Launch with the main window hidden — tray icon only.
     pub start_minimized: bool,
 }
@@ -124,7 +121,6 @@ mod tests {
         assert_eq!(c.theme, Theme::Dark);
         assert!(c.output_dir.is_none());
         assert!(c.args_template.is_none());
-        assert!(!c.cover_installed);
         assert!(!c.start_minimized);
     }
 
@@ -143,13 +139,11 @@ mod tests {
         c.theme = Theme::Light;
         c.args_template = Some("--extract-audio".into());
         c.output_dir = Some(PathBuf::from("/tmp/pods"));
-        c.cover_installed = true;
         save_config(dir.path(), &c).unwrap();
         let loaded = load_config(dir.path());
         assert_eq!(loaded.theme, Theme::Light);
         assert_eq!(loaded.args_template.as_deref(), Some("--extract-audio"));
         assert_eq!(loaded.output_dir.as_deref(), Some(Path::new("/tmp/pods")));
-        assert!(loaded.cover_installed);
     }
 
     #[test]
