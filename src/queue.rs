@@ -90,6 +90,11 @@ impl Queue {
 
     pub fn finish(&mut self, id: &str, result: Result<String, String>) {
         if let Some(job) = self.jobs.iter_mut().find(|j| j.id == id) {
+            if job.status == JobStatus::Cancelled {
+                // Already finalized by cancel_processing (user-initiated stop);
+                // don't let a killed process's non-zero exit relabel it Failed.
+                return;
+            }
             job.finished = Some(Utc::now());
             job.progress = JobProgress::default();
             match result {
@@ -117,6 +122,20 @@ impl Queue {
             }
         }
         cancelled
+    }
+
+    /// Cancel the currently Processing job if its id matches; the killed
+    /// subprocess's own non-zero exit is absorbed by finish()'s Cancelled guard.
+    pub fn cancel_processing(&mut self, id: &str) -> Option<Job> {
+        let job = self
+            .jobs
+            .iter_mut()
+            .find(|j| j.id == id && j.status == JobStatus::Processing)?;
+        job.status = JobStatus::Cancelled;
+        job.finished = Some(Utc::now());
+        job.detail = "Stopped by user".into();
+        job.progress = JobProgress::default();
+        Some(job.clone())
     }
 
     /// Filenames claimed by jobs still writing output (delete must skip them).
@@ -198,6 +217,41 @@ mod tests {
         assert!(cancelled.iter().all(|j| j.status == JobStatus::Cancelled));
         let still = q.jobs().iter().find(|j| j.id == processing.id).unwrap();
         assert_eq!(still.status, JobStatus::Processing);
+    }
+
+    #[test]
+    fn cancel_processing_marks_job_cancelled() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let processing = q.start_next().unwrap();
+        let cancelled = q.cancel_processing(&processing.id).unwrap();
+        assert_eq!(cancelled.status, JobStatus::Cancelled);
+        assert_eq!(cancelled.detail, "Stopped by user");
+        let still = q.jobs().iter().find(|j| j.id == processing.id).unwrap();
+        assert_eq!(still.status, JobStatus::Cancelled);
+        // Queued jobs behind it are untouched.
+        assert!(q.jobs().iter().any(|j| j.status == JobStatus::Queued));
+    }
+
+    #[test]
+    fn cancel_processing_ignores_non_matching_or_non_processing_id() {
+        let mut q = Queue::default();
+        let ids = setup_three(&mut q);
+        q.start_next().unwrap();
+        assert!(q.cancel_processing(&ids[1]).is_none()); // still Queued, not Processing
+        assert!(q.cancel_processing("no-such-id").is_none());
+    }
+
+    #[test]
+    fn finish_does_not_overwrite_cancelled() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let processing = q.start_next().unwrap();
+        q.cancel_processing(&processing.id);
+        q.finish(&processing.id, Err("yt-dlp exited with signal".into()));
+        let job = q.jobs().iter().find(|j| j.id == processing.id).unwrap();
+        assert_eq!(job.status, JobStatus::Cancelled);
+        assert_eq!(job.detail, "Stopped by user");
     }
 
     #[test]
