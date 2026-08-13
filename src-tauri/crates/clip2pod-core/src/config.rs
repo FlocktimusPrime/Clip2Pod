@@ -29,6 +29,8 @@ pub struct Config {
     pub cycling: CyclingState,
     pub cached_voices: Vec<VoiceInfo>,
     pub start_minimized: bool,
+    /// None = user hasn't answered the first-run prompt yet.
+    pub launch_at_startup: Option<bool>,
 }
 
 impl Default for Config {
@@ -43,13 +45,13 @@ impl Default for Config {
             cycling: CyclingState::default(),
             cached_voices: Vec::new(),
             start_minimized: false,
+            launch_at_startup: None,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LogStatus {
-    Queued,
     Done,
     Failed,
     Cancelled,

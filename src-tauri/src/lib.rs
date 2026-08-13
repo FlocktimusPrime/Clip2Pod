@@ -29,6 +29,7 @@ pub fn run() {
     let config = clip2pod_core::config::load_config(&config_dir);
     let cached_voices = config.cached_voices.clone();
     let start_minimized = config.start_minimized;
+    let launch_at_startup = config.launch_at_startup;
     let (wake_tx, wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
     // Intake, not generate: surface the window and let the frontend run
@@ -47,6 +48,10 @@ pub fn run() {
     };
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(shortcut_plugin)
@@ -73,6 +78,21 @@ pub fn run() {
                 use tauri_plugin_global_shortcut::GlobalShortcutExt;
                 if let Err(e) = app.global_shortcut().register(HOTKEY) {
                     eprintln!("global hotkey '{HOTKEY}' not registered: {e}");
+                }
+            }
+            // Reassert the OS-level autostart entry to match the saved
+            // preference (covers manual removal, reinstalls, etc). Unanswered
+            // (None) is left alone until the first-run prompt sets it.
+            if let Some(launch_at_startup) = launch_at_startup {
+                use tauri_plugin_autostart::ManagerExt;
+                let autolaunch = app.autolaunch();
+                let result = if launch_at_startup {
+                    autolaunch.enable()
+                } else {
+                    autolaunch.disable()
+                };
+                if let Err(e) = result {
+                    eprintln!("failed to sync autostart setting: {e}");
                 }
             }
             worker::spawn(app.handle().clone(), wake_rx);
@@ -119,6 +139,7 @@ pub fn run() {
             commands::set_author_gender,
             commands::set_theme,
             commands::set_start_minimized,
+            commands::set_launch_at_startup,
             commands::episode_count,
             commands::delete_all_episodes,
             commands::feed_url,

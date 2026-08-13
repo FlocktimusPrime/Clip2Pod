@@ -226,25 +226,13 @@ pub fn do_enqueue(
 
     let dir = state.output_dir();
 
-    let (id, filename) = {
+    let id = {
         let mut q = state.queue.lock().unwrap();
         let reserved = q.reserved_filenames();
         let filename = naming::output_filename(&dir, &filename_title, prefix, &reserved);
-        let id = q.enqueue(&title, &author, &narration, voice.clone(), &filename, source_url);
-        (id, filename)
+        q.enqueue(&title, &author, &narration, voice.clone(), &filename, source_url)
     };
 
-    log_and_emit(
-        app,
-        LogEntry {
-            timestamp: chrono::Utc::now(),
-            status: LogStatus::Queued,
-            title,
-            voice: voice.short_name,
-            filename,
-            detail: String::new(),
-        },
-    );
     emit_lamp(app);
     emit_queue(app);
     let _ = state.wake_worker.send(());
@@ -314,15 +302,22 @@ pub struct ConfigView {
     pub author_gender: AuthorGender,
     pub theme: Theme,
     pub start_minimized: bool,
+    pub launch_at_startup: Option<bool>,
 }
 
 #[tauri::command]
 pub fn get_config(state: State<AppState>) -> ConfigView {
     // Read config fields in a scoped lock first: output_dir() takes the
     // config lock itself, and std Mutex is not reentrant.
-    let (prefix_c2p, author_gender, theme, start_minimized) = {
+    let (prefix_c2p, author_gender, theme, start_minimized, launch_at_startup) = {
         let cfg = state.config.lock().unwrap();
-        (cfg.prefix_c2p, cfg.author_gender, cfg.theme, cfg.start_minimized)
+        (
+            cfg.prefix_c2p,
+            cfg.author_gender,
+            cfg.theme,
+            cfg.start_minimized,
+            cfg.launch_at_startup,
+        )
     };
     ConfigView {
         output_dir: state.output_dir().display().to_string(),
@@ -330,6 +325,7 @@ pub fn get_config(state: State<AppState>) -> ConfigView {
         author_gender,
         theme,
         start_minimized,
+        launch_at_startup,
     }
 }
 
@@ -361,6 +357,17 @@ pub fn set_theme(state: State<AppState>, theme: Theme) {
 pub fn set_start_minimized(state: State<AppState>, minimized: bool) {
     state.config.lock().unwrap().start_minimized = minimized;
     state.save_config();
+}
+
+#[tauri::command]
+pub fn set_launch_at_startup(app: AppHandle, state: State<AppState>, enabled: bool) -> CmdResult<()> {
+    use tauri_plugin_autostart::ManagerExt;
+    let autolaunch = app.autolaunch();
+    let result = if enabled { autolaunch.enable() } else { autolaunch.disable() };
+    result.map_err(|e| e.to_string())?;
+    state.config.lock().unwrap().launch_at_startup = Some(enabled);
+    state.save_config();
+    Ok(())
 }
 
 /// How many mp3s the feed currently lists; feeds the delete confirmation.

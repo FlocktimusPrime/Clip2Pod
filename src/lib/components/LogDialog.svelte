@@ -139,10 +139,6 @@
     text-transform: uppercase;
   }
 
-  .status[data-status="Queued"] {
-    color: var(--accent);
-  }
-
   .status[data-status="Done"] {
     color: var(--ok);
   }
