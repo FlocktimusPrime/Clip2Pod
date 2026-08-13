@@ -24,6 +24,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 clip2pod-core = { path = "crates/clip2pod-core" }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-autostart = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"

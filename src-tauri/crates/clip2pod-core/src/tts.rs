@@ -84,10 +84,12 @@ fn chunk_text(text: &str) -> Vec<String> {
         }
     };
 
-    for sentence in split_sentences(text) {
+    let mut prev_ended_with_punct = true; // no separator needed before the first sentence
+    for (sentence, ends_with_punct) in split_sentences(text) {
         if sentence.chars().count() > MAX_CHUNK_CHARS {
             flush(&mut cur, &mut chunks);
             chunks.extend(word_pack(&sentence));
+            prev_ended_with_punct = true;
             continue;
         }
         let sep = usize::from(!cur.is_empty());
@@ -95,17 +97,25 @@ fn chunk_text(text: &str) -> Vec<String> {
             flush(&mut cur, &mut chunks);
         }
         if !cur.is_empty() {
+            // A line break with no terminal punctuation (e.g. a heading) gets
+            // a synthetic period so the TTS engine pauses the same way it
+            // would after a real sentence, instead of running straight on.
+            if !prev_ended_with_punct {
+                cur.push('.');
+            }
             cur.push(' ');
         }
         cur.push_str(&sentence);
+        prev_ended_with_punct = ends_with_punct;
     }
     flush(&mut cur, &mut chunks);
     chunks
 }
 
 /// Split on terminal punctuation and newlines, keeping the delimiter with
-/// its sentence. Blank spans are dropped.
-fn split_sentences(text: &str) -> Vec<String> {
+/// its sentence. Blank spans are dropped. Each segment reports whether it
+/// ended because of `. ! ?` (true) or a bare newline (false).
+fn split_sentences(text: &str) -> Vec<(String, bool)> {
     let mut out = Vec::new();
     let mut cur = String::new();
     for c in text.chars() {
@@ -113,14 +123,14 @@ fn split_sentences(text: &str) -> Vec<String> {
         if matches!(c, '.' | '!' | '?' | '\n') {
             let trimmed = cur.trim();
             if !trimmed.is_empty() {
-                out.push(trimmed.to_string());
+                out.push((trimmed.to_string(), c != '\n'));
             }
             cur.clear();
         }
     }
     let trimmed = cur.trim();
     if !trimmed.is_empty() {
-        out.push(trimmed.to_string());
+        out.push((trimmed.to_string(), true));
     }
     out
 }
@@ -225,6 +235,20 @@ mod tests {
     fn short_text_is_a_single_chunk() {
         let chunks = chunk_text("Hello world. This is fine.");
         assert_eq!(chunks, vec!["Hello world. This is fine.".to_string()]);
+    }
+
+    #[test]
+    fn heading_without_punctuation_gets_synthetic_pause() {
+        // A subheading with no terminal punctuation, followed by body text,
+        // must not run straight into the next line.
+        let chunks = chunk_text("Section One\nThe body text starts here.");
+        assert_eq!(chunks, vec!["Section One. The body text starts here.".to_string()]);
+    }
+
+    #[test]
+    fn punctuated_line_break_is_not_double_punctuated() {
+        let chunks = chunk_text("Sentence one.\nSentence two.");
+        assert_eq!(chunks, vec!["Sentence one. Sentence two.".to_string()]);
     }
 
     #[test]

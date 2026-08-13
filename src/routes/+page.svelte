@@ -23,6 +23,7 @@
   import LogDialog from "$lib/components/LogDialog.svelte";
   import FeedDialog from "$lib/components/FeedDialog.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
+  import StartupPromptDialog from "$lib/components/StartupPromptDialog.svelte";
   import Toasts from "$lib/components/Toasts.svelte";
 
   let editorHost: HTMLDivElement;
@@ -285,6 +286,8 @@
   <FeedDialog />
 {:else if app.dialog === "settings"}
   <SettingsDialog />
+{:else if app.dialog === "startup-prompt"}
+  <StartupPromptDialog />
 {/if}
 
 <Toasts />

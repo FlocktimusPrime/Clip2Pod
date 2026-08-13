@@ -27,6 +27,13 @@
     await api.setStartMinimized(on);
   }
 
+  async function toggleLaunchAtStartup(e: Event) {
+    if (!app.config) return;
+    const on = (e.currentTarget as HTMLInputElement).checked;
+    app.config.launch_at_startup = on;
+    await api.setLaunchAtStartup(on);
+  }
+
   async function switchTheme(theme: Theme) {
     if (app.config) app.config.theme = theme;
     applyTheme(theme);
@@ -93,6 +100,14 @@
         onchange={toggleStartMinimized}
       />
       <span>Start minimized to tray</span>
+    </label>
+    <label class="check">
+      <input
+        type="checkbox"
+        checked={app.config?.launch_at_startup ?? false}
+        onchange={toggleLaunchAtStartup}
+      />
+      <span>Launch Clip2Pod when you sign in</span>
     </label>
   </div>
 

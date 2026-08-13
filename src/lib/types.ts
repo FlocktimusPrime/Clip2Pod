@@ -40,7 +40,7 @@ export interface Job {
   detail: string;
 }
 
-export type LogStatus = "Queued" | "Done" | "Failed" | "Cancelled";
+export type LogStatus = "Done" | "Failed" | "Cancelled";
 
 export interface LogEntry {
   timestamp: string;
@@ -75,6 +75,7 @@ export interface ConfigView {
   author_gender: AuthorGender;
   theme: Theme;
   start_minimized: boolean;
+  launch_at_startup: boolean | null;
 }
 
 export interface Extracted {

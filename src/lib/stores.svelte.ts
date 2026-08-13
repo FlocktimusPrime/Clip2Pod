@@ -5,7 +5,15 @@ import { listen } from "@tauri-apps/api/event";
 import * as api from "./api";
 import type { ConfigView, Job, Lamp, LogEntry, Theme, VoicesView } from "./types";
 
-export type DialogName = "voices" | "junk" | "queue" | "log" | "feed" | "settings" | null;
+export type DialogName =
+  | "voices"
+  | "junk"
+  | "queue"
+  | "log"
+  | "feed"
+  | "settings"
+  | "startup-prompt"
+  | null;
 
 export const app = $state({
   lamp: { state: "Idle" } as Lamp,
@@ -59,4 +67,5 @@ export async function initApp() {
   app.queue = await api.getQueue();
   app.log = await api.getLog("");
   await loadVoices(false);
+  if (app.config.launch_at_startup === null) app.dialog = "startup-prompt";
 }
