@@ -23,6 +23,8 @@ pub struct Config {
     pub theme: Theme,
     /// Launch with the main window hidden — tray icon only.
     pub start_minimized: bool,
+    /// None = user hasn't answered the first-run prompt yet.
+    pub launch_at_startup: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
