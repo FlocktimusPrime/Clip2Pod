@@ -40,6 +40,11 @@ export interface Job {
   detail: string;
 }
 
+export interface RenderProgress {
+  done: number;
+  total: number;
+}
+
 export type LogStatus = "Done" | "Failed" | "Cancelled";
 
 export interface LogEntry {

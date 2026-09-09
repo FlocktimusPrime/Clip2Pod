@@ -58,4 +58,12 @@
       opacity: 0.75;
     }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* Drop the pulse; a steady bright halo still separates ON AIR from QUEUED. */
+    .lamp[data-state="OnAir"] .bulb {
+      animation: none;
+      box-shadow: 0 0 12px var(--danger);
+    }
+  }
 </style>

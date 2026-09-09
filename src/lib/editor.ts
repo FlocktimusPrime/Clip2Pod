@@ -77,6 +77,10 @@ export function createEditor(parent: HTMLElement): EditorView {
 
 export const getText = (view: EditorView) => view.state.doc.toString();
 
+/** Currently selected text (empty string when the selection is a caret). */
+export const getSelection = (view: EditorView) =>
+  view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to);
+
 export function setText(view: EditorView, text: string) {
   view.dispatch({
     changes: { from: 0, to: view.state.doc.length, insert: text },
@@ -86,17 +90,34 @@ export function setText(view: EditorView, text: string) {
 
 export const deleteCurrentLine = (view: EditorView) => deleteLine(view);
 
+/** Char range of `phrase` within `text` (case-insensitive). A `*` in the
+ *  phrase matches any run of characters. Null when it isn't found. */
+function locatePhrase(text: string, phrase: string): { from: number; to: number } | null {
+  const lower = text.toLowerCase();
+  if (!phrase.includes("*")) {
+    const at = lower.indexOf(phrase.toLowerCase());
+    return at >= 0 ? { from: at, to: at + phrase.length } : null;
+  }
+  const pattern = phrase
+    .toLowerCase()
+    .split("*")
+    .filter(Boolean)
+    .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join(".*?");
+  const m = pattern ? new RegExp(pattern).exec(lower) : null;
+  return m ? { from: m.index, to: m.index + m[0].length } : null;
+}
+
 /**
- * Select the matched line and highlight the phrase inside it. The byte
- * offsets from Rust don't translate to UTF-16, so the phrase is re-located
- * with a case-insensitive search in JS.
+ * Select the matched line and highlight the phrase inside it. The offsets
+ * from Rust don't translate to UTF-16, so the phrase is re-located in JS.
  */
 export function showJunkMatch(view: EditorView, lineIdx: number, phrase: string) {
   if (lineIdx >= view.state.doc.lines) return;
   const line = view.state.doc.line(lineIdx + 1);
-  const at = line.text.toLowerCase().indexOf(phrase.toLowerCase());
+  const hit = locatePhrase(line.text, phrase);
   const effects: StateEffect<unknown>[] = [
-    setJunkHighlight.of(at >= 0 ? { from: line.from + at, to: line.from + at + phrase.length } : null),
+    setJunkHighlight.of(hit ? { from: line.from + hit.from, to: line.from + hit.to } : null),
     EditorView.scrollIntoView(line.from, { y: "center" }),
   ];
   view.dispatch({ selection: { anchor: line.from, head: line.to }, effects });

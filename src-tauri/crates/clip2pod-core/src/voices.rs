@@ -43,12 +43,28 @@ pub fn filter_narration_voices(all: Vec<VoiceInfo>) -> Vec<VoiceInfo> {
         .collect()
 }
 
-/// Out-of-the-box enabled set: standard en-US voices, excluding the
-/// "Multilingual" variants (duplicates of the standard voice).
+/// Curated out-of-the-box voice pool: a hand-picked, gender-balanced set of
+/// en-US neural voices. Anything not in the current catalog simply drops out.
+pub const DEFAULT_VOICE_SHORT_NAMES: [&str; 10] = [
+    "en-US-AvaNeural",
+    "en-US-AndrewNeural",
+    "en-US-EmmaNeural",
+    "en-US-BrianNeural",
+    "en-US-AriaNeural",
+    "en-US-ChristopherNeural",
+    "en-US-EricNeural",
+    "en-US-JennyNeural",
+    "en-US-MichelleNeural",
+    "en-US-SteffanNeural",
+];
+
+/// Out-of-the-box enabled set: the curated pool intersected with the live
+/// catalog (a renamed or pulled voice just drops out instead of enabling none).
 pub fn default_enabled(voices: &[VoiceInfo]) -> HashSet<String> {
+    let want: HashSet<&str> = DEFAULT_VOICE_SHORT_NAMES.iter().copied().collect();
     voices
         .iter()
-        .filter(|v| v.locale == "en-US" && !v.short_name.contains("Multilingual"))
+        .filter(|v| want.contains(v.short_name.as_str()))
         .map(|v| v.short_name.clone())
         .collect()
 }
@@ -145,13 +161,20 @@ mod tests {
     }
 
     #[test]
-    fn default_enabled_is_standard_en_us_without_multilingual() {
+    fn default_enabled_is_the_curated_pool_intersected_with_the_catalog() {
         let mut voices = pool();
+        voices.push(v("en-US-AvaNeural", Gender::Female, "en-US", "General"));
         voices.push(v("en-US-EmmaMultilingualNeural", Gender::Female, "en-US", "General"));
         let def = default_enabled(&voices);
-        assert!(def.contains("en-US-GuyNeural"));
+        // curated + present in catalog
         assert!(def.contains("en-US-JennyNeural"));
-        assert!(!def.contains("en-GB-RyanNeural"));
+        assert!(def.contains("en-US-AriaNeural"));
+        assert!(def.contains("en-US-AvaNeural"));
+        // en-US but not curated
+        assert!(!def.contains("en-US-GuyNeural"));
+        assert!(!def.contains("en-US-DavisNeural"));
+        // curated name never enabled unless the catalog actually offers it
+        assert!(!def.contains("en-US-SteffanNeural"));
         assert!(!def.contains("en-US-EmmaMultilingualNeural"));
     }
 

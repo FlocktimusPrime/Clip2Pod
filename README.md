@@ -31,13 +31,13 @@ Clip2Pod is a desktop app for converting written content into audio. Paste an ar
 
 - **Four ways in** — paste from the clipboard (`Ctrl+Shift+V`), fetch an article by URL, press the global hotkey (`Ctrl+Alt+G`) from anywhere, or click the companion browser extension to send the page you're reading (paywalled content included, since it captures your logged-in session).
 - **Readability extraction** — web pages are boiled down to title, author, and article text; navigation, ads, and boilerplate are stripped automatically.
-- **Script cleanup tools** — one-click *Clean for TTS* normalizes smart punctuation, strips emoji and decorative symbols, and collapses whitespace. A *junk phrase finder* walks you through lines that read badly aloud ("Getty Images", "min read", raw URLs…), with a fully editable phrase list.
+- **Script cleanup tools** — one-click *Clean for TTS* normalizes smart punctuation, strips emoji and decorative symbols, and collapses whitespace. A *junk phrase finder* walks you through lines that read badly aloud ("Getty Images", "min read", raw URLs…), with a fully editable phrase list that supports `*` wildcards. Highlight any stray line and press `Ctrl+K` to add it, or let *Suggest Junk* scan the script for boilerplate.
 - **Spoken intros** — each episode opens with its title and author ("*My Title. By Jane Doe.*"), skipped automatically if the text already starts that way.
 - **A real voice library** — audition, enable, and disable any of Edge's English neural voices. Voices rotate round-robin (and alternate gender when the author's gender is unknown) so a backlog of episodes doesn't sound monotonous.
-- **Background queue** — generation never blocks the UI. A status lamp shows `IDLE` / `QUEUED n` / `RENDERING`, and a full log records every job with the voice used.
+- **Background queue** — generation never blocks the UI. A status lamp shows `IDLE` / `QUEUED n` / `RENDERING`, a bar under the editor lists what's rendering (with chunk progress %), waiting, or failed plus the last success, lets you **Cancel** the current render, and a full log records every job with the voice used.
 - **Proper MP3s** — ID3 tags (title, artist, album, narrating voice), sanitized collision-safe filenames, optional `C2P_` prefix.
 - **Built-in podcast feed** — a local RSS server (port `4738`) lists every generated episode with cover art. Scan the QR code in the app with your phone and subscribe in any podcast client on your network.
-- **One-click cleanup** — once your podcatcher has downloaded the episodes, **Delete episodes** in the sidebar clears every MP3 the feed lists from the output folder. It asks for confirmation with a file count first, and never touches a file still being rendered.
+- **One-click cleanup** — once your podcatcher has downloaded the episodes, **Delete episodes** in the Queue bar clears every MP3 the feed lists from the output folder. It asks for confirmation with a file count first, and never touches a file still being rendered.
 - **Quality of life** — light/dark themes, system tray (closing the window keeps it running), and every setting persisted between sessions.
 
 ## Installation
@@ -107,7 +107,7 @@ The extension only acts when clicked, only on the active tab, and only talks to 
 1. Click **Feed** in the header.
 2. Scan the QR code with your phone (or type the shown `http://<your-ip>:4738/feed.xml` URL into any podcast app).
 3. Episodes appear as they're generated. Your phone must be on the same network as the desktop app.
-4. After your podcast app has downloaded the episodes, click **Delete episodes** in the sidebar's Output section to clear them from the output folder — a confirmation shows how many files will be removed.
+4. After your podcast app has downloaded the episodes, click **Delete episodes** in the Queue bar under the editor to clear them from the output folder — a confirmation shows how many files will be removed.
 
 ### Keyboard shortcuts
 
@@ -116,12 +116,13 @@ The extension only acts when clicked, only on the active tab, and only talks to 
 | `Ctrl+Alt+G` | **Global** — summon Clip2Pod and paste the clipboard, from any app |
 | `Ctrl+Shift+V` | Paste clipboard (replaces editor) |
 | `Ctrl+F` | Find next junk phrase |
+| `Ctrl+K` | Add selection as junk phrase |
+| `Ctrl+Shift+K` | Suggest junk phrases from the script |
 | `Ctrl+D` | Delete current line |
 | `Ctrl+L` | Clean text for TTS |
 | `Ctrl+Enter` | Generate MP3 |
 | `Ctrl+J` | Edit junk phrases |
 | `Ctrl+M` | Manage voices |
-| `Ctrl+Q` | Open generation queue |
 | `Ctrl+Shift+L` | Open generation log |
 
 A full feature walkthrough lives in [ABOUT.md](ABOUT.md).

@@ -1,7 +1,9 @@
 use crate::state::AppState;
 use clip2pod_core::config::{append_log, LogEntry, LogStatus};
-use clip2pod_core::queue::Job;
+use clip2pod_core::queue::{Job, JobStatus};
+use clip2pod_core::tts::TtsError;
 use serde::Serialize;
+use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::UnboundedReceiver;
 
@@ -11,6 +13,20 @@ pub enum Lamp {
     Idle,
     Queued(usize),
     OnAir,
+}
+
+/// Per-chunk render progress, pushed to the footer while a job encodes.
+#[derive(Serialize, Clone)]
+struct Progress {
+    done: usize,
+    total: usize,
+}
+
+/// Why a render stopped short.
+enum RenderErr {
+    /// User hit Cancel — the job lands as Cancelled, not Failed.
+    Cancelled,
+    Failed(String),
 }
 
 pub fn emit_lamp(app: &AppHandle) {
@@ -40,21 +56,28 @@ pub fn log_and_emit(app: &AppHandle, entry: LogEntry) {
     let _ = app.emit("log-appended", entry);
 }
 
-async fn render_job(app: &AppHandle, job: &Job) -> Result<(), String> {
+async fn render_job(app: &AppHandle, job: &Job) -> Result<(), RenderErr> {
     let state = app.state::<AppState>();
     let dir = state.output_dir();
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| RenderErr::Failed(e.to_string()))?;
     let out_path = dir.join(&job.filename);
 
     let voice_name = job.voice.name.clone();
     let text = job.text.clone();
     let path = out_path.clone();
+    let cancel = state.cancel_flag.clone();
+    let progress_app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        clip2pod_core::tts::synthesize_to_file(&voice_name, &text, &path)
+        clip2pod_core::tts::synthesize_to_file_cb(&voice_name, &text, &path, &cancel, |done, total| {
+            let _ = progress_app.emit("render-progress", Progress { done, total });
+        })
     })
     .await
-    .map_err(|e| e.to_string())?
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| RenderErr::Failed(e.to_string()))?
+    .map_err(|e| match e {
+        TtsError::Cancelled => RenderErr::Cancelled,
+        other => RenderErr::Failed(other.to_string()),
+    })?;
 
     // Tagging is best-effort per spec: keep the MP3 on failure.
     let summary = clip2pod_core::textclean::summary_snippet(&job.text);
@@ -85,25 +108,31 @@ pub fn spawn(app: AppHandle, mut wake: UnboundedReceiver<()>) {
                     q.start_next()
                 };
                 let Some(job) = job else { break };
+                // Fresh cancel flag for this job; a stray Cancel from before
+                // must not abort the one that just started.
+                app.state::<AppState>().cancel_flag.store(false, Ordering::Relaxed);
                 emit_lamp(&app);
                 emit_queue(&app);
 
                 let result = render_job(&app, &job).await;
 
+                let (queue_status, log_status, detail) = match result {
+                    Ok(()) => (JobStatus::Done, LogStatus::Done, String::new()),
+                    Err(RenderErr::Cancelled) => {
+                        (JobStatus::Cancelled, LogStatus::Cancelled, "Cancelled".to_string())
+                    }
+                    Err(RenderErr::Failed(e)) => (JobStatus::Failed, LogStatus::Failed, e),
+                };
                 {
                     let state = app.state::<AppState>();
                     let mut q = state.queue.lock().unwrap();
-                    q.finish(&job.id, result.clone());
+                    q.finish(&job.id, queue_status, detail.clone());
                 }
-                let (status, detail) = match &result {
-                    Ok(()) => (LogStatus::Done, String::new()),
-                    Err(e) => (LogStatus::Failed, e.clone()),
-                };
                 log_and_emit(
                     &app,
                     LogEntry {
                         timestamp: chrono::Utc::now(),
-                        status,
+                        status: log_status,
                         title: job.title.clone(),
                         voice: job.voice.short_name.clone(),
                         filename: job.filename.clone(),

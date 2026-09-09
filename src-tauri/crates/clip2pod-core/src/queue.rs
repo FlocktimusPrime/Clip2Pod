@@ -71,16 +71,14 @@ impl Queue {
         Some(job.clone())
     }
 
-    pub fn finish(&mut self, id: &str, result: Result<(), String>) {
+    /// Record a terminal state for the job. `status` is one of Done / Failed /
+    /// Cancelled; `detail` carries the error or cancellation note (empty for
+    /// Done).
+    pub fn finish(&mut self, id: &str, status: JobStatus, detail: String) {
         if let Some(job) = self.jobs.iter_mut().find(|j| j.id == id) {
             job.finished = Some(Utc::now());
-            match result {
-                Ok(()) => job.status = JobStatus::Done,
-                Err(detail) => {
-                    job.status = JobStatus::Failed;
-                    job.detail = detail;
-                }
-            }
+            job.status = status;
+            job.detail = detail;
         }
     }
 
@@ -149,7 +147,7 @@ mod tests {
         let j1 = q.start_next().unwrap();
         assert_eq!(j1.id, ids[0]);
         assert_eq!(j1.status, JobStatus::Processing);
-        q.finish(&j1.id, Ok(()));
+        q.finish(&j1.id, JobStatus::Done, String::new());
         let j2 = q.start_next().unwrap();
         assert_eq!(j2.id, ids[1]);
     }
@@ -159,10 +157,21 @@ mod tests {
         let mut q = Queue::default();
         setup_three(&mut q);
         let j = q.start_next().unwrap();
-        q.finish(&j.id, Err("network down".into()));
+        q.finish(&j.id, JobStatus::Failed, "network down".into());
         let job = q.jobs().iter().find(|x| x.id == j.id).unwrap();
         assert_eq!(job.status, JobStatus::Failed);
         assert_eq!(job.detail, "network down");
+        assert!(job.finished.is_some());
+    }
+
+    #[test]
+    fn finish_can_mark_cancelled() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let j = q.start_next().unwrap();
+        q.finish(&j.id, JobStatus::Cancelled, "Cancelled".into());
+        let job = q.jobs().iter().find(|x| x.id == j.id).unwrap();
+        assert_eq!(job.status, JobStatus::Cancelled);
         assert!(job.finished.is_some());
     }
 
@@ -184,7 +193,7 @@ mod tests {
         let mut q = Queue::default();
         setup_three(&mut q);
         let j = q.start_next().unwrap();
-        q.finish(&j.id, Ok(()));
+        q.finish(&j.id, JobStatus::Done, String::new());
         q.start_next().unwrap();
         let reserved = q.reserved_filenames();
         assert_eq!(reserved, vec!["t1.mp3".to_string(), "t2.mp3".to_string()]);

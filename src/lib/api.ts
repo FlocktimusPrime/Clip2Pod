@@ -23,6 +23,10 @@ export const getJunkPhrases = () => invoke<string[]>("get_junk_phrases");
 
 export const setJunkPhrases = (phrases: string[]) => invoke<void>("set_junk_phrases", { phrases });
 
+export const defaultJunkPhrases = () => invoke<string[]>("default_junk_phrases");
+
+export const suggestJunk = (text: string) => invoke<string[]>("suggest_junk", { text });
+
 export const listVoices = (refresh: boolean) => invoke<VoicesView>("list_voices", { refresh });
 
 export const setVoiceEnabled = (shortName: string, enabled: boolean) =>
@@ -46,6 +50,8 @@ export const enqueueGenerate = (
 export const getQueue = () => invoke<Job[]>("get_queue");
 
 export const clearPending = () => invoke<void>("clear_pending");
+
+export const cancelCurrent = () => invoke<void>("cancel_current");
 
 export const getLog = (query: string) => invoke<LogEntry[]>("get_log", { query });
 

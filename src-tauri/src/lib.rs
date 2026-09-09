@@ -70,6 +70,7 @@ pub fn run() {
             queue: Mutex::new(Default::default()),
             voices: Mutex::new(cached_voices),
             wake_worker: wake_tx,
+            cancel_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         })
         .setup(move |app| {
             // Registration can fail (hotkey taken by another app, Wayland, …) —
@@ -122,6 +123,8 @@ pub fn run() {
             commands::find_junk,
             commands::get_junk_phrases,
             commands::set_junk_phrases,
+            commands::default_junk_phrases,
+            commands::suggest_junk,
             commands::list_voices,
             commands::set_voice_enabled,
             commands::enable_all_voices,
@@ -131,6 +134,7 @@ pub fn run() {
             commands::extract_url,
             commands::get_queue,
             commands::clear_pending,
+            commands::cancel_current,
             commands::get_log,
             commands::clear_log,
             commands::get_config,
