@@ -2,7 +2,7 @@
   import { app } from "$lib/stores.svelte";
 </script>
 
-<div class="toasts">
+<div class="toasts" role="status" aria-live="polite" aria-atomic="false">
   {#each app.toasts as t (t.id)}
     <div class="toast" data-kind={t.kind}>{t.text}</div>
   {/each}
@@ -29,6 +29,27 @@
     max-width: 340px;
     overflow-wrap: anywhere;
     position: relative;
+    animation: toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateX(12px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* still fade in so the message registers — just don't travel */
+    .toast {
+      animation-name: toast-fade;
+    }
+  }
+
+  @keyframes toast-fade {
+    from {
+      opacity: 0;
+    }
   }
 
   .toast::before {

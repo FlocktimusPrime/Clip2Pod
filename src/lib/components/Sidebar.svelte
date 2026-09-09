@@ -7,12 +7,16 @@
     onclean,
     ongenerate,
     onfetch,
+    onaddjunk,
+    onsuggestjunk,
   }: {
     onpaste: () => void;
     onfind: () => void;
     onclean: () => void;
     ongenerate: () => void;
     onfetch: (url: string) => Promise<void>;
+    onaddjunk: () => void;
+    onsuggestjunk: () => void;
   } = $props();
 
   let url = $state("");
@@ -52,7 +56,6 @@
   <div class="group">
     <span class="label">Transport</span>
     <button class="btn" onclick={onpaste}>Paste clipboard <kbd>Ctrl+Shift+V</kbd></button>
-    <button class="btn" onclick={onfind}>Find junk <kbd>Ctrl+F</kbd></button>
     <button class="btn" onclick={onclean}>Clean for TTS <kbd>Ctrl+L</kbd></button>
     <button class="btn primary" onclick={ongenerate} disabled={!canGenerate}>
       Generate MP3 <kbd>Ctrl+Enter</kbd>
@@ -60,10 +63,16 @@
   </div>
 
   <div class="group">
+    <span class="label">Junk</span>
+    <button class="btn" onclick={onsuggestjunk}>Suggest junk <kbd>Ctrl+Shift+K</kbd></button>
+    <button class="btn" onclick={onfind}>Find junk <kbd>Ctrl+F</kbd></button>
+    <button class="btn" onclick={onaddjunk}>Add junk phrase <kbd>Ctrl+K</kbd></button>
+  </div>
+
+  <div class="group">
     <span class="label">Tools</span>
     <button class="btn" onclick={() => (app.dialog = "voices")}>Manage voices <kbd>Ctrl+M</kbd></button>
     <button class="btn" onclick={() => (app.dialog = "junk")}>Junk phrases <kbd>Ctrl+J</kbd></button>
-    <button class="btn" onclick={() => (app.dialog = "queue")}>Queue <kbd>Ctrl+Q</kbd></button>
     <button class="btn" onclick={() => (app.dialog = "log")}>Log <kbd>Ctrl+Shift+L</kbd></button>
     <button class="btn" onclick={() => (app.dialog = "settings")}>Settings</button>
   </div>

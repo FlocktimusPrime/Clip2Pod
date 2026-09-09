@@ -3,7 +3,8 @@ use clip2pod_core::queue::Queue;
 use clip2pod_core::voices::VoiceInfo;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct AppState {
@@ -14,6 +15,9 @@ pub struct AppState {
     pub voices: Mutex<Vec<VoiceInfo>>,
     /// Wakes the TTS worker when jobs are enqueued.
     pub wake_worker: UnboundedSender<()>,
+    /// Set by the Cancel command; the worker clears it before each job and the
+    /// synth loop checks it between chunks.
+    pub cancel_flag: Arc<AtomicBool>,
 }
 
 impl AppState {

@@ -1,5 +1,6 @@
 use crate::voices::{Gender, VoiceInfo};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Debug, thiserror::Error)]
 pub enum TtsError {
@@ -7,6 +8,8 @@ pub enum TtsError {
     Service(String),
     #[error("no audio returned for voice {0}")]
     EmptyAudio(String),
+    #[error("render cancelled")]
+    Cancelled,
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }
@@ -164,6 +167,20 @@ fn word_pack(text: &str) -> Vec<String> {
 /// concatenated — valid because every chunk uses the same constant-bitrate
 /// format.
 pub fn synthesize_bytes(voice_name: &str, text: &str) -> Result<Vec<u8>, TtsError> {
+    synthesize_bytes_cb(voice_name, text, &AtomicBool::new(false), |_, _| {})
+}
+
+/// Like `synthesize_bytes`, but checks `cancel` before each chunk (returning
+/// `TtsError::Cancelled`) and calls `on_progress(chunks_done, chunks_total)`
+/// after each one.
+// ponytail: cancellation lands between chunks, not mid-chunk — a websocket
+// turn already in flight finishes before the loop bails.
+pub fn synthesize_bytes_cb(
+    voice_name: &str,
+    text: &str,
+    cancel: &AtomicBool,
+    on_progress: impl Fn(usize, usize),
+) -> Result<Vec<u8>, TtsError> {
     let config = msedge_tts::tts::SpeechConfig {
         voice_name: voice_name.to_string(),
         audio_format: "audio-24khz-48kbitrate-mono-mp3".to_string(),
@@ -181,8 +198,13 @@ pub fn synthesize_bytes(voice_name: &str, text: &str) -> Result<Vec<u8>, TtsErro
         return Err(TtsError::EmptyAudio(voice_name.to_string()));
     }
 
+    let total = chunks.len();
+    on_progress(0, total);
     let mut out = Vec::new();
-    for chunk in &chunks {
+    for (i, chunk) in chunks.iter().enumerate() {
+        if cancel.load(Ordering::Relaxed) {
+            return Err(TtsError::Cancelled);
+        }
         // Fresh connection per chunk: the client returns once a turn ends and
         // its socket state afterward is not guaranteed reusable.
         let mut client =
@@ -194,13 +216,26 @@ pub fn synthesize_bytes(voice_name: &str, text: &str) -> Result<Vec<u8>, TtsErro
             return Err(TtsError::EmptyAudio(voice_name.to_string()));
         }
         out.extend_from_slice(&audio.audio_bytes);
+        on_progress(i + 1, total);
     }
     Ok(out)
 }
 
 /// Synthesize straight to an MP3 file.
 pub fn synthesize_to_file(voice_name: &str, text: &str, out_path: &Path) -> Result<(), TtsError> {
-    let bytes = synthesize_bytes(voice_name, text)?;
+    synthesize_to_file_cb(voice_name, text, out_path, &AtomicBool::new(false), |_, _| {})
+}
+
+/// `synthesize_to_file` with cancellation + progress. The file is written only
+/// after every chunk succeeds, so a cancelled render leaves no partial MP3.
+pub fn synthesize_to_file_cb(
+    voice_name: &str,
+    text: &str,
+    out_path: &Path,
+    cancel: &AtomicBool,
+    on_progress: impl Fn(usize, usize),
+) -> Result<(), TtsError> {
+    let bytes = synthesize_bytes_cb(voice_name, text, cancel, on_progress)?;
     std::fs::write(out_path, &bytes)?;
     Ok(())
 }
@@ -274,6 +309,19 @@ mod tests {
         let original_words: usize = text.split_whitespace().count();
         let chunked_words: usize = chunks.iter().map(|c| c.split_whitespace().count()).sum();
         assert_eq!(original_words, chunked_words);
+    }
+
+    #[test]
+    fn cancel_flag_stops_before_any_network_call() {
+        let cancel = AtomicBool::new(true);
+        let seen = std::sync::Mutex::new(Vec::new());
+        let err = synthesize_bytes_cb("voice", "One. Two. Three.", &cancel, |d, t| {
+            seen.lock().unwrap().push((d, t))
+        })
+        .unwrap_err();
+        assert!(matches!(err, TtsError::Cancelled));
+        // total is reported up front; the loop bails before chunk 1.
+        assert_eq!(*seen.lock().unwrap(), vec![(0usize, 1usize)]);
     }
 
     #[test]

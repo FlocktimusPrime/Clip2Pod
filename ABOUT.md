@@ -37,9 +37,11 @@ Web articles are full of boilerplate that reads badly aloud ("Getty Images", "mi
 
 - **Find Junk** (`Ctrl+F`) jumps to the next line containing a junk phrase, selects the whole line, and highlights the matched term. It does **not** auto-wrap — pressing it again after reaching the end asks if you want to wrap back to the top and keep searching.
 - When no more matches are found, it offers to run Clean for TTS automatically.
+- **Add Junk Phrase** (`Ctrl+K`) adds the current editor selection to the phrase list — highlight a stray line, press the key, and it's caught from then on.
+- **Suggest Junk** (`Ctrl+Shift+K`) scans the current script for lines that read like page furniture (bylines, "N min read", share/subscribe rows, dates, all-caps banners) and walks you through them one at a time, offering to add each and delete the line.
 - **Delete Line** (`Ctrl+D`) removes whatever line the cursor is on — the fast way to clear a flagged line.
-- **Edit Junk Phrases** (`Ctrl+J`) opens an editor for the phrase list: one phrase per line, case-insensitive substring match, with a "Restore Defaults" button. Custom lists persist between sessions; if you set it back to exactly the defaults, it's stored as "using defaults" rather than a redundant copy.
-- Default junk phrases: `credit:`, `getty images`, `http`, `listen to article`, `min read`, `read more`, `read this article for free`, `related links`, `related stories`, `unsplash`, `view image in full size`, `view original`.
+- **Edit Junk Phrases** (`Ctrl+J`) opens an editor for the phrase list: one phrase per line, case-insensitive substring match, with a "Restore Defaults" button. A `*` in a phrase is a wildcard (`photo*getty` matches "Photo credit: Getty Images"). Custom lists persist between sessions; if you set it back to exactly the defaults, it's stored as "using defaults" rather than a redundant copy.
+- Default junk phrases: `credit:`, `getty images`, `http`, `image by author`, `image credit`, `listen to article`, `member-only`, `min read`, `photo from`, `read more`, `read it free`, `read this article for free`, `related links`, `related stories`, `unsplash`, `view image in full size`, `view original`.
 
 ### 4. Metadata bar
 
@@ -55,7 +57,7 @@ Four fields above the script editor control the output file:
 ### 5. Voice library
 
 - On launch, Clip2Pod fetches the full list of English Edge TTS voices, excluding any tagged "cartoon" (novelty voices unsuited to narration).
-- Out of the box, only standard `en-US` voices are enabled (the "Multilingual" variant of each voice is a duplicate and stays off by default to avoid doubling up).
+- Out of the box, a curated, gender-balanced set of ten `en-US` voices is enabled: Ava, Andrew, Emma, Brian, Aria, Christopher, Eric, Jenny, Michelle, Steffan. Enable more (or fewer) in Manage Voices.
 - **Manage Voices** (`Ctrl+M`) opens a searchable table of every available voice (name, gender, language, country, locale, category) with checkboxes to enable/disable each one, plus **Enable All** / **Disable All** shortcuts.
 - Selecting a voice and clicking **Preview Voice** generates and plays a short sample sentence in that voice, so you can audition it before enabling it for use.
 - The sidebar shows a running count, e.g. "Voices enabled: 12/40 male, 15/38 female".
@@ -75,8 +77,10 @@ Clip2Pod deliberately avoids using the same voice every time, so a backlog of ge
 - **Generate MP3** (`Ctrl+Enter`) doesn't block the UI — it cleans the current text, picks a voice, and queues a job.
 - A single background worker processes jobs one at a time, in order.
 - A status lamp in the header reflects real-time state: `● IDLE`, `● QUEUED n`, or `● RENDERING` while actively encoding.
-- **Open Queue** (`Ctrl+Q`) shows pending/in-progress jobs with status, title, output filename, voice, and timestamps.
+- The **Queue** bar under the editor shows live state at a glance: the job rendering now (with a chunk-progress percentage), the jobs waiting, any failures this session (with the error), and the title of the most recent success.
+- **Cancel** aborts the render in progress. It takes effect at the next chunk boundary (a websocket turn already in flight finishes first), and the job is logged as "Cancelled" — no partial MP3 is left behind.
 - **Clear Pending** cancels every job that hasn't started yet (logged as "Cancelled") without interrupting whatever job is currently rendering.
+- Full per-job history — timestamps, voice used, errors — lives in the **Log** (`Ctrl+Shift+L`).
 
 ### 8. Filename handling
 
@@ -110,7 +114,7 @@ A rocker-style switch in the header toggles between a dark "night" theme and a l
 
 ### 13. Episode cleanup
 
-Once your podcast app has downloaded the generated episodes, the **Delete episodes** button (sidebar, Output section) clears the output folder in one click:
+Once your podcast app has downloaded the generated episodes, the **Delete episodes** button (in the Queue bar under the editor) clears the output folder in one click:
 
 - Deletes every `.mp3` the podcast feed currently lists — exactly the set your podcatcher sees.
 - Asks for confirmation first, showing how many files will be removed (the output folder may contain more than you think).
@@ -126,10 +130,11 @@ Once your podcast app has downloaded the generated episodes, the **Delete episod
 | `Ctrl+Shift+V` | Paste Clipboard (overwrites editor) |
 | `Ctrl+D` | Delete current line |
 | `Ctrl+F` | Find next junk phrase |
+| `Ctrl+K` | Add selection as junk phrase |
+| `Ctrl+Shift+K` | Suggest junk phrases from the script |
 | `Ctrl+L` | Clean text for TTS |
 | `Ctrl+J` | Edit junk phrases |
 | `Ctrl+M` | Manage voices |
-| `Ctrl+Q` | Open generation queue |
 | `Ctrl+Shift+L` | Open generation log |
 | `Ctrl+Enter` | Generate MP3 |
 

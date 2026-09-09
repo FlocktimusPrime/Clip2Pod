@@ -1,6 +1,5 @@
 <script lang="ts">
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-  import QRCode from "qrcode";
   import * as api from "$lib/api";
   import { app, toast } from "$lib/stores.svelte";
   import Modal from "./Modal.svelte";
@@ -15,12 +14,23 @@
     );
   });
 
+  // qrcode is ~40 kB and only reachable through this dialog — load it on open
+  // instead of shipping it in the initial page chunk.
   $effect(() => {
     if (!url) return;
-    QRCode.toDataURL(url, { margin: 1, width: 220 }).then(
-      (d) => (qr = d),
-      (e) => toast(`QR code failed: ${e}`, "error"),
-    );
+    let stale = false;
+    (async () => {
+      try {
+        const { default: QRCode } = await import("qrcode");
+        const dataUrl = await QRCode.toDataURL(url, { margin: 1, width: 220 });
+        if (!stale) qr = dataUrl;
+      } catch (e) {
+        if (!stale) toast(`QR code failed: ${e}`, "error");
+      }
+    })();
+    return () => {
+      stale = true;
+    };
   });
 
   async function copy() {

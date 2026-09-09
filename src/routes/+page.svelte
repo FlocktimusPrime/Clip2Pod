@@ -8,6 +8,7 @@
     clearJunkMatch,
     createEditor,
     deleteCurrentLine,
+    getSelection,
     getText,
     setText,
     showJunkMatch,
@@ -19,7 +20,7 @@
   import Sidebar from "$lib/components/Sidebar.svelte";
   import VoicesDialog from "$lib/components/VoicesDialog.svelte";
   import JunkDialog from "$lib/components/JunkDialog.svelte";
-  import QueueDialog from "$lib/components/QueueDialog.svelte";
+  import QueuePanel from "$lib/components/QueuePanel.svelte";
   import LogDialog from "$lib/components/LogDialog.svelte";
   import FeedDialog from "$lib/components/FeedDialog.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
@@ -146,6 +147,77 @@
     searchJunk(from);
   }
 
+  /** Add the current editor selection to the persisted junk phrase list. */
+  async function addSelectionAsJunk() {
+    const raw = getSelection(view).trim();
+    if (!raw) return toast("Select text in the editor first", "error");
+    if (raw.includes("\n")) return toast("Junk phrases match one line — select less", "error");
+    if (raw.length > 80) return toast("That selection is too long for a junk phrase", "error");
+    const phrase = raw.toLowerCase();
+    const phrases = await api.getJunkPhrases();
+    if (phrases.includes(phrase)) return toast(`Already a junk phrase: “${phrase}”`);
+    await api.setJunkPhrases([...phrases, phrase]);
+    toast(`Junk phrase added: “${phrase}”`);
+  }
+
+  /** First line whose trimmed, lowercased text is exactly `phrase`. */
+  function findLineIndex(phrase: string): number {
+    return getText(view)
+      .split("\n")
+      .findIndex((l) => l.trim().toLowerCase() === phrase);
+  }
+
+  /** Walk scanned junk suggestions through the coach bar, one at a time. */
+  async function suggestJunk() {
+    resetFind();
+    const list = await api.suggestJunk(getText(view));
+    if (!list.length) {
+      coach = { text: "No junk suggestions found.", actions: suggestEndActions() };
+      return;
+    }
+    walkSuggestion(list, 0);
+  }
+
+  /** Shown when a Suggest Junk pass ends: hand off to Find Junk, or dismiss. */
+  function suggestEndActions() {
+    return [
+      { label: "Find junk", run: findJunkNext },
+      { label: "Dismiss", run: () => (coach = null) },
+    ];
+  }
+
+  function walkSuggestion(list: string[], i: number) {
+    if (i >= list.length) {
+      clearJunkMatch(view);
+      coach = { text: "No more suggestions.", actions: suggestEndActions() };
+      return;
+    }
+    const phrase = list[i];
+    const lineIdx = findLineIndex(phrase);
+    if (lineIdx >= 0) showJunkMatch(view, lineIdx, phrase);
+    const next = () => walkSuggestion(list, i + 1);
+    coach = {
+      text: `Possible junk: “${phrase}”`,
+      actions: [
+        {
+          label: "Add & delete line",
+          run: async () => {
+            const phrases = await api.getJunkPhrases();
+            if (!phrases.includes(phrase)) await api.setJunkPhrases([...phrases, phrase]);
+            const li = findLineIndex(phrase);
+            if (li >= 0) {
+              showJunkMatch(view, li, phrase);
+              deleteCurrentLine(view);
+            }
+            next();
+          },
+        },
+        { label: "Skip", run: next },
+        { label: "Stop", run: resetFind },
+      ],
+    };
+  }
+
   /** Delete the flagged line, then resume the review at the same index. */
   function deleteFlagged() {
     if (activeMatchLine === null) return;
@@ -232,14 +304,15 @@
 
     if (key === "v" && shift) return run(pasteClipboard);
     if (key === "l" && shift) return run(() => (app.dialog = "log"));
+    if (key === "k" && shift) return run(suggestJunk);
     if (shift) return;
 
     if (key === "f") return run(findJunkNext);
+    if (key === "k") return run(addSelectionAsJunk);
     if (key === "l") return run(cleanForTts);
     if (key === "d") return run(deleteLine);
     if (key === "j") return run(() => (app.dialog = "junk"));
     if (key === "m") return run(() => (app.dialog = "voices"));
-    if (key === "q") return run(() => (app.dialog = "queue"));
     if (key === "enter") return run(generate);
   }
 </script>
@@ -267,19 +340,21 @@
     <Sidebar
       onpaste={pasteClipboard}
       onfind={findJunkNext}
+      onaddjunk={addSelectionAsJunk}
+      onsuggestjunk={suggestJunk}
       onclean={cleanForTts}
       ongenerate={generate}
       onfetch={fetchArticle}
     />
   </div>
+
+  <QueuePanel />
 </div>
 
 {#if app.dialog === "voices"}
   <VoicesDialog />
 {:else if app.dialog === "junk"}
   <JunkDialog />
-{:else if app.dialog === "queue"}
-  <QueueDialog />
 {:else if app.dialog === "log"}
   <LogDialog />
 {:else if app.dialog === "feed"}
@@ -334,6 +409,26 @@
     font-size: 12.5px;
     box-shadow: 0 8px 24px var(--shadow);
     white-space: nowrap;
+    animation: coach-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes coach-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 4px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .coach {
+      animation-name: coach-fade;
+    }
+  }
+
+  @keyframes coach-fade {
+    from {
+      opacity: 0;
+    }
   }
 
 </style>

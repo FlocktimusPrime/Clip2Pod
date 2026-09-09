@@ -7,7 +7,7 @@
 
 <header class="app-header">
   <div class="brand">
-    <span class="brand-mark">CLIP2POD</span>
+    <h1 class="brand-mark">CLIP2POD</h1>
     <span class="tagline"
       >Turn any article into a narrated MP3 — and listen to it as your own
       private podcast feed.</span
@@ -38,6 +38,7 @@
   }
 
   .brand-mark {
+    margin: 0;
     font-family: var(--mono);
     font-size: 15px;
     font-weight: 700;

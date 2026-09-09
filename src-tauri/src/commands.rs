@@ -42,6 +42,19 @@ pub fn get_junk_phrases(state: State<AppState>) -> Vec<String> {
 }
 
 #[tauri::command]
+pub fn default_junk_phrases() -> Vec<String> {
+    junk::default_phrases()
+}
+
+/// Candidate junk phrases scanned from the current script, minus anything the
+/// active phrase list already catches.
+#[tauri::command]
+pub fn suggest_junk(state: State<AppState>, text: String) -> Vec<String> {
+    let phrases = effective_junk(&state.config.lock().unwrap());
+    junk::suggest_phrases(&text, &phrases)
+}
+
+#[tauri::command]
 pub fn set_junk_phrases(state: State<AppState>, phrases: Vec<String>) {
     let cleaned: Vec<String> = phrases
         .iter()
@@ -251,6 +264,15 @@ pub async fn extract_url(url: String) -> CmdResult<clip2pod_core::extract::Extra
 #[tauri::command]
 pub fn get_queue(state: State<AppState>) -> Vec<Job> {
     state.queue.lock().unwrap().jobs().to_vec()
+}
+
+/// Ask the worker to abort the in-flight render. Takes effect at the next
+/// chunk boundary; the job then lands as Cancelled.
+#[tauri::command]
+pub fn cancel_current(state: State<AppState>) {
+    state
+        .cancel_flag
+        .store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
 #[tauri::command]

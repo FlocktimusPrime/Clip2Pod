@@ -1,7 +1,7 @@
 <script lang="ts">
   import { open } from "@tauri-apps/plugin-dialog";
   import * as api from "$lib/api";
-  import { app, applyTheme, toast } from "$lib/stores.svelte";
+  import { app, applyTheme } from "$lib/stores.svelte";
   import type { Theme } from "$lib/types";
   import Modal from "./Modal.svelte";
 
@@ -39,33 +39,6 @@
     applyTheme(theme);
     await api.setTheme(theme);
   }
-
-  /** Episode count pending delete confirmation; null = no confirm active. */
-  let confirmCount = $state<number | null>(null);
-
-  async function askDeleteEpisodes() {
-    try {
-      const count = await api.episodeCount();
-      if (count === 0) {
-        toast("No episodes in output folder");
-        return;
-      }
-      confirmCount = count;
-    } catch (e) {
-      toast(String(e), "error");
-    }
-  }
-
-  async function confirmDeleteEpisodes() {
-    try {
-      const deleted = await api.deleteAllEpisodes();
-      toast(`Deleted ${deleted} episode${deleted === 1 ? "" : "s"}`);
-    } catch (e) {
-      toast(String(e), "error");
-    } finally {
-      confirmCount = null;
-    }
-  }
 </script>
 
 <Modal title="Settings" onclose={() => (app.dialog = null)}>
@@ -80,15 +53,6 @@
       <input type="checkbox" checked={app.config?.prefix_c2p ?? false} onchange={togglePrefix} />
       <span>Prefix filenames with C2P</span>
     </label>
-    {#if confirmCount === null}
-      <button class="btn" onclick={askDeleteEpisodes}>Delete episodes</button>
-    {:else}
-      <div class="row confirm" role="alertdialog" aria-label="Confirm episode deletion">
-        <span>Delete {confirmCount} episode{confirmCount === 1 ? "" : "s"}?</span>
-        <button class="btn" onclick={confirmDeleteEpisodes}>Confirm</button>
-        <button class="btn" onclick={() => (confirmCount = null)}>Cancel</button>
-      </div>
-    {/if}
   </div>
 
   <div class="section">
@@ -162,10 +126,5 @@
     font-size: 12px;
     color: var(--muted);
     margin: 0;
-  }
-
-  .confirm {
-    flex-wrap: wrap;
-    font-size: 12px;
   }
 </style>

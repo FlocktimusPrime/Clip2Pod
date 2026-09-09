@@ -49,7 +49,7 @@
     onkeydown={trapTab}
   >
     <header>
-      <span class="label">{title}</span>
+      <h2 class="label">{title}</h2>
       <button class="btn" onclick={onclose}>Close <kbd>Esc</kbd></button>
     </header>
     <div class="body">
