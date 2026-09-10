@@ -145,15 +145,20 @@ darkened to hold contrast.
 - **Panel** (`#1d1f3d` dark / `#ffffff` light): The equipment surface — header, meta bar, sidebar, queue bar, dialog body. One step up from the ground.
 - **Panel Raised** (`#262a60` dark / `#ffffff` light): The top tonal layer — button faces, the lamp housing, segmented cells, toasts, the coach bar. In light theme it collapses to plain white and relies on borders.
 - **Ink** (`#e9e9ed` dark / `#1f2140` light): Primary text.
-- **Muted Ink** (`#9b9bb8` dark / `#6b6d94` light): Labels, taglines, placeholders, secondary and "waiting" queue items.
+- **Muted Ink** (`#9b9bb8` dark / `#5f6186` light): Labels, taglines, placeholders, secondary and "waiting" queue items.
 - **Accent Ink** (`#161826` dark / `#ffffff` light): Text that sits *on* Signal Lavender (primary button label, active segmented cell).
 - **Line** (`rgba(233,233,237,0.16)` dark / `rgba(38,42,96,0.14)` light): Structural 1px borders between bands and around controls.
 - **Line Soft** (`rgba(233,233,237,0.10)` dark / `rgba(38,42,96,0.08)` light): Interior hairlines — table rows, the meta bar's lower edge, dialog header/footer rules.
 
 ### Tertiary — State
 - **On Air Red** (`#ef5b6a` dark / `#c8283f` light): Render-in-progress only — the pulsing lamp bulb and `RENDERING` text, failed queue rows, the junk-match highlight, destructive-confirm text, error toasts and banners.
-- **Done Green** (`#5fd0a0` dark / `#2f8f6c` light): Success only — the `Last —` queue item, the success toast dot.
+- **Done Green** (`#5fd0a0` dark / `#20745a` light): Success only — the `Last —` queue item, the success toast dot.
 - **Idle Grey** (`#3a3d5c` dark / `#d8d6ec` light): The lamp bulb at rest. The absence of signal.
+
+### The One Colour Exception
+The feed dialog's QR quiet zone is a literal `#fff` — a QR code must scan against
+true white regardless of theme. It is the only hard-coded colour in the system;
+everything else is a token.
 
 ### Named Rules
 **The One Signal Rule.** Signal Lavender is the only chromatic accent in the
@@ -164,6 +169,13 @@ one of them is wrong.
 **The State-Colour Rule.** Red, green, and the lamp's idle grey are *earned by
 state*, never chosen for decoration. Red always means "rendering / failed /
 destructive". Green always means "done". A control is never red or green at rest.
+
+**The Light-Theme Note.** `--muted` is the colour of the 10px engraved labels —
+the smallest text in the app — so it carries the tightest contrast budget.
+`#6b6d94` was 4.4:1 on `--bg` (an AA miss); the shipped `#5f6186` is 5.3:1, same
+navy-lavender hue, one lightness step darker. `--ok` moved the same way
+(`#2f8f6c` → `#20745a`, 4.0:1 → 5.7:1 on white). When adjusting a light-theme
+token, check it against both `--bg` and `--panel` (white) and hold 4.5:1.
 
 ## Typography
 
@@ -179,9 +191,19 @@ so authored content never competes with the desk. Base size is a compact 14px.
 ### Hierarchy
 - **Headline / Ident** (mono, 700, 15px, letter-spacing 0.22em): The `CLIP2POD` station mark in the header. The single largest, most-tracked element; appears once.
 - **Body** (sans, 400, 13–14px, line-height 1.5): The article in the editor (13.5px) and paragraph copy inside dialogs. The only non-mono text.
-- **Control** (mono, 600, 11px, uppercase, letter-spacing 0.1em): Button faces. The `kbd` shortcut floats right on the same face at 9px, 55% opacity.
-- **Label** (mono, 600, 10px, uppercase, letter-spacing 0.14em): Section headers in the sidebar (`INTAKE`, `TRANSPORT`, `JUNK`, `TOOLS`), field captions in the meta bar, table headers, dialog titles, the lamp's status word.
+- **Control** (mono, 600, 11px, uppercase, letter-spacing 0.1em): Button faces. The `kbd` shortcut floats right on the same face at 9px, 0.72 opacity.
+- **Label** (mono, 600, 10px, uppercase, letter-spacing 0.14em): Section headers in the sidebar (`INTAKE`, `TRANSPORT`, `JUNK`, `TOOLS` — real `<h2>` elements carrying the `.label` class), field captions in the meta bar, table headers, dialog titles (`<h2>`), settings subsections (`<h3>`), the lamp's status word.
 - **Mono Data** (mono, 400, 11–12.5px): Queue-bar items, the "voices enabled" tally, the feed URL, table cell text — dense readouts that benefit from fixed advance width.
+
+### Supporting sizes
+Below the four frontmatter roles, a handful of pixel steps recur in component
+styles. They are the same set yt-dlFeed uses; keep new work on these rather than
+inventing intermediate sizes:
+- **13px** — `.field` input text, dialog `code`.
+- **12.5px** — table cells, toast body, coach-bar text, the junk-phrase textarea.
+- **12px** — dialog `.hint` / `.check` rows, the header tagline (11.5px).
+- **11–11.5px** — `.mono` path/data lines, queue-bar text, sidebar readouts.
+- **9–10px** — the `kbd` shortcut on a button (9px), all `.label` chrome (10px).
 
 ### Named Rules
 **The Two-Voice Rule.** Monospace is the chrome; system sans is the content.
@@ -234,7 +256,7 @@ says "this is temporarily on top", not "this is a card".
 
 ### Shadow Vocabulary
 - **Floating panel** (`box-shadow: 0 8px 24px var(--shadow)`): The coach bar and toasts — a small element lifted just off the surface.
-- **Modal lift** (`box-shadow: 0 18px 50px var(--shadow)`): The dialog — a larger throw for a larger, more disruptive overlay, over a `--shadow`-filled backdrop.
+- **Modal lift** (`box-shadow: 0 18px 50px var(--shadow)`): The dialog — a larger throw for a larger, more disruptive overlay, over a `--shadow`-filled `::backdrop`.
 
 `--shadow` is `rgba(10,10,20,0.55)` dark / `rgba(38,42,96,0.18)` light.
 
@@ -272,7 +294,9 @@ as a bullet, an avatar frame, or decoration.
 
 ### Buttons
 - **Shape:** 4px radius (`sm`), 1px `line` border, mono/uppercase/0.1em face, `text-align: left`.
-- **Default:** `panel-raised` fill, `text` colour, `padding: 7px 12px` (5px 10px in the sidebar and queue bar). The `kbd` shortcut floats right at 9px / 55% opacity.
+- **Default:** `panel-raised` fill, `text` colour, `padding: 7px 12px` (5px 10px in the sidebar and queue bar). The `kbd` shortcut floats right at 9px / 0.72 opacity.
+- **Toggle:** a button that reflects on/off state (theme picker, author-gender cells) carries `aria-pressed` alongside the `.primary` / `.active` fill — the colour is not the only signal.
+- **Touch:** under `@media (pointer: coarse)` every `.btn` gets `min-height: 44px`; the mouse layout is untouched.
 - **Primary:** `signal-lavender` fill, `accent-ink` text, border matches fill. Exactly one per view — `Generate MP3` on the main desk, the confirming action in a dialog footer.
 - **Hover:** default → border shifts to `signal-lavender-dim` (fill unchanged); primary → `filter: brightness(1.08)`. Transition `border-color, background 120ms`.
 - **Active:** `transform: translateY(1px)` — a physical key press.
@@ -280,9 +304,10 @@ as a bullet, an avatar frame, or decoration.
 - **Disabled:** `opacity: 0.45`, `cursor: not-allowed`.
 
 ### Inputs / Fields
-- **Style:** `.field` — full-width, `bg` (recessed) fill, 1px `line` border, 4px radius, `padding: 6px 8px`, 13px text. Placeholder is `muted` at 0.7 opacity.
+- **Style:** `.field` — full-width, `bg` (recessed) fill, 1px `line` border, 4px radius, `padding: 6px 8px`, 13px text. Placeholder is `muted` at full opacity (no extra dimming — a placeholder can be the field's only visible label, so it holds 4.5:1).
 - **Focus:** the shared 2px accent outline. No glow, no border-colour animation.
-- **Context:** the URL intake field, all three meta-bar fields, dialog search boxes.
+- **Context:** the URL intake field, all three meta-bar fields, dialog search boxes, the junk-phrase textarea.
+- **Labelling:** a field with no adjacent `<label>` (the URL intake, dialog search boxes, the junk textarea) carries an explicit `aria-label`; the meta-bar fields are wrapped in their `<label>`.
 
 ### Segmented Control
 - **Style:** one box, 1px `line` border, 4px radius, `overflow: hidden`, fixed `height: 31px`. Cells are borderless mono/10px/uppercase, `panel-raised` fill, `muted` text.
@@ -305,14 +330,19 @@ as a bullet, an avatar frame, or decoration.
 - Carries one line of status text plus 2–4 inline `.btn` actions. It is the junk-review conversation — it replaces itself as the review advances and clears on `Escape`. Rises 4px + fades in over 160ms (`cubic-bezier(0.16,1,0.3,1)`); reduced-motion fades only.
 
 ### Dialogs
-- **Backdrop:** `position: fixed; inset: 0`, `--shadow` fill, fade-in 120ms.
-- **Panel:** `panel` fill, 1px `line`, 8px radius, modal-lift shadow, `width: min(720px, 92vw)`, `max-height: 84vh`, flex column with header / scrolling `.body` / optional footer, each `padding: 12px 16px` and divided by `line-soft`. Rises 6px + fades over 160ms.
-- **Header:** a `.label` title (mono/10px/uppercase) + a `Close` button showing `Esc`.
-- **Behaviour:** focus moves to the panel on open, `Tab` is trapped inside, backdrop click and `Esc` close. `aria-modal="true"`, `aria-label` from the title.
+- **Element:** a native `<dialog class="modal">` opened with `showModal()`. The browser owns the focus trap, `Esc`-to-close, focus return to the opener, and background inerting — no hand-rolled `trapTab`.
+- **Panel:** `.modal` — `panel` fill, 1px `line`, 8px radius, modal-lift shadow, `width: min(720px, 92vw)`, `max-height: 84vh`, `padding: 0`. `.modal[open]` is the flex column: header / scrolling `.body` / optional footer, each `padding: 12px 16px` and divided by `line-soft`. Rises 6px + fades over 160ms on open; reduced-motion fades only.
+- **Backdrop:** `.modal::backdrop` — `--shadow` fill, fade-in 120ms.
+- **Header:** an `<h2 class="label">` title linked by `aria-labelledby` + a `Close` button showing `Esc`. Settings subsections are `<h3 class="label">`.
+- **Behaviour:** `Esc`, backdrop click, and the `Close` button all route through `onclose`. Don't add `role="dialog"` / `aria-modal` — `showModal()` implies them.
+- **In-dialog feedback is inline, not a toast.** A `<dialog>` sits in the top layer *above* the toast stack, so a toast fired from inside it is hidden. Confirm an action on the control itself (the feed dialog's Copy → `Copied`).
+
+**The Native-Dialog Rule.** New overlays that need protected focus use `<dialog>` + `showModal()`, never a hand-rolled backdrop `<div>` with a JS focus trap. A confirm that doesn't need protected focus uses the inline expand-in-place pattern instead (see Queue Bar).
 
 ### Toasts
 - Bottom-right stack, 8px gap. `panel-raised` fill, 1px `line`, 4px radius, `padding: 9px 14px 9px 28px`, floating-panel shadow, `max-width: 340px`.
-- A 7px round marker at left, `ok` green by default, `danger` red for `data-kind="error"`. Slides in 12px from the right over 180ms; reduced-motion fades in place.
+- A 7px round marker at left, `ok` green by default, `danger` red for `data-kind="error"`. An error toast also carries a visually-hidden `Error: ` prefix (via `.vh`) so the kind isn't colour-only. Slides in 12px from the right over 180ms; reduced-motion fades in place.
+- Live region: `role="status" aria-live="polite" aria-atomic="false"` on the stack container.
 
 ### Tables
 - Full-width, `border-collapse: collapse`, 12.5px. Headers are mono/10px/uppercase/`muted`, `position: sticky; top: 0` on a `panel` fill, sortable via a bare `<button>` with an `accent`-coloured arrow. Cells `padding: 5px 8px`, `line-soft` row rules. Selected row: `background: color-mix(in srgb, var(--accent) 14%, transparent)`.
@@ -335,6 +365,10 @@ as a bullet, an avatar frame, or decoration.
 - **Do** handle destructive confirmation inline (the queue bar's expand-in-place pattern), keeping first focus on the safe choice and returning it to the trigger on close.
 - **Do** keep radii at `4px` for chrome, `6px` for the coach bar, `8px` for modals — and no further (The Sharp-Corner Rule).
 - **Do** drop looping and spatial motion under `prefers-reduced-motion`, but keep colour and opacity transitions that carry state.
+- **Do** reach for a native `<dialog>` + `showModal()` for any overlay that needs protected focus (The Native-Dialog Rule).
+- **Do** give every colour-only signal a text equivalent — `aria-pressed` on toggle buttons, the `.vh` `Error:` prefix on error toasts.
+- **Do** duplicate the full light palette under `@media (prefers-color-scheme: light) { :root:not([data-theme]) { … } }` so the pre-JS first paint matches the OS; an explicit `data-theme` still wins on specificity.
+- **Do** hold every light-theme token at 4.5:1 against **both** `--bg` and white `--panel` (The Light-Theme Note).
 
 ### Don't:
 - **Don't** put a shadow on any part of the fixed desk — only modals, the coach bar, and toasts float (The Flat-Desk Rule).
@@ -345,4 +379,6 @@ as a bullet, an avatar frame, or decoration.
 - **Don't** widen or reflow the 240px control column, or add a fifth band to the desk.
 - **Don't** exceed an 8px corner radius, and don't reach 8px anywhere but the modal (The Sharp-Corner Rule).
 - **Don't** open a modal for a destructive confirm when an inline expand fits.
+- **Don't** hand-roll a modal backdrop `<div>` with a JS focus trap — that pattern shipped a real bug (focus escaping to a disabled button) and is why the app moved to native `<dialog>`.
+- **Don't** dim placeholder text with extra `opacity`; `--muted` is already the lighter tier and further dimming fails contrast.
 - **Don't** add decorative motion; motion is for state (lamp pulse, render rail, overlay entrance) only.

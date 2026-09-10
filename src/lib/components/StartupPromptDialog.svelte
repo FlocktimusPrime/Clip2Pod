@@ -4,9 +4,15 @@
   import Modal from "./Modal.svelte";
 
   async function answer(launch: boolean) {
-    if (app.config) app.config.launch_at_startup = launch;
-    await api.setLaunchAtStartup(launch);
-    app.dialog = null;
+    // Native <dialog> routes Esc through onclose → answer(false), so this also
+    // runs on dismiss. Always close, even if the backend call fails, so the
+    // prompt doesn't wedge open.
+    try {
+      if (app.config) app.config.launch_at_startup = launch;
+      await api.setLaunchAtStartup(launch);
+    } finally {
+      app.dialog = null;
+    }
   }
 </script>
 

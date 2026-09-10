@@ -55,6 +55,7 @@
   <div class="toolbar">
     <input
       class="field"
+      aria-label="Search voices"
       placeholder="Search name, locale, category…"
       bind:value={search}
     />

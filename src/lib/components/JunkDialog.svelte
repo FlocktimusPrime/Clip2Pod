@@ -28,7 +28,12 @@
     (case-insensitive). Use <code>*</code> as a wildcard, e.g.
     <code>photo*getty</code>.
   </p>
-  <textarea class="field phrases" bind:value={text} spellcheck="false"></textarea>
+  <textarea
+    class="field phrases"
+    aria-label="Junk phrases, one per line"
+    bind:value={text}
+    spellcheck="false"
+  ></textarea>
 
   {#snippet footer()}
     <button class="btn" onclick={() => (text = defaults.join("\n"))} disabled={defaults.length === 0}>

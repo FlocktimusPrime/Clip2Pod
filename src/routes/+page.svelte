@@ -288,8 +288,9 @@
 
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
-      if (app.dialog) app.dialog = null;
-      else if (coach) coach = null;
+      // An open dialog is a native <dialog>; it closes itself on Esc and its
+      // onclose clears app.dialog. Only the coach bar needs handling here.
+      if (!app.dialog && coach) coach = null;
       return;
     }
     if (!e.ctrlKey || e.altKey) return;
@@ -324,7 +325,7 @@
   <MetaBar {meta} gender={app.config?.author_gender ?? "Unknown"} ongender={changeGender} />
 
   <div class="deck">
-    <main class="script">
+    <main class="script" aria-label="Script editor">
       <div class="editor" bind:this={editorHost}></div>
 
       {#if coach}

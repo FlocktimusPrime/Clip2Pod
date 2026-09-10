@@ -33,10 +33,15 @@
     };
   });
 
+  let copied = $state(false);
+
   async function copy() {
     try {
       await writeText(url);
-      toast("Feed URL copied");
+      // Inline confirmation, not a toast: a toast fires behind the open
+      // <dialog> (top layer), where this feedback would be missed.
+      copied = true;
+      setTimeout(() => (copied = false), 1600);
     } catch (e) {
       toast(`Copy failed: ${e}`, "error");
     }
@@ -64,7 +69,7 @@
   </p>
   <div class="url-row">
     <code>{url || "…"}</code>
-    <button class="btn" onclick={copy} disabled={!url}>Copy</button>
+    <button class="btn" onclick={copy} disabled={!url}>{copied ? "Copied" : "Copy"}</button>
   </div>
   {#if qr}
     <div class="qr-wrap">
