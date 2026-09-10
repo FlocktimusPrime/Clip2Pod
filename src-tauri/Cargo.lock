@@ -590,6 +590,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-global-shortcut",
  "tauri-plugin-window-state",
+ "tempfile",
  "tiny_http",
  "tokio",
  "ytdlfeed-core",

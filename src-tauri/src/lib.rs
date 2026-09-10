@@ -2,6 +2,7 @@ mod capture;
 mod commands;
 mod feed;
 mod firewall;
+mod migrate;
 mod state;
 mod tray;
 mod worker;
@@ -31,6 +32,12 @@ pub fn run() {
     let start_minimized = config.start_minimized;
     let launch_at_startup = config.launch_at_startup;
     let (wake_tx, wake_rx) = tokio::sync::mpsc::unbounded_channel();
+
+    // RIP mode: its own config/log subdir, seeded once from a prior standalone
+    // yt-dlFeed install if the user had one.
+    let rip_config_dir = config_dir.join("rip");
+    migrate::migrate_ytdlfeed_config(&rip_config_dir);
+    let rip_config = ytdlfeed_core::config::load_config(&rip_config_dir);
 
     // Intake, not generate: surface the window and let the frontend run
     // its normal paste-clipboard flow.
@@ -71,6 +78,9 @@ pub fn run() {
             voices: Mutex::new(cached_voices),
             wake_worker: wake_tx,
             cancel_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            rip_config_dir,
+            rip_config: Mutex::new(rip_config),
+            rip_queue: Mutex::new(Default::default()),
         })
         .setup(move |app| {
             // Registration can fail (hotkey taken by another app, Wayland, …) —
