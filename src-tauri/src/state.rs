@@ -3,6 +3,7 @@ use clip2pod_core::queue::Queue;
 use clip2pod_core::voices::VoiceInfo;
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::process::Child;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::UnboundedSender;
@@ -25,6 +26,12 @@ pub struct AppState {
     pub rip_config_dir: PathBuf,
     pub rip_config: Mutex<ytdlfeed_core::config::Config>,
     pub rip_queue: Mutex<ytdlfeed_core::queue::Queue>,
+    /// Wakes the yt-dlp worker when jobs are enqueued.
+    pub rip_wake: UnboundedSender<()>,
+    /// (job id, child handle) for the in-flight yt-dlp process, if any. Shared
+    /// between the worker (which waits on it) and the stop command (which kills
+    /// it).
+    pub rip_running: Mutex<Option<(String, Arc<Mutex<Child>>)>>,
 }
 
 impl AppState {
