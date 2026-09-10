@@ -110,11 +110,11 @@
   }}
 />
 
-<main>
+<div class="desk">
   {#if missingTools && app.doctor}
-    <div class="notice" role="status">
-      <p class="notice-head">
-        <span class="dot" aria-hidden="true"></span>
+    <div class="doctor" role="status">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="doctor-text">
         {#if !app.doctor.ytdlp_found && !app.doctor.ffmpeg_found}
           Install yt-dlp and ffmpeg to rip audio.
         {:else if !app.doctor.ytdlp_found}
@@ -122,24 +122,19 @@
         {:else}
           Install ffmpeg to rip audio.
         {/if}
-        It isn't on your PATH yet — narration still works without it.
-      </p>
-      <ul>
-        {#if !app.doctor.ytdlp_found}
-          <li><code>winget install yt-dlp.yt-dlp</code> &nbsp;— or&nbsp; <code>pipx install yt-dlp</code></li>
-        {/if}
-        {#if !app.doctor.ffmpeg_found}
-          <li><code>winget install yt-dlp.FFmpeg</code> &nbsp;(the build yt-dlp expects)</li>
-        {/if}
-      </ul>
-      <p class="notice-foot">
-        Restart Clip2Pod after installing.
-        <button class="btn small" onclick={refreshDoctor}>Re-check</button>
-      </p>
+        Not on your PATH yet — narration still works without it.
+      </span>
+      {#if !app.doctor.ytdlp_found}
+        <code>winget install yt-dlp.yt-dlp</code>
+      {/if}
+      {#if !app.doctor.ffmpeg_found}
+        <code>winget install yt-dlp.FFmpeg</code>
+      {/if}
+      <button class="btn small" onclick={refreshDoctor}>Re-check</button>
     </div>
   {/if}
 
-  <section class="intake" aria-labelledby="rip-intake-h">
+  <section class="band intake" aria-labelledby="rip-intake-h">
     <h2 class="label" id="rip-intake-h">Add episode</h2>
     <div class="row">
       <input
@@ -158,68 +153,70 @@
   </section>
 
   {#if activeJobs.length > 0 || settledJobs.length > 0}
-    <section class="queue" aria-labelledby="rip-queue-h">
+    <section class="band queue" aria-labelledby="rip-queue-h">
       <div class="section-head">
         <h2 class="label" id="rip-queue-h">Queue</h2>
         {#if activeJobs.some((j) => j.status === "Queued")}
           <button class="btn" onclick={() => rip.clearPending()}>Clear pending</button>
         {/if}
       </div>
-      {#each [...activeJobs, ...settledJobs] as job (job.id)}
-        <div class="job">
-          <div class="job-line">
-            <span class="badge {job.status.toLowerCase()}">{job.status}</span>
-            <span class="job-title" title={job.url}>{jobLabel(job)}</span>
-            {#if job.status === "Processing" && job.progress.stage}
-              <span class="stage">
-                {job.progress.stage}{job.progress.speed ? ` · ${job.progress.speed}` : ""}
-              </span>
-            {/if}
+      <div class="job-list">
+        {#each [...activeJobs, ...settledJobs] as job (job.id)}
+          <div class="job">
+            <div class="job-line">
+              <span class="badge {job.status.toLowerCase()}">{job.status}</span>
+              <span class="job-title" title={job.url}>{jobLabel(job)}</span>
+              {#if job.status === "Processing" && job.progress.stage}
+                <span class="stage">
+                  {job.progress.stage}{job.progress.speed ? ` · ${job.progress.speed}` : ""}
+                </span>
+              {/if}
+              {#if job.status === "Processing"}
+                <button class="btn small" onclick={() => rip.stopJob(job.id)}>Stop</button>
+              {/if}
+              {#if job.status === "Failed"}
+                <button
+                  class="btn small"
+                  aria-expanded={expanded === job.id}
+                  onclick={() => (expanded = expanded === job.id ? null : job.id)}
+                >
+                  {expanded === job.id ? "Hide" : "Why?"}
+                </button>
+              {/if}
+              {#if job.status === "Done" && job.detail}
+                <span class="stage">{job.detail}</span>
+              {/if}
+            </div>
             {#if job.status === "Processing"}
-              <button class="btn small" onclick={() => rip.stopJob(job.id)}>Stop</button>
-            {/if}
-            {#if job.status === "Failed"}
-              <button
-                class="btn small"
-                aria-expanded={expanded === job.id}
-                onclick={() => (expanded = expanded === job.id ? null : job.id)}
+              <div
+                class="bar"
+                role="progressbar"
+                aria-label={jobLabel(job)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={job.progress.percent ?? undefined}
               >
-                {expanded === job.id ? "Hide" : "Why?"}
-              </button>
+                <div
+                  class="fill"
+                  class:indeterminate={job.progress.percent === null}
+                  style="transform: scaleX({(job.progress.percent ?? 100) / 100})"
+                ></div>
+              </div>
             {/if}
-            {#if job.status === "Done" && job.detail}
-              <span class="stage">{job.detail}</span>
+            {#if expanded === job.id && job.detail}
+              <pre class="detail">{job.detail}</pre>
+              <p class="fail-hint">
+                An outdated yt-dlp is a common cause — run <code>yt-dlp -U</code>
+                (or reinstall your build) and try again.
+              </p>
             {/if}
           </div>
-          {#if job.status === "Processing"}
-            <div
-              class="bar"
-              role="progressbar"
-              aria-label={jobLabel(job)}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={job.progress.percent ?? undefined}
-            >
-              <div
-                class="fill"
-                class:indeterminate={job.progress.percent === null}
-                style="transform: scaleX({(job.progress.percent ?? 100) / 100})"
-              ></div>
-            </div>
-          {/if}
-          {#if expanded === job.id && job.detail}
-            <pre class="detail">{job.detail}</pre>
-            <p class="fail-hint">
-              An outdated yt-dlp is a common cause — run <code>yt-dlp -U</code>
-              (or reinstall your build) and try again.
-            </p>
-          {/if}
-        </div>
-      {/each}
+        {/each}
+      </div>
     </section>
   {/if}
 
-  <section class="episodes" aria-labelledby="rip-episodes-h">
+  <section class="band episodes" aria-labelledby="rip-episodes-h">
     <div class="section-head">
       <h2 class="label" id="rip-episodes-h">Episodes — {app.ripEpisodes.length}</h2>
       <div class="actions">
@@ -268,16 +265,57 @@
       </div>
     {/if}
   </section>
-</main>
+</div>
 
 <style>
-  main {
-    height: 100%;
+  /* RIP is a fixed desk, same as NARRATE: fills the content area, never scrolls
+     as a whole — the queue and the episode table own their own scroll. */
+  .desk {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    padding: 14px 18px;
-    overflow-y: auto;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .band {
+    padding: 12px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Doctor strip: one row above the intake band, panel-raised so it reads as a
+     transient notice rather than permanent chrome. */
+  .doctor {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 9px 16px;
+    background: var(--panel-raised);
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+  }
+
+  .doctor .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--danger);
+    flex-shrink: 0;
+  }
+
+  .doctor-text {
+    color: var(--text);
+  }
+
+  .doctor code {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    background: var(--panel);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 1px 6px;
+    user-select: all;
   }
 
   .actions {
@@ -286,20 +324,12 @@
     gap: 8px;
   }
 
-  section {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 12px 14px;
-  }
-
   .section-head {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 10px;
   }
 
   .intake .row {
@@ -316,12 +346,26 @@
     font-size: 13px;
   }
 
+  /* Bounded scroll region — jobs never push the episode table off the desk. */
+  .queue {
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .job-list {
+    margin-top: 8px;
+    overflow-y: auto;
+    max-height: 168px;
+  }
+
   .job {
     padding: 8px 0;
     border-top: 1px solid var(--line-soft);
   }
 
-  .job:first-of-type {
+  .job:first-child {
     border-top: none;
   }
 
@@ -426,7 +470,7 @@
     border-radius: 4px;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    max-height: 180px;
+    max-height: 120px;
     overflow-y: auto;
   }
 
@@ -435,15 +479,19 @@
     font-size: 10px;
   }
 
+  /* Fills the remaining desk height; the table body scrolls, its header sticks. */
   .episodes {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    min-height: 120px;
+    border-bottom: none;
   }
 
   .table-wrap {
+    flex: 1;
     overflow: auto;
+    margin-top: 8px;
   }
 
   .ep-title {
@@ -461,59 +509,7 @@
   .empty {
     color: var(--muted);
     font-size: 13px;
-    margin: 6px 0;
-  }
-
-  .notice {
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    padding: 12px 14px;
-    background: var(--panel-raised);
-  }
-
-  .notice-head {
-    margin: 0;
-    font-size: 13px;
-    color: var(--text);
-  }
-
-  .notice-head .dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--danger);
-    margin-right: 6px;
-    vertical-align: middle;
-  }
-
-  .notice ul {
-    margin: 8px 0;
-    padding-left: 18px;
-    font-size: 12.5px;
-  }
-
-  .notice li {
-    margin: 4px 0;
-  }
-
-  .notice code {
-    font-family: var(--mono);
-    font-size: 12px;
-    background: var(--panel-raised);
-    border: 1px solid var(--line-soft);
-    border-radius: 4px;
-    padding: 1px 5px;
-    user-select: all;
-  }
-
-  .notice-foot {
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 12px;
-    color: var(--muted);
+    margin: 8px 0 0;
   }
 
   .fail-hint {
