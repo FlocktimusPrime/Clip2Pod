@@ -2,7 +2,7 @@
 // listener stays reachable. Menu: Show/Hide, Quit.
 
 use tauri::menu::{Menu, MenuItem};
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager};
 
 // ponytail: static light-glyph icon, not theme-reactive. Upgrade path if
@@ -44,10 +44,22 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
         .icon(tauri::image::Image::from_bytes(TRAY_ICON)?)
         .tooltip("Clip2Pod")
         .menu(&menu)
+        // Left-click surfaces the window; right-click still opens the menu.
+        .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "toggle" => toggle_main(app),
             "quit" => app.exit(0),
             _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main(tray.app_handle());
+            }
         })
         .build(app)?;
     Ok(())

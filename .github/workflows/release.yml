@@ -53,7 +53,7 @@ jobs:
 
       - name: run core tests (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
-        run: cargo test -p clip2pod-core --manifest-path src-tauri/Cargo.toml
+        run: cargo test -p clip2pod-core -p ytdlfeed-core --manifest-path src-tauri/Cargo.toml
 
       - uses: tauri-apps/tauri-action@v1
         env:
@@ -62,7 +62,10 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'Clip2Pod ${{ github.ref_name }}'
           releaseBody: |
-            Turn any article into a podcast episode. See the assets below for your platform.
+            Turn an article — or a video's audio — into a podcast episode. See the assets below for your platform.
+
+            **Rip mode** needs `yt-dlp` and `ffmpeg` on your PATH (not bundled). Narrate mode has no extra dependencies.
+
             Companion browser extension (Chrome + Firefox) installs from the repo's `extension/` folder — see [extension/README.md](https://github.com/FlocktimusPrime/Clip2Pod/blob/main/extension/README.md).
           releaseDraft: true
           prerelease: false

@@ -89,6 +89,12 @@ export interface Extracted {
   text: string;
 }
 
+export interface FirewallHelp {
+  shell_hint: string;
+  command: string;
+  tips: string[];
+}
+
 export interface CapturedArticle extends Extracted {
   url: string;
 }
@@ -97,3 +103,59 @@ export type Lamp =
   | { state: "Idle" }
   | { state: "Queued"; queued: number }
   | { state: "OnAir" };
+
+// --- RIP mode (yt-dlp). Mirrors ytdlfeed-core / rip_commands.rs. The narrate
+// types above keep their bare names (this is the host app); rip types are
+// prefixed. `Lamp` and `Theme` are shared — identical shape on both sides. ---
+
+export type RipJobStatus = JobStatus;
+
+export interface RipJobProgress {
+  percent: number | null;
+  stage: string | null;
+  speed: string | null;
+}
+
+export interface RipJob {
+  id: string;
+  url: string;
+  filename: string | null;
+  status: RipJobStatus;
+  progress: RipJobProgress;
+  created: string;
+  started: string | null;
+  finished: string | null;
+  detail: string;
+}
+
+export type RipLogStatus = "Queued" | "Done" | "Failed" | "Cancelled";
+
+export interface RipLogEntry {
+  timestamp: string;
+  status: RipLogStatus;
+  title: string;
+  detail: string;
+}
+
+export interface RipConfigView {
+  output_dir: string;
+  args_template: string;
+  default_args: string;
+  /** Configured yt-dlp binary, or "" meaning "yt-dlp from PATH". */
+  ytdlp_path: string;
+}
+
+export interface RipEpisodeView {
+  title: string;
+  filename: string;
+  size: number;
+  modified: string;
+  artist: string | null;
+  duration_ms: number | null;
+}
+
+export interface DoctorReport {
+  ytdlp_found: boolean;
+  ytdlp_version: string | null;
+  ffmpeg_found: boolean;
+}

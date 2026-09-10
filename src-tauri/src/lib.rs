@@ -2,6 +2,9 @@ mod capture;
 mod commands;
 mod feed;
 mod firewall;
+mod migrate;
+mod rip_commands;
+mod rip_worker;
 mod state;
 mod tray;
 mod worker;
@@ -31,6 +34,13 @@ pub fn run() {
     let start_minimized = config.start_minimized;
     let launch_at_startup = config.launch_at_startup;
     let (wake_tx, wake_rx) = tokio::sync::mpsc::unbounded_channel();
+
+    // RIP mode: its own config/log subdir, seeded once from a prior standalone
+    // yt-dlFeed install if the user had one.
+    let rip_config_dir = config_dir.join("rip");
+    migrate::migrate_ytdlfeed_config(&rip_config_dir);
+    let rip_config = ytdlfeed_core::config::load_config(&rip_config_dir);
+    let (rip_wake_tx, rip_wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
     // Intake, not generate: surface the window and let the frontend run
     // its normal paste-clipboard flow.
@@ -71,6 +81,11 @@ pub fn run() {
             voices: Mutex::new(cached_voices),
             wake_worker: wake_tx,
             cancel_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            rip_config_dir,
+            rip_config: Mutex::new(rip_config),
+            rip_queue: Mutex::new(Default::default()),
+            rip_wake: rip_wake_tx,
+            rip_running: Mutex::new(None),
         })
         .setup(move |app| {
             // Registration can fail (hotkey taken by another app, Wayland, …) —
@@ -97,6 +112,7 @@ pub fn run() {
                 }
             }
             worker::spawn(app.handle().clone(), wake_rx);
+            rip_worker::spawn(app.handle().clone(), rip_wake_rx);
             tray::setup(app.handle())?;
             capture::serve(app.handle().clone());
             feed::serve(app.handle().clone());
@@ -147,7 +163,22 @@ pub fn run() {
             commands::episode_count,
             commands::delete_all_episodes,
             commands::feed_url,
-            commands::open_firewall_port,
+            commands::firewall_help,
+            rip_commands::rip_enqueue,
+            rip_commands::rip_get_queue,
+            rip_commands::rip_clear_pending,
+            rip_commands::rip_stop_job,
+            rip_commands::rip_get_log,
+            rip_commands::rip_clear_log,
+            rip_commands::rip_get_config,
+            rip_commands::rip_set_output_dir,
+            rip_commands::rip_set_args_template,
+            rip_commands::rip_set_ytdlp_path,
+            rip_commands::rip_list_episodes,
+            rip_commands::rip_delete_episode,
+            rip_commands::rip_delete_all_episodes,
+            rip_commands::rip_feed_url,
+            rip_commands::rip_doctor,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
