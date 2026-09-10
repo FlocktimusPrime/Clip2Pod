@@ -20,6 +20,9 @@ pub enum Theme {
 pub struct Config {
     pub output_dir: Option<PathBuf>,
     pub args_template: Option<String>,
+    /// yt-dlp executable. `None` means "use `yt-dlp` from PATH"; set an absolute
+    /// path to pin a specific build (e.g. a nightly release).
+    pub ytdlp_path: Option<String>,
     pub theme: Theme,
     /// Launch with the main window hidden — tray icon only.
     pub start_minimized: bool,
@@ -123,6 +126,7 @@ mod tests {
         assert_eq!(c.theme, Theme::Dark);
         assert!(c.output_dir.is_none());
         assert!(c.args_template.is_none());
+        assert!(c.ytdlp_path.is_none());
         assert!(!c.start_minimized);
     }
 
@@ -141,11 +145,13 @@ mod tests {
         c.theme = Theme::Light;
         c.args_template = Some("--extract-audio".into());
         c.output_dir = Some(PathBuf::from("/tmp/pods"));
+        c.ytdlp_path = Some("/opt/yt-dlp-nightly/yt-dlp".into());
         save_config(dir.path(), &c).unwrap();
         let loaded = load_config(dir.path());
         assert_eq!(loaded.theme, Theme::Light);
         assert_eq!(loaded.args_template.as_deref(), Some("--extract-audio"));
         assert_eq!(loaded.output_dir.as_deref(), Some(Path::new("/tmp/pods")));
+        assert_eq!(loaded.ytdlp_path.as_deref(), Some("/opt/yt-dlp-nightly/yt-dlp"));
     }
 
     #[test]
