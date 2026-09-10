@@ -85,7 +85,7 @@
 </script>
 
 <Modal title="Settings" onclose={() => (app.dialog = null)}>
-  <h3 class="section-label">General</h3>
+  <h3 class="section-head label">General</h3>
   <div class="section">
     <div class="row" role="group" aria-label="Theme">
       <button
@@ -119,12 +119,14 @@
     </label>
   </div>
 
-  <h3 class="section-label">Narrate</h3>
+  <h3 class="section-head label">Narrate</h3>
   <div class="section">
-    <span class="label">Episode folder</span>
+    <span class="label">Narrated-audio folder</span>
     <div class="row">
       <p class="path mono" title={app.config?.output_dir}>{app.config?.output_dir ?? "…"}</p>
-      <button class="btn" onclick={pickNarrateDir}>Browse</button>
+      <button class="btn" aria-label="Browse for the narrated-audio folder" onclick={pickNarrateDir}>
+        Browse
+      </button>
     </div>
     <label class="check">
       <input type="checkbox" checked={app.config?.prefix_c2p ?? false} onchange={togglePrefix} />
@@ -133,12 +135,14 @@
     <button class="btn" onclick={() => (app.dialog = "voices")}>Manage voices</button>
   </div>
 
-  <h3 class="section-label">Rip</h3>
+  <h3 class="section-head label">Rip</h3>
   <div class="section">
-    <span class="label">Episode folder</span>
+    <span class="label">Ripped-audio folder</span>
     <div class="row">
       <p class="path mono" title={app.ripConfig?.output_dir}>{app.ripConfig?.output_dir ?? "…"}</p>
-      <button class="btn" onclick={pickRipDir}>Browse</button>
+      <button class="btn" aria-label="Browse for the ripped-audio folder" onclick={pickRipDir}>
+        Browse
+      </button>
     </div>
 
     <label class="label" for="rip-args">yt-dlp arguments</label>
@@ -186,21 +190,20 @@
 </Modal>
 
 <style>
-  .section-label {
-    margin: 0 0 8px;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--accent);
+  /* Type comes from .label (muted mono, per DESIGN.md settings-subsection spec);
+     this only sets the rhythm — more space above the heading than below. */
+  .section-head {
+    margin: 4px 0 10px;
+  }
+
+  .section-head:not(:first-child) {
+    margin-top: 20px;
   }
 
   .section {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 22px;
     align-items: flex-start;
   }
 

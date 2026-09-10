@@ -21,7 +21,7 @@
     onsettings: () => void;
   } = $props();
 
-  const tabs: { id: TabName; text: string }[] = [
+  const modes: { id: TabName; text: string }[] = [
     { id: "narrate", text: "NARRATE" },
     { id: "rip", text: "RIP" },
   ];
@@ -30,15 +30,14 @@
 <header class="app-header">
   <h1 class="brand-mark">CLIP2POD</h1>
 
-  <div class="tabs" role="tablist" aria-label="Mode">
-    {#each tabs as t (t.id)}
+  <div class="seg" role="group" aria-label="Mode">
+    {#each modes as m (m.id)}
       <button
-        class="tab"
-        role="tab"
-        aria-selected={tab === t.id}
-        onclick={() => ontab(t.id)}
+        class="seg-cell"
+        aria-pressed={tab === m.id}
+        onclick={() => ontab(m.id)}
       >
-        {t.text}
+        {m.text}
       </button>
     {/each}
   </div>
@@ -46,9 +45,9 @@
   <StatusLamp {lamp} {label} />
 
   <div class="actions">
-    <button class="hbtn" onclick={onfeed}>FEED</button>
-    <button class="hbtn" onclick={onlog}>LOG</button>
-    <button class="hbtn" onclick={onsettings}>SETTINGS</button>
+    <button class="btn" onclick={onfeed}>FEED</button>
+    <button class="btn" onclick={onlog}>LOG</button>
+    <button class="btn" onclick={onsettings}>SETTINGS</button>
   </div>
 </header>
 
@@ -57,6 +56,8 @@
     display: flex;
     align-items: center;
     gap: 16px;
+    row-gap: 8px;
+    flex-wrap: wrap;
     padding: 10px 16px;
     background: var(--panel);
     border-bottom: 1px solid var(--line);
@@ -72,36 +73,42 @@
     flex-shrink: 0;
   }
 
-  .tabs {
+  /* Segmented control per DESIGN.md: one bordered box, borderless cells
+     divided only by fill, active cell flips to the accent. */
+  .seg {
     display: flex;
-    gap: 2px;
     margin-right: auto;
-    padding: 2px;
-    background: var(--panel-raised);
     border: 1px solid var(--line);
     border-radius: 4px;
+    overflow: hidden;
+    height: 31px;
   }
 
-  .tab {
+  .seg-cell {
     font-family: var(--mono);
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.12em;
-    padding: 5px 12px;
-    background: transparent;
+    letter-spacing: 0.14em;
+    padding: 0 14px;
+    background: var(--panel-raised);
     color: var(--muted);
     border: none;
-    border-radius: 3px;
     cursor: pointer;
+    transition: color 120ms;
   }
 
-  .tab:hover {
+  .seg-cell:hover {
     color: var(--text);
   }
 
-  .tab[aria-selected="true"] {
+  .seg-cell[aria-pressed="true"] {
     background: var(--accent);
     color: var(--accent-ink);
+  }
+
+  .seg-cell:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 
   .actions {
@@ -110,20 +117,7 @@
     flex-shrink: 0;
   }
 
-  .hbtn {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+  .actions .btn {
     padding: 6px 12px;
-    background: var(--panel-raised);
-    color: var(--muted);
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .hbtn:hover {
-    color: var(--text);
   }
 </style>
