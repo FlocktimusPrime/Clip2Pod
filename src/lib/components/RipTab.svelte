@@ -2,7 +2,7 @@
   import { readText } from "@tauri-apps/plugin-clipboard-manager";
   import { ask } from "@tauri-apps/plugin-dialog";
   import * as rip from "$lib/rip_api";
-  import { app, refreshRipEpisodes, toast } from "$lib/stores.svelte";
+  import { app, refreshDoctor, refreshRipEpisodes, toast } from "$lib/stores.svelte";
   import type { RipJob } from "$lib/types";
 
   let url = $state("");
@@ -89,6 +89,10 @@
     });
   }
 
+  const missingTools = $derived(
+    app.doctor !== null && (!app.doctor.ytdlp_found || !app.doctor.ffmpeg_found),
+  );
+
   const activeJobs = $derived(
     app.ripQueue.filter((j) => j.status === "Queued" || j.status === "Processing"),
   );
@@ -107,6 +111,33 @@
 />
 
 <main>
+  {#if missingTools && app.doctor}
+    <div class="notice" role="status">
+      <p class="notice-head">
+        {#if !app.doctor.ytdlp_found && !app.doctor.ffmpeg_found}
+          yt-dlp and ffmpeg aren't on your PATH.
+        {:else if !app.doctor.ytdlp_found}
+          yt-dlp isn't on your PATH.
+        {:else}
+          ffmpeg isn't on your PATH.
+        {/if}
+        RIP needs both to work.
+      </p>
+      <ul>
+        {#if !app.doctor.ytdlp_found}
+          <li><code>winget install yt-dlp.yt-dlp</code> &nbsp;— or&nbsp; <code>pipx install yt-dlp</code></li>
+        {/if}
+        {#if !app.doctor.ffmpeg_found}
+          <li><code>winget install yt-dlp.FFmpeg</code> &nbsp;(the build yt-dlp expects)</li>
+        {/if}
+      </ul>
+      <p class="notice-foot">
+        Restart Clip2Pod after installing.
+        <button class="btn small" onclick={refreshDoctor}>Re-check</button>
+      </p>
+    </div>
+  {/if}
+
   <section class="intake" aria-labelledby="rip-intake-h">
     <h2 class="label" id="rip-intake-h">Add episode</h2>
     <div class="row">
@@ -176,6 +207,10 @@
           {/if}
           {#if expanded === job.id && job.detail}
             <pre class="detail">{job.detail}</pre>
+            <p class="fail-hint">
+              An outdated yt-dlp is a common cause — run <code>yt-dlp -U</code>
+              (or reinstall your build) and try again.
+            </p>
           {/if}
         </div>
       {/each}
@@ -421,5 +456,57 @@
     color: var(--muted);
     font-size: 13px;
     margin: 6px 0;
+  }
+
+  .notice {
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
+  }
+
+  .notice-head {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .notice ul {
+    margin: 8px 0;
+    padding-left: 18px;
+    font-size: 12.5px;
+  }
+
+  .notice li {
+    margin: 4px 0;
+  }
+
+  .notice code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line-soft);
+    border-radius: 3px;
+    padding: 1px 5px;
+    user-select: all;
+  }
+
+  .notice-foot {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .fail-hint {
+    margin: 6px 0 0;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .fail-hint code {
+    font-family: var(--mono);
   }
 </style>
