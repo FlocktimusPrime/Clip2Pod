@@ -1,6 +1,11 @@
-// Loopback listener for the browser extension: receives the rendered page
-// HTML (user's logged-in session, so paywalled content included) and turns
-// it into editor content via the shared readability pipeline.
+// Loopback listener for the browser extension. One endpoint for both modes: the
+// extension always sends the page URL plus its rendered HTML (the user's
+// logged-in session, so paywalled article text is included) and, optionally, an
+// override telling us which mode the user picked from the context menu.
+//
+// Routing: an explicit override wins; otherwise a known video host goes to RIP
+// and everything else is treated as an article. The extension always includes
+// the HTML, so the article path always has what it needs.
 
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter};
@@ -12,6 +17,10 @@ pub const CAPTURE_ADDR: &str = "127.0.0.1:4737";
 struct CapturePayload {
     url: String,
     html: String,
+    /// "article" or "video" from the extension's context menu; absent for a
+    /// plain toolbar click (auto-route).
+    #[serde(default)]
+    override_hint: Option<String>,
 }
 
 #[derive(serde::Serialize, Clone)]
@@ -40,22 +49,42 @@ fn handle(app: &AppHandle, body: &str) -> (u16, String) {
         Ok(p) => p,
         Err(e) => return (400, format!("bad request: {e}")),
     };
-    match clip2pod_core::extract::extract_from_html(&payload.html, &payload.url) {
-        Ok(extracted) => {
-            let _ = app.emit(
-                "article-captured",
-                &CapturedArticle {
-                    title: extracted.title,
-                    author: extracted.author,
-                    text: extracted.text,
-                    url: payload.url.clone(),
-                },
-            );
+
+    let to_rip = match payload.override_hint.as_deref() {
+        Some("video") => true,
+        Some("article") => false,
+        _ => ytdlfeed_core::ytdlp::rippable_host(&payload.url),
+    };
+
+    let result = if to_rip {
+        crate::rip_commands::do_enqueue(app, payload.url.clone()).map(|_| ("rip", "queued"))
+    } else {
+        route_article(app, &payload).map(|_| ("narrate", "captured"))
+    };
+
+    match result {
+        Ok((tab, msg)) => {
+            let _ = app.emit("switch-tab", tab);
             crate::tray::show_main(app);
-            (200, "captured".into())
+            (200, msg.to_string())
         }
-        Err(e) => (422, e.to_string()),
+        Err(e) => (422, e),
     }
+}
+
+fn route_article(app: &AppHandle, payload: &CapturePayload) -> Result<(), String> {
+    let extracted = clip2pod_core::extract::extract_from_html(&payload.html, &payload.url)
+        .map_err(|e| e.to_string())?;
+    let _ = app.emit(
+        "article-captured",
+        &CapturedArticle {
+            title: extracted.title,
+            author: extracted.author,
+            text: extracted.text,
+            url: payload.url.clone(),
+        },
+    );
+    Ok(())
 }
 
 pub fn serve(app: AppHandle) {
@@ -73,16 +102,20 @@ pub fn serve(app: AppHandle) {
                 continue;
             }
             if request.method() != &Method::Post || request.url() != "/capture" {
-                let _ = request.respond(with_cors(Response::from_string("not found").with_status_code(404)));
+                let _ = request
+                    .respond(with_cors(Response::from_string("not found").with_status_code(404)));
                 continue;
             }
             let mut body = String::new();
             if request.as_reader().read_to_string(&mut body).is_err() {
-                let _ = request.respond(with_cors(Response::from_string("unreadable body").with_status_code(400)));
+                let _ = request.respond(
+                    with_cors(Response::from_string("unreadable body").with_status_code(400)),
+                );
                 continue;
             }
             let (status, message) = handle(&app, &body);
-            let _ = request.respond(with_cors(Response::from_string(message).with_status_code(status)));
+            let _ =
+                request.respond(with_cors(Response::from_string(message).with_status_code(status)));
         }
     });
 }
