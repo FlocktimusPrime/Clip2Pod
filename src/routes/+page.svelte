@@ -8,6 +8,7 @@
   import VoicesDialog from "$lib/components/VoicesDialog.svelte";
   import JunkDialog from "$lib/components/JunkDialog.svelte";
   import LogDialog from "$lib/components/LogDialog.svelte";
+  import RipLogDialog from "$lib/components/RipLogDialog.svelte";
   import FeedDialog from "$lib/components/FeedDialog.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
   import StartupPromptDialog from "$lib/components/StartupPromptDialog.svelte";
@@ -63,8 +64,10 @@
   <VoicesDialog />
 {:else if app.dialog === "junk"}
   <JunkDialog />
-{:else if app.dialog === "log" || app.dialog === "rip-log"}
+{:else if app.dialog === "log"}
   <LogDialog />
+{:else if app.dialog === "rip-log"}
+  <RipLogDialog />
 {:else if app.dialog === "feed"}
   <FeedDialog />
 {:else if app.dialog === "settings"}

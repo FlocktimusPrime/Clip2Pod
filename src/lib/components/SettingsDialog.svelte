@@ -1,23 +1,16 @@
 <script lang="ts">
   import { open } from "@tauri-apps/plugin-dialog";
   import * as api from "$lib/api";
-  import { app, applyTheme } from "$lib/stores.svelte";
+  import * as rip from "$lib/rip_api";
+  import { app, applyTheme, refreshDoctor, refreshRipEpisodes, toast } from "$lib/stores.svelte";
   import type { Theme } from "$lib/types";
   import Modal from "./Modal.svelte";
 
-  async function pickOutputDir() {
-    const dir = await open({ directory: true, title: "Choose output folder" });
-    if (typeof dir === "string" && app.config) {
-      await api.setOutputDir(dir);
-      app.config.output_dir = dir;
-    }
-  }
-
-  async function togglePrefix(e: Event) {
-    if (!app.config) return;
-    const on = (e.currentTarget as HTMLInputElement).checked;
-    app.config.prefix_c2p = on;
-    await api.setPrefix(on);
+  // --- General ---
+  async function switchTheme(theme: Theme) {
+    if (app.config) app.config.theme = theme;
+    applyTheme(theme);
+    await api.setTheme(theme);
   }
 
   async function toggleStartMinimized(e: Event) {
@@ -34,29 +27,80 @@
     await api.setLaunchAtStartup(on);
   }
 
-  async function switchTheme(theme: Theme) {
-    if (app.config) app.config.theme = theme;
-    applyTheme(theme);
-    await api.setTheme(theme);
+  // --- Narrate ---
+  async function pickNarrateDir() {
+    const dir = await open({ directory: true, title: "Choose narrated-audio folder" });
+    if (typeof dir === "string" && app.config) {
+      await api.setOutputDir(dir);
+      app.config.output_dir = dir;
+    }
+  }
+
+  async function togglePrefix(e: Event) {
+    if (!app.config) return;
+    const on = (e.currentTarget as HTMLInputElement).checked;
+    app.config.prefix_c2p = on;
+    await api.setPrefix(on);
+  }
+
+  // --- Rip ---
+  let ripArgs = $state(app.ripConfig?.args_template ?? "");
+  let ripBin = $state(app.ripConfig?.ytdlp_path ?? "");
+  let ripArgsError = $state("");
+
+  const ripDirty = $derived(
+    app.ripConfig !== null &&
+      (ripArgs.trim() !== app.ripConfig.args_template || ripBin.trim() !== app.ripConfig.ytdlp_path),
+  );
+
+  async function pickRipDir() {
+    const dir = await open({ directory: true, title: "Choose ripped-audio folder" });
+    if (typeof dir === "string" && app.ripConfig) {
+      await rip.setOutputDir(dir);
+      app.ripConfig.output_dir = dir;
+    }
+  }
+
+  function resetRipArgs() {
+    if (app.ripConfig) ripArgs = app.ripConfig.default_args;
+  }
+
+  async function saveRip() {
+    if (!app.ripConfig) return;
+    ripArgsError = "";
+    try {
+      await rip.setArgsTemplate(ripArgs);
+    } catch (e) {
+      ripArgsError = String(e);
+      return;
+    }
+    await rip.setYtdlpPath(ripBin);
+    app.ripConfig = await rip.getConfig();
+    ripArgs = app.ripConfig.args_template;
+    ripBin = app.ripConfig.ytdlp_path;
+    await refreshDoctor();
+    await refreshRipEpisodes();
+    toast("Rip settings saved");
   }
 </script>
 
 <Modal title="Settings" onclose={() => (app.dialog = null)}>
+  <h3 class="section-label">General</h3>
   <div class="section">
-    <h3 class="label">Episode folder</h3>
-    <div class="row">
-      <p class="path mono" title={app.config?.output_dir}>{app.config?.output_dir ?? "…"}</p>
-      <button class="btn" onclick={pickOutputDir}>Browse</button>
+    <div class="row" role="group" aria-label="Theme">
+      <button
+        class="btn"
+        class:primary={app.config?.theme === "dark"}
+        aria-pressed={app.config?.theme === "dark"}
+        onclick={() => switchTheme("dark")}>Dark</button
+      >
+      <button
+        class="btn"
+        class:primary={app.config?.theme === "light"}
+        aria-pressed={app.config?.theme === "light"}
+        onclick={() => switchTheme("light")}>Light</button
+      >
     </div>
-    <p class="hint">The feed serves every .mp3 in this folder; cover.jpg here is the artwork.</p>
-    <label class="check">
-      <input type="checkbox" checked={app.config?.prefix_c2p ?? false} onchange={togglePrefix} />
-      <span>Prefix filenames with C2P</span>
-    </label>
-  </div>
-
-  <div class="section">
-    <h3 class="label">Startup</h3>
     <label class="check">
       <input
         type="checkbox"
@@ -75,31 +119,81 @@
     </label>
   </div>
 
+  <h3 class="section-label">Narrate</h3>
   <div class="section">
-    <h3 class="label">Theme</h3>
+    <span class="label">Episode folder</span>
     <div class="row">
-      <button
-        class="btn"
-        class:primary={app.config?.theme === "dark"}
-        aria-pressed={app.config?.theme === "dark"}
-        onclick={() => switchTheme("dark")}>Dark</button
-      >
-      <button
-        class="btn"
-        class:primary={app.config?.theme === "light"}
-        aria-pressed={app.config?.theme === "light"}
-        onclick={() => switchTheme("light")}>Light</button
-      >
+      <p class="path mono" title={app.config?.output_dir}>{app.config?.output_dir ?? "…"}</p>
+      <button class="btn" onclick={pickNarrateDir}>Browse</button>
     </div>
+    <label class="check">
+      <input type="checkbox" checked={app.config?.prefix_c2p ?? false} onchange={togglePrefix} />
+      <span>Prefix filenames with C2P</span>
+    </label>
+    <button class="btn" onclick={() => (app.dialog = "voices")}>Manage voices</button>
+  </div>
+
+  <h3 class="section-label">Rip</h3>
+  <div class="section">
+    <span class="label">Episode folder</span>
+    <div class="row">
+      <p class="path mono" title={app.ripConfig?.output_dir}>{app.ripConfig?.output_dir ?? "…"}</p>
+      <button class="btn" onclick={pickRipDir}>Browse</button>
+    </div>
+
+    <label class="label" for="rip-args">yt-dlp arguments</label>
+    <textarea
+      id="rip-args"
+      class="field args"
+      rows="5"
+      bind:value={ripArgs}
+      spellcheck="false"
+      aria-invalid={ripArgsError ? "true" : undefined}
+      aria-describedby={ripArgsError ? "rip-args-error rip-args-hint" : "rip-args-hint"}
+    ></textarea>
+    {#if ripArgsError}
+      <p class="error" id="rip-args-error">{ripArgsError}</p>
+    {/if}
+    <p class="hint" id="rip-args-hint">
+      The app always appends the output folder and the video URL. Output must stay mp3 for the
+      feed to list it.
+    </p>
+    <button class="btn" onclick={resetRipArgs}>Reset to default</button>
+
+    <label class="label" for="rip-bin">yt-dlp binary</label>
+    <input
+      id="rip-bin"
+      class="field mono"
+      bind:value={ripBin}
+      spellcheck="false"
+      placeholder="yt-dlp (from PATH)"
+      aria-describedby="rip-bin-hint"
+    />
+    <p class="hint" id="rip-bin-hint">
+      Leave blank to use <code>yt-dlp</code> from your PATH, or point at a specific build (e.g. a
+      nightly) if rips start failing.
+    </p>
+
+    <button class="btn primary" onclick={saveRip} disabled={!ripDirty}>Save rip settings</button>
   </div>
 </Modal>
 
 <style>
+  .section-label {
+    margin: 0 0 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
   .section {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 18px;
+    gap: 8px;
+    margin-bottom: 22px;
     align-items: flex-start;
   }
 
@@ -124,9 +218,27 @@
     font-size: 11.5px;
   }
 
+  .args {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    resize: vertical;
+    width: 100%;
+  }
+
+  .field.mono {
+    width: 100%;
+  }
+
   .hint {
     font-size: 12px;
     color: var(--muted);
+    margin: 0;
+  }
+
+  .error {
+    font-size: 12px;
+    color: var(--danger);
     margin: 0;
   }
 </style>

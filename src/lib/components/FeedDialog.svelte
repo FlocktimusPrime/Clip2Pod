@@ -1,15 +1,20 @@
 <script lang="ts">
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import * as api from "$lib/api";
+  import * as rip from "$lib/rip_api";
   import { app, toast } from "$lib/stores.svelte";
   import type { FirewallHelp } from "$lib/types";
   import Modal from "./Modal.svelte";
+
+  // The Feed button opens this from whichever tab you're on.
+  const isRip = app.tab === "rip";
+  const kind = isRip ? "ripped audio" : "narrated articles";
 
   let url = $state("");
   let qr = $state("");
 
   $effect(() => {
-    api.feedUrl().then(
+    (isRip ? rip.feedUrl() : api.feedUrl()).then(
       (u) => (url = u),
       (e) => toast(`Feed URL failed: ${e}`, "error"),
     );
@@ -76,10 +81,11 @@
   }
 </script>
 
-<Modal title="Podcast feed" onclose={() => (app.dialog = null)}>
+<Modal title="Podcast feed — {kind}" onclose={() => (app.dialog = null)}>
   <p class="hint">
-    Subscribe in your podcast app — same Wi-Fi, and Clip2Pod must be running
-    (the tray keeps it alive when the window is closed).
+    Subscribe in your podcast app for {kind} — same Wi-Fi, and Clip2Pod must be
+    running (the tray keeps it alive when the window is closed). The two feeds
+    are separate; switch tabs for the other one.
   </p>
   <div class="url-row">
     <code>{url || "…"}</code>
