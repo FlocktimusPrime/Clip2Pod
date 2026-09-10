@@ -95,4 +95,10 @@
     flex-direction: column;
     min-height: 0;
   }
+
+  /* A class selector's `display` beats the UA `[hidden] { display: none }`,
+     so the inactive pane needs this to actually hide. */
+  .pane[hidden] {
+    display: none;
+  }
 </style>
