@@ -3,6 +3,7 @@ mod commands;
 mod feed;
 mod firewall;
 mod migrate;
+mod rip_commands;
 mod rip_worker;
 mod state;
 mod tray;
@@ -163,6 +164,21 @@ pub fn run() {
             commands::delete_all_episodes,
             commands::feed_url,
             commands::firewall_help,
+            rip_commands::rip_enqueue,
+            rip_commands::rip_get_queue,
+            rip_commands::rip_clear_pending,
+            rip_commands::rip_stop_job,
+            rip_commands::rip_get_log,
+            rip_commands::rip_clear_log,
+            rip_commands::rip_get_config,
+            rip_commands::rip_set_output_dir,
+            rip_commands::rip_set_args_template,
+            rip_commands::rip_set_ytdlp_path,
+            rip_commands::rip_list_episodes,
+            rip_commands::rip_delete_episode,
+            rip_commands::rip_delete_all_episodes,
+            rip_commands::rip_feed_url,
+            rip_commands::rip_doctor,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
