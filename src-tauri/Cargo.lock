@@ -576,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "clip2podv2"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "clip2pod-core",
@@ -592,6 +592,7 @@ dependencies = [
  "tauri-plugin-window-state",
  "tiny_http",
  "tokio",
+ "ytdlfeed-core",
 ]
 
 [[package]]

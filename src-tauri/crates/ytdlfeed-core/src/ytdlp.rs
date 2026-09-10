@@ -9,6 +9,49 @@ use std::path::Path;
 /// `build_args`, never stored in the template, so the feed dir can't drift.
 pub const DEFAULT_ARGS: &str = "--restrict-filenames --trim-filenames 150 --no-overwrites --embed-thumbnail --embed-metadata --embed-chapters --sponsorblock-remove default --extract-audio --audio-format mp3 --audio-quality 0 --postprocessor-args \"ExtractAudio:-af volume=1.5\" -o \"%(title)s.%(ext)s\"";
 
+/// Hosts where "there is an audio/video track worth ripping" is the sensible
+/// default when the browser extension captures a page. Not exhaustive — yt-dlp
+/// supports ~1800 sites; the extension's "Capture as video" override reaches the
+/// rest. Matched as an exact host or a subdomain of one of these.
+pub const RIPPABLE_HOSTS: &[&str] = &[
+    "youtube.com",
+    "youtu.be",
+    "vimeo.com",
+    "soundcloud.com",
+    "twitch.tv",
+    "dailymotion.com",
+    "bilibili.com",
+    "rumble.com",
+    "odysee.com",
+    "bandcamp.com",
+    "ted.com",
+    "nebula.tv",
+    "x.com",
+    "twitter.com",
+];
+
+/// Lowercased host of an http(s) URL, without userinfo or port. `None` for
+/// anything that isn't a plain http(s) URL with a non-empty host.
+fn url_host(url: &str) -> Option<String> {
+    let rest = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))?;
+    let authority = rest.split(['/', '?', '#']).next()?;
+    let host = authority.rsplit('@').next()?; // drop any user:pass@
+    let host = host.split(':').next()?; // drop :port
+    (!host.is_empty()).then(|| host.to_ascii_lowercase())
+}
+
+/// True when the URL's host is one of `RIPPABLE_HOSTS` or a subdomain of one.
+pub fn rippable_host(url: &str) -> bool {
+    let Some(host) = url_host(url) else {
+        return false;
+    };
+    RIPPABLE_HOSTS
+        .iter()
+        .any(|&h| host == h || host.ends_with(&format!(".{h}")))
+}
+
 /// Accept only plain http(s) URLs; everything else could be an option
 /// injection or a local path.
 pub fn valid_url(url: &str) -> bool {
@@ -100,6 +143,26 @@ mod tests {
         assert_eq!(args[p + 1], "/tmp/out dir");
         assert_eq!(args[args.len() - 2], "--");
         assert_eq!(args[args.len() - 1], "https://youtu.be/x");
+    }
+
+    #[test]
+    fn rippable_host_matches_known_sites_and_subdomains() {
+        assert!(rippable_host("https://www.youtube.com/watch?v=x"));
+        assert!(rippable_host("https://youtu.be/x"));
+        assert!(rippable_host("https://m.youtube.com/watch?v=x"));
+        assert!(rippable_host("http://vimeo.com/12345"));
+        assert!(rippable_host("https://VIMEO.com/12345#frag"));
+        assert!(rippable_host("https://user@twitch.tv/somechannel"));
+    }
+
+    #[test]
+    fn rippable_host_rejects_articles_and_lookalikes() {
+        assert!(!rippable_host("https://example.com/post"));
+        assert!(!rippable_host("https://notyoutube.com/x"));
+        assert!(!rippable_host("https://youtube.com.evil.com/x"));
+        assert!(!rippable_host("ftp://youtube.com/x"));
+        assert!(!rippable_host("https://"));
+        assert!(!rippable_host(""));
     }
 
     #[test]
