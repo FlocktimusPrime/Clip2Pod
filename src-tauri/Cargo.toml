@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/clip2pod-core"]
+members = ["crates/clip2pod-core", "crates/ytdlfeed-core"]
 
 [package]
 name = "clip2podv2"
