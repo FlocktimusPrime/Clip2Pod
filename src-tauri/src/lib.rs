@@ -3,6 +3,7 @@ mod commands;
 mod feed;
 mod firewall;
 mod migrate;
+mod rip_worker;
 mod state;
 mod tray;
 mod worker;
@@ -38,6 +39,7 @@ pub fn run() {
     let rip_config_dir = config_dir.join("rip");
     migrate::migrate_ytdlfeed_config(&rip_config_dir);
     let rip_config = ytdlfeed_core::config::load_config(&rip_config_dir);
+    let (rip_wake_tx, rip_wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
     // Intake, not generate: surface the window and let the frontend run
     // its normal paste-clipboard flow.
@@ -81,6 +83,8 @@ pub fn run() {
             rip_config_dir,
             rip_config: Mutex::new(rip_config),
             rip_queue: Mutex::new(Default::default()),
+            rip_wake: rip_wake_tx,
+            rip_running: Mutex::new(None),
         })
         .setup(move |app| {
             // Registration can fail (hotkey taken by another app, Wayland, …) —
@@ -107,6 +111,7 @@ pub fn run() {
                 }
             }
             worker::spawn(app.handle().clone(), wake_rx);
+            rip_worker::spawn(app.handle().clone(), rip_wake_rx);
             tray::setup(app.handle())?;
             capture::serve(app.handle().clone());
             feed::serve(app.handle().clone());
