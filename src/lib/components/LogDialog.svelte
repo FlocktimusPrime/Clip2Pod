@@ -9,7 +9,40 @@
 
   let search = $state("");
   let menu = $state<{ x: number; y: number; voice: string } | null>(null);
+  let menuEl = $state<HTMLDivElement>();
   let sort = $state<SortState<Col>>(null);
+
+  // The menu is a popover only so it clears the top-layer <dialog> it opens
+  // inside. Dismissal is handled here (not popover="auto") so Escape closes
+  // just the menu, not the dialog behind it.
+  $effect(() => {
+    if (!menu || !menuEl) return;
+    try {
+      menuEl.showPopover();
+    } catch {
+      /* already shown */
+    }
+    menuEl.querySelector("button")?.focus();
+
+    const onPointer = (e: PointerEvent) => {
+      if (!menuEl?.contains(e.target as Node)) menu = null;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        menu = null;
+      }
+    };
+    // next tick so the opening right-click doesn't immediately dismiss it
+    const t = setTimeout(() => window.addEventListener("pointerdown", onPointer), 0);
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("keydown", onKey, true);
+    };
+  });
 
   const pick = (e: LogEntry, key: Col) =>
     key === "time" ? e.timestamp : key === "file" ? e.filename : e[key];
@@ -28,11 +61,22 @@
     menu = { x: e.clientX, y: e.clientY, voice };
   }
 
+  let removed = $state(false);
+
   async function disableVoice() {
     if (!menu) return;
-    await api.setVoiceEnabled(menu.voice, false);
-    toast(`${menu.voice} removed from rotation`);
-    menu = null;
+    try {
+      await api.setVoiceEnabled(menu.voice, false);
+      // Confirm in the menu, not a toast — a toast fires behind the dialog.
+      removed = true;
+      setTimeout(() => {
+        menu = null;
+        removed = false;
+      }, 900);
+    } catch (e) {
+      toast(String(e), "error");
+      menu = null;
+    }
   }
 
   async function clear() {
@@ -40,8 +84,6 @@
     app.log = [];
   }
 </script>
-
-<svelte:window onclick={() => (menu = null)} />
 
 <Modal title="Generation log" onclose={() => (app.dialog = null)}>
   <div class="toolbar">
@@ -91,9 +133,15 @@
 </Modal>
 
 {#if menu}
-  <div class="ctx" style="left: {menu.x}px; top: {menu.y}px" role="menu">
-    <button class="btn" role="menuitem" onclick={disableVoice}>
-      Disable {menu.voice}
+  <div
+    class="ctx"
+    bind:this={menuEl}
+    popover="manual"
+    style="left: min({menu.x}px, calc(100vw - 220px)); top: min({menu.y}px, calc(100vh - 60px))"
+    role="menu"
+  >
+    <button class="btn" role="menuitem" onclick={disableVoice} disabled={removed}>
+      {removed ? "Removed from rotation" : `Disable ${menu.voice}`}
     </button>
   </div>
 {/if}
@@ -170,7 +218,12 @@
 
   .ctx {
     position: fixed;
-    z-index: 60;
+    inset: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
     box-shadow: 0 8px 24px var(--shadow);
   }
 </style>
