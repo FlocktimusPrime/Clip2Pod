@@ -433,11 +433,11 @@ pub fn feed_url() -> String {
     )
 }
 
-/// Open the inbound firewall port the feed server listens on, so a phone's
-/// podcatcher app can reach it. Elevates per-OS; never fails the app itself.
+/// Per-OS instructions for opening the inbound firewall port the feed server
+/// listens on. We don't change the firewall ourselves — elevation from a GUI app
+/// is unreliable (silently no-ops on Windows) — so this just hands the user the
+/// command to run plus the common network-side gotchas.
 #[tauri::command]
-pub async fn open_firewall_port() -> CmdResult<String> {
-    tauri::async_runtime::spawn_blocking(crate::firewall::open_port)
-        .await
-        .map_err(|e| e.to_string())?
+pub fn firewall_help() -> crate::firewall::FirewallHelp {
+    crate::firewall::firewall_help()
 }

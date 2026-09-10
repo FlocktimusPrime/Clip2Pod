@@ -147,7 +147,7 @@ pub fn run() {
             commands::episode_count,
             commands::delete_all_episodes,
             commands::feed_url,
-            commands::open_firewall_port,
+            commands::firewall_help,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
