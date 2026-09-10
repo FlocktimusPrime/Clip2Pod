@@ -13,7 +13,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Send to Clip2Pod — click to send; right-click the page to choose narrate / rip",
+    "default_title": "Send to Clip2Pod — click to send; right-click the page to force narrate / rip",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"
