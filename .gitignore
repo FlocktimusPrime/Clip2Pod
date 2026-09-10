@@ -25,3 +25,7 @@ vite.config.ts.timestamp-*
 # Local
 .claude/settings.local.json
 *.log
+
+# Impeccable (track the DESIGN.md sidecar, ignore its working files)
+.impeccable/*
+!.impeccable/design.json

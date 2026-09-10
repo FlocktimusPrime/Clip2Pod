@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-09T00:00:00Z",
+  "title": "Design System: Clip2Pod",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Desk Black",
+        "canonical": "#161826",
+        "light": "#f2f1fa",
+        "tonalRamp": ["oklch(15% 0.03 280)", "oklch(22% 0.035 280)", "oklch(30% 0.035 280)", "oklch(40% 0.03 280)", "oklch(52% 0.025 280)", "oklch(66% 0.02 280)", "oklch(82% 0.012 280)", "oklch(95% 0.006 280)"]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "canonical": "#1d1f3d",
+        "light": "#ffffff",
+        "tonalRamp": ["oklch(17% 0.04 278)", "oklch(25% 0.05 278)", "oklch(33% 0.05 278)", "oklch(43% 0.045 278)", "oklch(55% 0.035 278)", "oklch(69% 0.025 278)", "oklch(84% 0.015 278)", "oklch(96% 0.006 278)"]
+      },
+      "panel-raised": {
+        "role": "neutral",
+        "displayName": "Panel Raised",
+        "canonical": "#262a60",
+        "light": "#ffffff",
+        "tonalRamp": ["oklch(20% 0.06 277)", "oklch(28% 0.08 277)", "oklch(36% 0.09 277)", "oklch(46% 0.085 277)", "oklch(58% 0.07 277)", "oklch(71% 0.05 277)", "oklch(85% 0.03 277)", "oklch(96% 0.012 277)"]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#e9e9ed",
+        "light": "#1f2140",
+        "tonalRamp": ["oklch(20% 0.01 280)", "oklch(32% 0.012 280)", "oklch(44% 0.012 280)", "oklch(56% 0.01 280)", "oklch(68% 0.008 280)", "oklch(80% 0.006 280)", "oklch(90% 0.004 280)", "oklch(96% 0.003 280)"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#9b9bb8",
+        "light": "#6b6d94",
+        "tonalRamp": ["oklch(22% 0.02 285)", "oklch(33% 0.025 285)", "oklch(44% 0.03 285)", "oklch(55% 0.03 285)", "oklch(66% 0.028 285)", "oklch(77% 0.022 285)", "oklch(87% 0.015 285)", "oklch(95% 0.008 285)"]
+      },
+      "signal-lavender": {
+        "role": "primary",
+        "displayName": "Signal Lavender",
+        "canonical": "#b5abfc",
+        "light": "#5b4fc4",
+        "tonalRamp": ["oklch(20% 0.06 290)", "oklch(30% 0.10 290)", "oklch(40% 0.14 290)", "oklch(50% 0.16 290)", "oklch(60% 0.15 290)", "oklch(70% 0.12 290)", "oklch(80% 0.09 290)", "oklch(91% 0.05 290)"]
+      },
+      "signal-lavender-dim": {
+        "role": "primary",
+        "displayName": "Signal Lavender Dim",
+        "canonical": "#6f63b0",
+        "light": "#b5abfc",
+        "tonalRamp": ["oklch(20% 0.06 290)", "oklch(29% 0.09 290)", "oklch(38% 0.11 290)", "oklch(47% 0.12 290)", "oklch(57% 0.11 290)", "oklch(68% 0.09 290)", "oklch(80% 0.06 290)", "oklch(91% 0.035 290)"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "On Air Red",
+        "canonical": "#ef5b6a",
+        "light": "#c8283f",
+        "tonalRamp": ["oklch(24% 0.09 20)", "oklch(34% 0.13 20)", "oklch(44% 0.17 22)", "oklch(53% 0.20 24)", "oklch(63% 0.19 22)", "oklch(72% 0.15 20)", "oklch(83% 0.09 18)", "oklch(93% 0.04 18)"]
+      },
+      "ok": {
+        "role": "tertiary",
+        "displayName": "Done Green",
+        "canonical": "#5fd0a0",
+        "light": "#2f8f6c",
+        "tonalRamp": ["oklch(24% 0.05 165)", "oklch(34% 0.08 165)", "oklch(44% 0.10 165)", "oklch(54% 0.11 165)", "oklch(65% 0.11 165)", "oklch(76% 0.09 165)", "oklch(86% 0.06 165)", "oklch(94% 0.03 165)"]
+      },
+      "idle": {
+        "role": "tertiary",
+        "displayName": "Idle Grey",
+        "canonical": "#3a3d5c",
+        "light": "#d8d6ec",
+        "tonalRamp": ["oklch(18% 0.02 280)", "oklch(27% 0.03 280)", "oklch(36% 0.035 280)", "oklch(46% 0.035 280)", "oklch(57% 0.03 280)", "oklch(70% 0.024 280)", "oklch(84% 0.016 280)", "oklch(95% 0.008 280)"]
+      }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline / Ident", "purpose": "The CLIP2POD station mark in the header. Appears once; the largest, most-tracked element." },
+      "body": { "displayName": "Body", "purpose": "The article in the editor (13.5px) and paragraph copy inside dialogs. The only non-mono text." },
+      "control": { "displayName": "Control", "purpose": "Button faces; the kbd shortcut floats right at 9px / 55% opacity on the same face." },
+      "label": { "displayName": "Label", "purpose": "Sidebar section headers, meta-bar captions, table headers, dialog titles, the lamp status word." }
+    },
+    "shadows": [
+      { "name": "floating-panel", "value": "0 8px 24px rgba(10, 10, 20, 0.55)", "purpose": "The coach bar and toasts — a small element lifted just off the desk." },
+      { "name": "modal-lift", "value": "0 18px 50px rgba(10, 10, 20, 0.55)", "purpose": "The dialog panel — a larger throw for a larger overlay, over a shadow-filled backdrop." }
+    ],
+    "motion": [
+      { "name": "overlay-entrance", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Coach bar, modal, and toast entrances (160–180ms) and the render rail's ease toward each chunk mark (400ms)." },
+      { "name": "control-transition", "value": "120ms linear", "purpose": "Button border-color and background on hover." },
+      { "name": "lamp-state", "value": "200ms linear", "purpose": "Status-lamp bulb background and halo when the desk changes state." },
+      { "name": "onair-pulse", "value": "1.4s ease-in-out infinite", "purpose": "The ON AIR lamp bulb halo, echoed by the queue bar's rendering-item disc on the same cadence. Dropped under prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "desk", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Every secondary control on the desk — transport, tools, dialog actions. Left-aligned mono face with an optional shortcut floated right.",
+      "html": "<button class=\"ds-btn\">Clean for TTS <kbd>Ctrl+L</kbd></button>",
+      "css": ".ds-btn { display: block; width: 100%; text-align: left; font-family: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; background: #262a60; color: #e9e9ed; border: 1px solid rgba(233,233,237,0.16); border-radius: 4px; padding: 7px 12px; cursor: pointer; transition: border-color 120ms, background 120ms; } .ds-btn kbd { float: right; font-family: inherit; font-size: 9px; opacity: 0.55; margin-left: 10px; } .ds-btn:hover { border-color: #6f63b0; } .ds-btn:active { transform: translateY(1px); } .ds-btn:focus-visible { outline: 2px solid #b5abfc; outline-offset: 1px; } .ds-btn:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action per view — Generate MP3 on the desk, the confirming action in a dialog footer.",
+      "html": "<button class=\"ds-btn-primary\">Generate MP3 <kbd>Ctrl+Enter</kbd></button>",
+      "css": ".ds-btn-primary { display: block; width: 100%; text-align: left; font-family: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; background: #b5abfc; color: #161826; border: 1px solid #b5abfc; border-radius: 4px; padding: 7px 12px; cursor: pointer; transition: filter 120ms; } .ds-btn-primary kbd { float: right; font-family: inherit; font-size: 9px; opacity: 0.55; margin-left: 10px; } .ds-btn-primary:hover { filter: brightness(1.08); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid #b5abfc; outline-offset: 1px; } .ds-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "URL intake, the three meta-bar tags, dialog search boxes. Recessed into the desk on the bg tone.",
+      "html": "<input class=\"ds-field\" placeholder=\"Article URL…\" />",
+      "css": ".ds-field { width: 100%; background: #161826; color: #e9e9ed; border: 1px solid rgba(233,233,237,0.16); border-radius: 4px; padding: 6px 8px; font-family: system-ui, 'Segoe UI', Roboto, sans-serif; font-size: 13px; } .ds-field::placeholder { color: #9b9bb8; opacity: 0.7; } .ds-field:focus-visible { outline: 2px solid #b5abfc; outline-offset: 1px; }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "chip",
+      "refersTo": "segmented-cell",
+      "description": "A small either/or choice — author gender (UNK / M / F). One bordered box, borderless cells, active cell flips to the accent.",
+      "html": "<div class=\"ds-seg\" role=\"group\" aria-label=\"Author gender\"><button class=\"ds-seg-cell ds-seg-cell--active\">UNK</button><button class=\"ds-seg-cell\">M</button><button class=\"ds-seg-cell\">F</button></div>",
+      "css": ".ds-seg { display: inline-flex; border: 1px solid rgba(233,233,237,0.16); border-radius: 4px; overflow: hidden; height: 31px; } .ds-seg-cell { font-family: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; padding: 0 12px; background: #262a60; color: #9b9bb8; border: none; cursor: pointer; } .ds-seg-cell--active { background: #b5abfc; color: #161826; } .ds-seg-cell:focus-visible { outline: 2px solid #b5abfc; outline-offset: -2px; }"
+    },
+    {
+      "name": "Status Lamp",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "The header's live-signal indicator. Idle grey at rest, lavender halo when queued, pulsing red when a render is on air.",
+      "html": "<div class=\"ds-lamp\" data-state=\"OnAir\" role=\"status\"><span class=\"ds-lamp-bulb\"></span><span class=\"ds-lamp-text\">RENDERING</span></div>",
+      "css": ".ds-lamp { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(233,233,237,0.16); border-radius: 4px; background: #262a60; padding: 6px 12px; min-width: 108px; } .ds-lamp-bulb { width: 10px; height: 10px; border-radius: 50%; background: #3a3d5c; transition: background 200ms, box-shadow 200ms; } .ds-lamp-text { font-family: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: #9b9bb8; } .ds-lamp[data-state=\"Queued\"] .ds-lamp-bulb { background: #b5abfc; box-shadow: 0 0 8px #b5abfc; } .ds-lamp[data-state=\"Queued\"] .ds-lamp-text { color: #b5abfc; } .ds-lamp[data-state=\"OnAir\"] .ds-lamp-bulb { background: #ef5b6a; box-shadow: 0 0 10px #ef5b6a; animation: ds-onair 1.4s ease-in-out infinite; } .ds-lamp[data-state=\"OnAir\"] .ds-lamp-text { color: #ef5b6a; } @keyframes ds-onair { 50% { box-shadow: 0 0 3px #ef5b6a; opacity: 0.75; } } @media (prefers-reduced-motion: reduce) { .ds-lamp[data-state=\"OnAir\"] .ds-lamp-bulb { animation: none; box-shadow: 0 0 12px #ef5b6a; } }"
+    },
+    {
+      "name": "Coach Bar",
+      "kind": "custom",
+      "refersTo": "coach-bar",
+      "description": "The junk-review conversation — a floating pill above the editor carrying one status line and 2–4 inline actions. Replaces itself as the review advances.",
+      "html": "<div class=\"ds-coach\" role=\"status\"><span>Junk: “share this article”</span><button class=\"ds-btn\">Delete line</button><button class=\"ds-btn\">Next</button><button class=\"ds-btn\">Stop</button></div>",
+      "css": ".ds-coach { display: inline-flex; align-items: center; gap: 10px; background: #262a60; border: 1px solid #6f63b0; border-radius: 6px; padding: 8px 14px; font-family: system-ui, 'Segoe UI', Roboto, sans-serif; font-size: 12.5px; color: #e9e9ed; white-space: nowrap; box-shadow: 0 8px 24px rgba(10,10,20,0.55); animation: ds-coach-in 160ms cubic-bezier(0.16,1,0.3,1); } .ds-coach .ds-btn { width: auto; padding: 5px 10px; } @keyframes ds-coach-in { from { opacity: 0; transform: translateY(4px); } } @media (prefers-reduced-motion: reduce) { .ds-coach { animation: none; } }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Bottom-right transient feedback. Green marker by default, red for errors. Slides in from the right.",
+      "html": "<div class=\"ds-toast\" data-kind=\"error\">Clipboard has no text — editor left untouched</div>",
+      "css": ".ds-toast { position: relative; background: #262a60; border: 1px solid rgba(233,233,237,0.16); border-radius: 4px; padding: 9px 14px 9px 28px; font-family: system-ui, 'Segoe UI', Roboto, sans-serif; font-size: 12.5px; color: #e9e9ed; max-width: 340px; overflow-wrap: anywhere; box-shadow: 0 8px 24px rgba(10,10,20,0.55); animation: ds-toast-in 180ms cubic-bezier(0.16,1,0.3,1); } .ds-toast::before { content: \"\"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 7px; height: 7px; border-radius: 50%; background: #5fd0a0; } .ds-toast[data-kind=\"error\"]::before { background: #ef5b6a; } @keyframes ds-toast-in { from { opacity: 0; transform: translateX(12px); } } @media (prefers-reduced-motion: reduce) { .ds-toast { animation-name: ds-toast-fade; } } @keyframes ds-toast-fade { from { opacity: 0; } }"
+    },
+    {
+      "name": "Dialog",
+      "kind": "custom",
+      "refersTo": "modal",
+      "description": "Manage voices, junk phrases, log, feed, settings. Panel-tone surface over a shadow-filled backdrop, focus trapped inside.",
+      "html": "<div class=\"ds-modal\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Podcast feed\"><header><h2 class=\"ds-modal-title\">Podcast feed</h2><button class=\"ds-btn\">Close <kbd>Esc</kbd></button></header><div class=\"ds-modal-body\">Subscribe in your podcast app — same Wi-Fi.</div></div>",
+      "css": ".ds-modal { display: flex; flex-direction: column; background: #1d1f3d; border: 1px solid rgba(233,233,237,0.16); border-radius: 8px; box-shadow: 0 18px 50px rgba(10,10,20,0.55); width: min(720px, 92vw); max-height: 84vh; overflow: hidden; color: #e9e9ed; animation: ds-modal-in 160ms cubic-bezier(0.16,1,0.3,1); } .ds-modal header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid rgba(233,233,237,0.10); } .ds-modal-title { margin: 0; font-family: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: #9b9bb8; } .ds-modal-body { padding: 12px 16px; overflow: auto; font-family: system-ui, 'Segoe UI', Roboto, sans-serif; font-size: 12.5px; } .ds-modal .ds-btn { width: auto; } @keyframes ds-modal-in { from { opacity: 0; transform: translateY(6px); } } @media (prefers-reduced-motion: reduce) { .ds-modal { animation-name: ds-modal-fade; } } @keyframes ds-modal-fade { from { opacity: 0; } }"
+    },
+    {
+      "name": "Queue Bar",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "The bottom band. A 2px render rail charges along its top edge; status items each hang a state-tinted disc in a fixed gutter.",
+      "html": "<footer class=\"ds-queue\" aria-label=\"Queue\"><div class=\"ds-queue-rail\" style=\"--p: 0.62\"></div><span class=\"ds-queue-label\">Queue</span><span class=\"ds-queue-item ds-queue-item--proc\">Rendering (62%) — The Anthropic Economic Index</span><span class=\"ds-queue-item ds-queue-item--done\">Last — On Bullshit Jobs</span></footer>",
+      "css": ".ds-queue { position: relative; display: flex; align-items: center; gap: 14px; padding: 8px 16px; background: #1d1f3d; border-top: 1px solid rgba(233,233,237,0.16); font-family: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace; font-size: 11px; color: #e9e9ed; } .ds-queue-rail { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #b5abfc; transform: scaleX(var(--p, 0)); transform-origin: left; transition: transform 400ms cubic-bezier(0.16,1,0.3,1); } .ds-queue-label { flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 600; color: #9b9bb8; } .ds-queue-item { position: relative; padding-left: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-queue-item::before { content: \"\"; position: absolute; left: 0; top: 0.45em; width: 6px; height: 6px; border-radius: 50%; background: currentColor; } .ds-queue-item--proc { color: #b5abfc; } .ds-queue-item--proc::before { animation: ds-footer-live 1.4s ease-in-out infinite; } .ds-queue-item--done { color: #5fd0a0; } @keyframes ds-footer-live { 50% { opacity: 0.35; } } @media (prefers-reduced-motion: reduce) { .ds-queue-rail { transition: none; } .ds-queue-item--proc::before { animation: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Production Desk",
+    "overview": "Clip2Pod is a one-person broadcast console. The window is a fixed, non-scrolling desk: a header rail with the station ident and a status lamp, a metadata strip, a large script area with a control column beside it, and a queue rail pinned to the bottom edge. Every part of the frame is a piece of equipment — the lamp tells you whether the desk is live, the transport buttons move a script through intake → clean → render, the rail under the queue bar charges left-to-right as audio is cut. Nothing on the desk is decorative; if an element is visible, it either reports state or performs an action.\n\nThe palette is a dark studio by default — deep indigo panels stacked by lightness, one soft lavender that means signal (the lamp when queued, the primary action, the render rail) and one red that means on air (the pulsing lamp during a render). Type does the rest of the work: a monospace voice for every control, label, and data readout, uppercased and letter-spaced like console silkscreen, with a plain system sans reserved for the two places real prose lives — the article in the editor and the body copy inside dialogs. The result is dense, calm, and legible at a glance, the way a mixing desk is: you learn the surface once and then operate it without looking.\n\nThis is a keyboard-first instrument. Every primary action shows its shortcut on its own face, and the whole app can be summoned and fed from a global hotkey. The desk favours a settled, equipment-grade restraint over expression — motion is limited to state and never to ornament.",
+    "keyCharacteristics": [
+      "A fixed, four-band desk layout that never scrolls as a whole — only its inner regions do.",
+      "Monospace, uppercase, letter-spaced type for all chrome; system sans only for authored prose.",
+      "One accent (Signal Lavender) for signal, one red for on air, everything else neutral indigo.",
+      "Tonal depth: surfaces separate by lightness step, not by shadow. Shadows mark only floating layers.",
+      "A single circular-marker vocabulary — the lamp bulb, the toast dot, the queue-item disc — tinted to state.",
+      "Every control wears its keyboard shortcut."
+    ],
+    "rules": [
+      { "name": "The One Signal Rule", "body": "Signal Lavender is the only chromatic accent in the chrome. It marks exactly one primary action per view and the live-signal surfaces (lamp, render rail, focus). If a second thing on screen is lavender, one of them is wrong.", "section": "colors" },
+      { "name": "The State-Colour Rule", "body": "Red, green, and the lamp's idle grey are earned by state, never chosen for decoration. Red always means rendering / failed / destructive. Green always means done. A control is never red or green at rest.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Monospace is the chrome; system sans is the content. There is no third face and no in-between use. If new text is a label, a control, a status, or a number, it is mono and uppercase. If it is a sentence the user reads for meaning, it is sans.", "section": "typography" },
+      { "name": "The Silkscreen Rule", "body": "All-caps mono chrome always carries tracking — 0.1em on controls, 0.14em on labels, 0.22em on the ident. Uppercased mono without letter-spacing is a bug.", "section": "typography" },
+      { "name": "The No-Scroll-Frame Rule", "body": "The outer desk is always exactly the viewport. New content finds room inside an existing band's own scroll region (the editor, the sidebar, the queue strip, a dialog body) — it never makes the window scroll and never adds a fifth band.", "section": "layout" },
+      { "name": "The Fixed Column Rule", "body": "The control column is exactly 240px. Controls are full-width buttons stacked in labelled groups; they do not reflow into a grid or change width with the window.", "section": "layout" },
+      { "name": "The Flat-Desk Rule", "body": "Anything that is part of the fixed frame — header, meta bar, sidebar, buttons, queue bar, tables — is flat: tonal fill plus border, zero shadow. A shadow on a resting surface is a mistake. Shadow is reserved for the three things that overlay the desk: modals, the coach bar, and toasts.", "section": "elevation" },
+      { "name": "The Sharp-Corner Rule", "body": "Radius never exceeds 8px, and only the modal reaches it. If a new surface wants a rounder corner, it is trying to look friendly — and this desk is equipment, not a greeting card.", "section": "elevation" },
+      { "name": "The Circle-Means-Status Rule", "body": "A filled circle is always a state marker tinted to its state (idle / signal / danger / ok / accent). Never use a disc as a bullet, an avatar frame, or decoration.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the outer frame at exactly 100vh with overflow: hidden; give new content a scroll region inside an existing band (The No-Scroll-Frame Rule).",
+      "Do set every label, button, status, and numeric readout in tracked uppercase monospace — 0.1em on controls, 0.14em on labels (The Silkscreen Rule).",
+      "Do reserve system sans for the editor text and dialog prose, and nothing else (The Two-Voice Rule).",
+      "Do limit Signal Lavender to one primary action per view plus the live-signal surfaces — lamp, render rail, focus outline, caret (The One Signal Rule).",
+      "Do build depth from the bg → panel → panel-raised tonal ramp plus 1px borders; leave resting surfaces flat (The Flat-Desk Rule).",
+      "Do give every primary action a visible kbd shortcut on its own face.",
+      "Do render state markers as 50%-radius circles tinted to idle / signal / danger / ok (The Circle-Means-Status Rule).",
+      "Do handle destructive confirmation inline (the queue bar's expand-in-place pattern), keeping first focus on the safe choice and returning it to the trigger on close.",
+      "Do keep radii at 4px for chrome, 6px for the coach bar, 8px for modals — and no further (The Sharp-Corner Rule).",
+      "Do drop looping and spatial motion under prefers-reduced-motion, but keep colour and opacity transitions that carry state."
+    ],
+    "donts": [
+      "Don't put a shadow on any part of the fixed desk — only modals, the coach bar, and toasts float (The Flat-Desk Rule).",
+      "Don't introduce a second accent hue, or use red/green on a control at rest (The State-Colour Rule).",
+      "Don't set chrome text in the sans font, or the editor/prose text in mono (The Two-Voice Rule).",
+      "Don't use uppercased monospace without letter-spacing.",
+      "Don't use a filled circle as a bullet, avatar frame, or decoration (The Circle-Means-Status Rule).",
+      "Don't widen or reflow the 240px control column, or add a fifth band to the desk.",
+      "Don't exceed an 8px corner radius, and don't reach 8px anywhere but the modal (The Sharp-Corner Rule).",
+      "Don't open a modal for a destructive confirm when an inline expand fits.",
+      "Don't add decorative motion; motion is for state (lamp pulse, render rail, overlay entrance) only."
+    ]
+  }
+}
