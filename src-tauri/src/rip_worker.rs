@@ -201,24 +201,6 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn ytdlp_command_strips_appimage_env() {
-        let cmd = ytdlp_command("yt-dlp");
-        let removed: Vec<_> = cmd
-            .get_envs()
-            .filter(|(_, v)| v.is_none())
-            .map(|(k, _)| k.to_str().unwrap().to_string())
-            .collect();
-        for var in HOST_ENV_POISON {
-            assert!(removed.contains(&var.to_string()), "{var} not removed");
-        }
-    }
-}
-
 /// Single background worker: drains the queue one job at a time, sleeping
 /// on the channel until an enqueue wakes it.
 pub fn spawn(app: AppHandle, mut wake: UnboundedReceiver<()>) {
@@ -270,4 +252,22 @@ pub fn spawn(app: AppHandle, mut wake: UnboundedReceiver<()>) {
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ytdlp_command_strips_appimage_env() {
+        let cmd = ytdlp_command("yt-dlp");
+        let removed: Vec<_> = cmd
+            .get_envs()
+            .filter(|(_, v)| v.is_none())
+            .map(|(k, _)| k.to_str().unwrap().to_string())
+            .collect();
+        for var in HOST_ENV_POISON {
+            assert!(removed.contains(&var.to_string()), "{var} not removed");
+        }
+    }
 }
