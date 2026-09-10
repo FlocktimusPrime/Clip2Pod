@@ -1,10 +1,15 @@
 <script lang="ts">
   import type { Lamp } from "$lib/types";
 
-  let { lamp }: { lamp: Lamp } = $props();
+  let { lamp, label }: { lamp: Lamp; label?: string } = $props();
 
   const text = $derived(
-    lamp.state === "OnAir" ? "RENDERING" : lamp.state === "Queued" ? `QUEUED ${lamp.queued}` : "IDLE",
+    label ??
+      (lamp.state === "OnAir"
+        ? "RENDERING"
+        : lamp.state === "Queued"
+          ? `QUEUED ${lamp.queued}`
+          : "IDLE"),
   );
 </script>
 
