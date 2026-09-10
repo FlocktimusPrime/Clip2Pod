@@ -76,7 +76,7 @@ fn set_and_emit_progress(app: &AppHandle, id: &str, progress: JobProgress) {
 /// inherit them or Python aborts with "No module named 'encodings'".
 const HOST_ENV_POISON: [&str; 4] = ["PYTHONHOME", "PYTHONPATH", "LD_LIBRARY_PATH", "LD_PRELOAD"];
 
-fn ytdlp_command(bin: &str) -> Command {
+pub(crate) fn ytdlp_command(bin: &str) -> Command {
     let mut cmd = Command::new(bin);
     for var in HOST_ENV_POISON {
         cmd.env_remove(var);
