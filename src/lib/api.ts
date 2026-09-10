@@ -7,6 +7,7 @@ import type {
   CleanResult,
   ConfigView,
   Extracted,
+  FirewallHelp,
   Job,
   JunkMatch,
   LogEntry,
@@ -82,4 +83,4 @@ export const episodeCount = () => invoke<number>("episode_count");
 
 export const deleteAllEpisodes = () => invoke<number>("delete_all_episodes");
 
-export const openFirewallPort = () => invoke<string>("open_firewall_port");
+export const firewallHelp = () => invoke<FirewallHelp>("firewall_help");

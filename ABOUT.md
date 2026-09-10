@@ -1,125 +1,209 @@
 # About Clip2Pod
 
-Turn any article into a narrated MP3 — and listen to it as your own private podcast feed.
+Turn an article — or a video's audio — into your own private podcast feed.
 
-Clip2Pod turns clipboard text — articles, blog posts, newsletters, anything you've copied — into clean MP3 audio files you can listen to later, like a personal podcast feed. Paste text in, strip out the junk that clutters a web page (ads, bylines, "read more" links), and generate narration using Microsoft Edge's text-to-speech voices. Files are tagged and named automatically, and everything is queued in the background so you can keep working while audio renders.
+Clip2Pod produces MP3 episodes and serves them over a local RSS feed on your home
+network, so your phone's podcast app can subscribe and download them like any
+other show. It has two modes, chosen with a tab in the header:
 
-The core loop: **clipboard → script → voice → MP3.**
+- **Narrate** — clipboard text or a web article → cleaned script → an MP3 read
+  aloud by a Microsoft Edge neural voice.
+- **Rip** — a video URL → the audio track downloaded as an MP3 by `yt-dlp`.
+
+Each mode has its own episode folder and its own feed. Everything is queued in the
+background so you can keep working (or rip a video while an article narrates).
 
 ## Who it's for
 
-Anyone who wants to consume written content by ear — commuters, people who read a lot of long-form web articles, or anyone converting text into a personal audio library. The workflow: intake text, clean it up, hand it to a voice, monitor the output queue.
+Anyone who consumes long-form content by ear — commuters, walkers, people with a
+big read-it-later pile or a stack of talks and interviews they'll never sit down
+to watch. The workflow: send something in, let it process, subscribe once on your
+phone, and new episodes just show up.
 
 ---
 
-## Features
+## NARRATE mode
 
-### 1. Clipboard intake
+### 1. Four ways in
 
-- **Paste Clipboard** (`Ctrl+Shift+V`) replaces the entire editor with whatever text is currently on the clipboard.
-- If the clipboard is empty or has no text, the app warns instead of silently clearing the editor.
+- **Paste Clipboard** (`Ctrl+Shift+V`) replaces the editor with whatever text is
+  on the clipboard. An empty or non-text clipboard warns instead of clearing the
+  editor.
+- **Fetch by URL** — type an article URL in the Intake field; readability
+  extraction pulls out title, author, and body.
+- **Global hotkey** (`Ctrl+Alt+G`) — summons the window from any app and pastes
+  the clipboard, in one keystroke.
+- **Browser extension** — click it (or right-click → "Narrate this page") to send
+  the page as rendered in your logged-in session, so paywalled and
+  subscriber-only articles work.
 
 ### 2. Text cleaning for TTS
 
-A one-click **Clean for TTS** (`Ctrl+L`) pass prepares raw, messy pasted text for narration:
+One-click **Clean for TTS** (`Ctrl+L`):
 
-- Converts "smart" typographic punctuation to plain ASCII (curly quotes → straight quotes, em/en dashes → hyphens, non-breaking spaces → regular spaces).
-- Strips emoji and other pictographic symbols.
-- Removes decorative bullets/arrows/checkmarks/stars (•, ▶, ✓, ★, etc.) and copyright/trademark symbols (©, ®, ™).
-- Strips runs of two or more stray symbols that aren't letters, numbers, or normal sentence punctuation.
-- Collapses repeated whitespace and drops blank lines.
-- Uses the cleaned first line to auto-fill the **Filename title** field.
-- After cleaning, auto-fills the **Title** metadata field from line 1, and the **Author** field by picking whichever of line 2 or line 3 is shorter (a heuristic for byline detection, e.g. "By Jane Doe").
+- Converts smart punctuation to plain ASCII (curly quotes, em/en dashes,
+  non-breaking spaces).
+- Strips emoji, pictographs, decorative bullets/arrows/stars, and ©/®/™.
+- Removes runs of two or more stray symbols.
+- Collapses repeated whitespace, drops blank lines.
+- Auto-fills **Title** from line 1, **Author** from the shorter of lines 2/3 (a
+  byline heuristic), and **Filename title** from line 1. For extracted articles,
+  readability already found the real title/author, so cleaning only fills gaps.
 
 ### 3. Junk phrase finder
 
-Web articles are full of boilerplate that reads badly aloud ("Getty Images", "min read", "Related Stories", raw URLs, etc.). Clip2Pod finds these lines so you can review and remove them before generating audio:
+Boilerplate that reads badly aloud ("Getty Images", "min read", "Related
+Stories", raw URLs):
 
-- **Find Junk** (`Ctrl+F`) jumps to the next line containing a junk phrase, selects the whole line, and highlights the matched term. It does **not** auto-wrap — pressing it again after reaching the end asks if you want to wrap back to the top and keep searching.
-- When no more matches are found, it offers to run Clean for TTS automatically.
-- **Add Junk Phrase** (`Ctrl+K`) adds the current editor selection to the phrase list — highlight a stray line, press the key, and it's caught from then on.
-- **Suggest Junk** (`Ctrl+Shift+K`) scans the current script for lines that read like page furniture (bylines, "N min read", share/subscribe rows, dates, all-caps banners) and walks you through them one at a time, offering to add each and delete the line.
-- **Delete Line** (`Ctrl+D`) removes whatever line the cursor is on — the fast way to clear a flagged line.
-- **Edit Junk Phrases** (`Ctrl+J`) opens an editor for the phrase list: one phrase per line, case-insensitive substring match, with a "Restore Defaults" button. A `*` in a phrase is a wildcard (`photo*getty` matches "Photo credit: Getty Images"). Custom lists persist between sessions; if you set it back to exactly the defaults, it's stored as "using defaults" rather than a redundant copy.
-- Default junk phrases: `credit:`, `getty images`, `http`, `image by author`, `image credit`, `listen to article`, `member-only`, `min read`, `photo from`, `read more`, `read it free`, `read this article for free`, `related links`, `related stories`, `unsplash`, `view image in full size`, `view original`.
+- **Find Junk** (`Ctrl+F`) jumps to the next line containing a junk phrase,
+  selects it, and highlights the match. No auto-wrap — it asks before wrapping to
+  the top.
+- **Add Junk Phrase** (`Ctrl+K`) adds the current selection to the list.
+- **Suggest Junk** (`Ctrl+Shift+K`) scans for page furniture (bylines, "N min
+  read", share rows, dates, all-caps banners) and walks you through each.
+- **Delete Line** (`Ctrl+D`) removes the cursor's line.
+- **Edit Junk Phrases** (`Ctrl+J`) — one phrase per line, case-insensitive
+  substring match, `*` wildcard, "Restore Defaults". A custom list persists only
+  when it differs from the defaults.
+- Defaults: `credit:`, `getty images`, `http`, `image by author`, `image
+  credit`, `listen to article`, `member-only`, `min read`, `photo from`, `read
+  more`, `read it free`, `read this article for free`, `related links`, `related
+  stories`, `unsplash`, `view image in full size`, `view original`.
 
 ### 4. Metadata bar
 
-Four fields above the script editor control the output file:
-
 | Field | Purpose |
 |---|---|
-| **Title** | Written to the MP3's ID3 Title tag. Auto-filled from line 1 after cleaning; editable. |
-| **Author** | Written to the MP3's ID3 Artist tag. Auto-filled from the likely byline line after cleaning; editable. |
-| **Filename title** | Used to build the output filename. Auto-filled from the cleaned first line; editable. |
-| **Author gender** | `Unknown` / `Male` / `Female` — controls which voice pool is used for narration (see below). |
+| **Title** | ID3 Title tag. Auto-filled from line 1; editable. |
+| **Author** | ID3 Artist tag. Auto-filled from the likely byline; editable. |
+| **Filename title** | Builds the output filename. Auto-filled from line 1. |
+| **Author gender** | `Unknown` / `Male` / `Female` — picks the voice pool. |
 
 ### 5. Voice library
 
-- On launch, Clip2Pod fetches the full list of English Edge TTS voices, excluding any tagged "cartoon" (novelty voices unsuited to narration).
-- Out of the box, a curated, gender-balanced set of ten `en-US` voices is enabled: Ava, Andrew, Emma, Brian, Aria, Christopher, Eric, Jenny, Michelle, Steffan. Enable more (or fewer) in Manage Voices.
-- **Manage Voices** (`Ctrl+M`) opens a searchable table of every available voice (name, gender, language, country, locale, category) with checkboxes to enable/disable each one, plus **Enable All** / **Disable All** shortcuts.
-- Selecting a voice and clicking **Preview Voice** generates and plays a short sample sentence in that voice, so you can audition it before enabling it for use.
-- The sidebar shows a running count, e.g. "Voices enabled: 12/40 male, 15/38 female".
+- On launch, Clip2Pod fetches every English Edge TTS voice, minus "cartoon"
+  novelty voices.
+- Default-enabled: a curated ten-voice `en-US` pool (Ava, Andrew, Emma, Brian,
+  Aria, Christopher, Eric, Jenny, Michelle, Steffan).
+- **Manage Voices** (`Ctrl+M`) — a searchable table (name, gender, language,
+  country, locale, category) with per-voice checkboxes, Enable/Disable All, and
+  **Preview Voice** (plays a sample sentence).
+- The Settings dialog and the narrate sidebar show a running enabled count.
 
 ### 6. Voice selection & variety cycling
 
-Clip2Pod deliberately avoids using the same voice every time, so a backlog of generated episodes doesn't sound monotonous:
+- Author gender Male/Female → every generation uses that pool.
+- Author gender Unknown → the app alternates gender each generation, starting from
+  whichever wasn't used last.
+- Within a gender, voices rotate round-robin through the enabled list.
+- Cycling position and "last gender" persist across restarts.
+- Right-click a bad take in the **Log** → "Disable this voice" removes it from the
+  rotation immediately.
 
-- If **Author gender** is set to Male or Female, every generation for that piece uses a voice from that gender's enabled pool.
-- If **Author gender** is Unknown, the app alternates gender on each generation (Male, then Female, then Male, ...), starting from whichever gender wasn't used last.
-- Within a gender, voices are cycled round-robin through the enabled list, so repeated generations rotate through all enabled voices before repeating.
-- Cycling position and "last gender used" persist across restarts, so variety continues seamlessly rather than resetting every launch.
-- If a voice turns out to be flaky or mispronounces things badly, you can right-click its entry in the **Log** and choose "Disable this voice" to remove it from the rotation immediately, without opening Manage Voices.
+### 7. Spoken intro
 
-### 7. Background generation queue
+Each episode opens with "*Title. By Author.*" — skipped automatically if the text
+already starts that way.
 
-- **Generate MP3** (`Ctrl+Enter`) doesn't block the UI — it cleans the current text, picks a voice, and queues a job.
-- A single background worker processes jobs one at a time, in order.
-- A status lamp in the header reflects real-time state: `● IDLE`, `● QUEUED n`, or `● RENDERING` while actively encoding.
-- The **Queue** bar under the editor shows live state at a glance: the job rendering now (with a chunk-progress percentage), the jobs waiting, any failures this session (with the error), and the title of the most recent success.
-- **Cancel** aborts the render in progress. It takes effect at the next chunk boundary (a websocket turn already in flight finishes first), and the job is logged as "Cancelled" — no partial MP3 is left behind.
-- **Clear Pending** cancels every job that hasn't started yet (logged as "Cancelled") without interrupting whatever job is currently rendering.
-- Full per-job history — timestamps, voice used, errors — lives in the **Log** (`Ctrl+Shift+L`).
+### 8. Output
 
-### 8. Filename handling
+- ID3v2 tags: Title, Artist, Album = "Clip2Pod", a Comment recording the voice.
+- Filenames sanitized for Windows on every OS, trimmed, length-capped.
+- Optional **Prefix filenames with C2P** checkbox.
+- On a name collision (on disk *or* in the queue), `(2)` / `(3)` is appended —
+  never a silent overwrite.
 
-- Filenames are sanitized to remove characters Windows won't allow, trimmed of trailing dots/spaces, and length-capped.
-- An optional **"Prefix filenames with C2P"** checkbox prepends `C2P_` to every output filename.
-- If the target filename already exists on disk, or already belongs to a job still queued/processing, Clip2Pod automatically appends `(2)`, `(3)`, etc. until it finds a free name — never silently overwriting a file.
+---
 
-### 9. ID3 tagging
+## RIP mode
 
-Each generated MP3 gets ID3 tags written automatically (tagging is best-effort and skipped gracefully if unavailable):
+### 1. Intake
 
-- Title → Title metadata field
-- Author → Artist metadata field
-- Album is always set to "Clip2Pod"
-- A Comment tag records which voice narrated the file
+- Paste a video URL and hit **Download**, or **Paste link** to take it from the
+  clipboard and start immediately.
+- Or send it from the browser extension — a known video host (YouTube, Vimeo,
+  SoundCloud, Twitch, …) auto-routes here; right-click → "Rip this page's audio"
+  forces it for anything else.
 
-### 10. Generation log
+### 2. Download
 
-- Every job — queued, completed, failed, or cancelled — is recorded with a timestamp, status, title, voice used, output filename, and details (e.g. an error message).
-- **Open Log** (`Ctrl+Shift+L`) shows the full history (most recent 200 entries), searchable by title.
-- Right-click any entry to disable the voice that narrated it, directly from the log.
-- **Clear Log** wipes the history.
+`yt-dlp` runs with an editable args template (Settings → Rip). The default:
+extract audio to MP3, embed thumbnail / metadata / chapters, run SponsorBlock,
+apply a `volume=1.5` boost, restrict filenames. The app always appends the output
+folder and the URL itself — those can't drift.
 
-### 11. Settings persistence
+- Live per-job progress (percent, speed, postprocessor stage) parsed from
+  `yt-dlp --newline`.
+- **Stop** kills the current `yt-dlp` process; the job logs as "Cancelled", no
+  partial file left behind.
+- After each job, Clip2Pod measures the MP3 duration and writes the `TLEN` frame
+  (`yt-dlp` doesn't), so the feed carries lengths.
 
-All of the following are remembered between sessions: output directory, filename prefix preference, author-gender selection, voice enable/disable list, voice-cycling state, custom junk phrases, generation log, and the light/dark theme choice.
+### 3. Requirements & the doctor
 
-### 12. Light/dark theme
+Rip needs **`yt-dlp` and `ffmpeg` on your PATH** — Clip2Pod bundles neither
+(`yt-dlp` changes too often to ship). On startup and after a Settings save it
+probes for both:
 
-A rocker-style switch in the header toggles between a dark "night" theme and a light "day" theme. The choice is saved and restored on next launch.
+- Missing → an inline notice at the top of the Rip tab with the `winget install`
+  commands and a **Re-check** button.
+- Present → Settings → Rip shows the detected `yt-dlp` version.
+- A failed rip also reminds you that a stale `yt-dlp` is the usual cause
+  (`yt-dlp -U`).
+- **yt-dlp binary** field in Settings → point at a specific build (e.g. a
+  nightly) without touching your PATH.
 
-### 13. Episode cleanup
+### 4. Episodes table
 
-Once your podcast app has downloaded the generated episodes, the **Delete episodes** button (in the Queue bar under the editor) clears the output folder in one click:
+Title, channel, length, size, date added, per-row **Delete**. **Refresh**
+re-scans the folder; **Delete all** clears every MP3 the feed lists (with an OS
+confirmation dialog).
 
-- Deletes every `.mp3` the podcast feed currently lists — exactly the set your podcatcher sees.
-- Asks for confirmation first, showing how many files will be removed (the output folder may contain more than you think).
-- Never deletes the output file of a job that is still queued or rendering.
-- If the folder has no episodes, it says so instead of showing an empty confirmation.
+---
+
+## Shared
+
+### Background queues
+
+- Two independent workers — narrate (an Edge TTS websocket) and rip (a `yt-dlp`
+  subprocess) — run concurrently.
+- One header **status lamp** reads both: `IDLE`, `QUEUED n` (combined),
+  `RENDERING` (narrate busy), `RIPPING` (rip busy), `ON AIR` (both).
+- Each tab has its own Queue section: the job in progress with a progress bar,
+  jobs waiting, failures with an expandable reason, the last success.
+- **Clear pending** cancels queued jobs without touching the in-flight one.
+
+### Two podcast feeds
+
+- A local RSS server on port `4738` serves `/tts/feed.xml` (narrated articles) and
+  `/video/feed.xml` (ripped audio), each with cover art. There is no combined
+  feed — subscribe to whichever you want.
+- **Feed** in the header opens a dialog for the *active* tab's feed: the URL, a QR
+  code to scan from your phone, a Copy button, and firewall help.
+- Firewall help gives you the exact command to open the inbound port (per OS) plus
+  the common gotchas — it does not try to change the firewall itself.
+
+### Logs
+
+- Each mode keeps its own log (most recent 200 entries), searchable by title. The
+  header **LOG** button opens the active tab's.
+- Narrate's log records the voice used and lets you disable it by right-click.
+
+### Settings
+
+One dialog, three sections:
+
+- **General** — theme (dark/light), start minimized to tray, launch at sign-in.
+- **Narrate** — episode folder, C2P filename prefix, Manage voices.
+- **Rip** — episode folder, yt-dlp arguments (+ reset), yt-dlp binary path.
+
+All settings persist between sessions.
+
+### Tray & window
+
+Closing the window keeps the app running in the system tray (so the capture
+listener and feeds stay reachable). **Left-click** the tray icon to show the
+window; right-click for Show / Hide / Quit.
 
 ---
 
@@ -127,29 +211,40 @@ Once your podcast app has downloaded the generated episodes, the **Delete episod
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl+Shift+V` | Paste Clipboard (overwrites editor) |
-| `Ctrl+D` | Delete current line |
+| `Ctrl+Alt+G` | **Global** — summon Clip2Pod and paste the clipboard, from any app |
+| `Ctrl+Shift+V` | Paste Clipboard (NARRATE) |
+| `Ctrl+D` | Delete current line (NARRATE) |
 | `Ctrl+F` | Find next junk phrase |
 | `Ctrl+K` | Add selection as junk phrase |
-| `Ctrl+Shift+K` | Suggest junk phrases from the script |
+| `Ctrl+Shift+K` | Suggest junk phrases |
 | `Ctrl+L` | Clean text for TTS |
 | `Ctrl+J` | Edit junk phrases |
 | `Ctrl+M` | Manage voices |
-| `Ctrl+Shift+L` | Open generation log |
 | `Ctrl+Enter` | Generate MP3 |
+| `Ctrl+Shift+L` | Open the log (the active tab's) |
 
 ---
 
-## End-to-end flow
+## End-to-end flows
 
-1. Copy an article or block of text somewhere else.
-2. **Paste Clipboard** into Clip2Pod.
-3. Run **Find Junk** repeatedly (deleting flagged lines) or just run **Clean for TTS** directly — either way, boilerplate and stray symbols get stripped.
-4. Review/edit the auto-filled Title, Author, Filename title, and Author gender.
-5. Press **Generate MP3**. The job is queued, a voice is picked (respecting gender preference and rotation), and the app keeps working while it renders.
-6. The finished MP3 lands in your chosen output folder, ID3-tagged, with a collision-safe filename — and a permanent record in the Log.
-7. After your podcatcher refreshes the feed and downloads the episodes, **Delete episodes** clears the output folder for the next batch.
+**Narrate:** copy an article → **Paste Clipboard** → **Find Junk** / **Clean for
+TTS** → review the metadata → **Generate MP3** → it queues, a voice is picked,
+the tagged file lands in the narrate folder and the `/tts` feed.
+
+**Rip:** on the RIP tab, paste a video URL → **Download** → `yt-dlp` runs → the
+tagged MP3 lands in the rip folder and the `/video` feed. (Or right-click the page
+in your browser → "Rip this page's audio".)
+
+**Listen:** open **Feed** on the tab you want → scan the QR in your phone's
+podcast app → episodes appear as they finish → **Delete all** clears the folder
+once your podcatcher has them.
 
 ## Replicating this app
 
-The only external dependency that matters functionally is **Microsoft Edge's text-to-speech service** for voice synthesis and voice listing (voice metadata, gender, locale, and the actual audio rendering all come from it). Everything else described above — the cleaning pipeline, junk-phrase matching, voice cycling logic, queue, filename collision handling, and ID3 tagging — is plain application logic that can be reimplemented in any language or UI framework on top of any TTS engine that can (a) list available voices with a gender/locale, and (b) synthesize text to an audio file.
+Narrate's only functional external dependency is **Microsoft Edge's TTS service**
+(voice list + synthesis); everything else — cleaning, junk matching, voice
+cycling, the queue, collision handling, ID3 tagging — is plain logic on top of any
+TTS engine that can list voices and synthesize to a file. Rip is a thin shell
+around **`yt-dlp`**: arg-template building, `--newline` progress parsing, and
+duration tagging. The RSS feed is a directory scan plus a hand-built RSS 2.0
+string per mode.

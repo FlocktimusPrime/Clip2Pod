@@ -1,6 +1,6 @@
 ---
 name: Clip2Pod
-description: A one-person broadcast desk that turns copied text into a private podcast feed.
+description: A one-person broadcast desk that turns copied text — or a video's audio — into a private podcast feed.
 colors:
   bg: "#161826"
   panel: "#1d1f3d"
@@ -123,7 +123,8 @@ expression — motion is limited to state (a lamp pulse, a rail easing toward th
 next chunk, a dialog rising 6px) and never to ornament.
 
 **Key Characteristics:**
-- A fixed, four-band desk layout that never scrolls as a whole — only its inner regions do.
+- Two modes under one header — **NARRATE** (the fixed four-band desk) and **RIP** (a scrolling episode list). The header (ident, mode toggle, combined lamp, FEED/LOG/SETTINGS) is shared; the body is whichever tab is active.
+- On the NARRATE surface, a fixed four-band desk layout that never scrolls as a whole — only its inner regions do.
 - Monospace, uppercase, letter-spaced type for all chrome; system sans only for authored prose.
 - One accent (Signal Lavender) for *signal*, one red for *on air*, everything else neutral indigo.
 - Tonal depth: surfaces separate by lightness step, not by shadow. Shadows mark only floating layers.
@@ -201,7 +202,7 @@ styles. They are the same set yt-dlFeed uses; keep new work on these rather than
 inventing intermediate sizes:
 - **13px** — `.field` input text, dialog `code`.
 - **12.5px** — table cells, toast body, coach-bar text, the junk-phrase textarea.
-- **12px** — dialog `.hint` / `.check` rows, the header tagline (11.5px).
+- **12px** — dialog `.hint` / `.check` rows, the RIP notice card body.
 - **11–11.5px** — `.mono` path/data lines, queue-bar text, sidebar readouts.
 - **9–10px** — the `kbd` shortcut on a button (9px), all `.label` chrome (10px).
 
@@ -217,25 +218,51 @@ spacing is a bug.
 
 ## Layout
 
-The window is a **fixed four-band vertical desk** at `100vh`, `overflow: hidden`
-on `html/body` — the app frame never scrolls; only inner regions do.
+`overflow: hidden` on `html/body`; the shell is a column at `100vh` — a shared
+**header** over a **content area** that shows one mode tab at a time.
 
-1. **Header** (`padding: 10px 16px`, panel, bottom `line`): ident + tagline on the left (tagline hides below 900px), status lamp, `FEED` button on the right.
-2. **Meta bar** (`padding: 12px 16px`, panel, bottom `line-soft`): a CSS grid, `grid-template-columns: 2fr 1.2fr 1.2fr auto` — Title, Author, Filename title, and the author-gender segmented control. Collapses to `1fr 1fr` below 900px.
-3. **Deck** (`flex: 1`, `min-height: 0`): the working area — a flexible `main` (the CodeMirror editor, `min-width: 0`) beside a fixed **240px** sidebar (`border-left: 1px line`, its own `overflow-y: auto`). The coach bar floats absolutely centred 14px above the deck's bottom edge.
-4. **Queue bar** (`padding: 8px 16px`, panel, top `line`): status label, a wrapping status strip (`max-height: 92px`, scrolls), and right-aligned actions. A 2px render rail rides its top edge.
+**Header** (`padding: 10px 16px`, panel, bottom `line`): the `CLIP2POD` ident,
+then a **segmented mode toggle** (`NARRATE` / `RIP`, the standard segmented
+control), the **combined status lamp**, and `FEED` / `LOG` / `SETTINGS` buttons.
+It replaced the old ident-plus-tagline header; the tagline is gone.
+
+### The NARRATE tab — the desk
+
+A **fixed four-band vertical desk** that fills the content area and never scrolls
+as a whole:
+
+1. **Meta bar** (`padding: 12px 16px`, panel, bottom `line-soft`): a CSS grid, `grid-template-columns: 2fr 1.2fr 1.2fr auto` — Title, Author, Filename title, and the author-gender segmented control. Collapses to `1fr 1fr` below 900px.
+2. **Deck** (`flex: 1`, `min-height: 0`): the working area — a flexible `main` (the CodeMirror editor, `min-width: 0`) beside a fixed **240px** sidebar (`border-left: 1px line`, its own `overflow-y: auto`). The coach bar floats absolutely centred 14px above the deck's bottom edge.
+3. **Queue bar** (`padding: 8px 16px`, panel, top `line`): status label, a wrapping status strip (`max-height: 92px`, scrolls), and right-aligned actions. A 2px render rail rides its top edge.
+
+### The RIP tab — the episode list
+
+A **single scrolling column** (`overflow-y: auto`, `padding: 14px 18px`, `gap:
+14px`) of bordered `panel` cards: Add-episode (URL field + Paste link + Download),
+Queue (per-job rows, badges, progress bars — only when non-empty), and Episodes
+(the table). The library is unbounded, so this surface scrolls; the No-Scroll
+rule does not reach it. A `--danger`-bordered notice card appears at the top only
+when `yt-dlp` / `ffmpeg` is missing.
+
+### The combined lamp
+
+One lamp reads both workers. Bulb severity: **ON AIR** red if either worker is
+rendering, **QUEUED** lavender if either has jobs waiting, **IDLE** grey
+otherwise. The status word names what's happening: `ON AIR` (both busy),
+`RENDERING` (narrate only), `RIPPING` (rip only), `QUEUED n` (combined count),
+`IDLE`.
 
 **Spacing rhythm:** a tight scale — `4px` (control gaps), `8px` (default gap / field padding), `10px` (sidebar padding and group gap), `12–16px` (band padding). Sidebar groups stack at `5px` internal gap with a `2px` drop under each label. The desk is intentionally dense: this is an instrument panel, not a document.
 
-**Responsive:** one breakpoint at **900px** — the header tagline disappears and
-the meta grid halves its columns. The desk is a desktop application shell (Tauri);
-there is no phone layout.
+**Responsive:** one breakpoint at **900px** — the NARRATE meta grid halves its
+columns. The app is a desktop shell (Tauri); there is no phone layout.
 
 ### Named Rules
-**The No-Scroll-Frame Rule.** The outer desk is always exactly the viewport.
-New content finds room inside an existing band's own scroll region (the editor,
-the sidebar, the queue strip, a dialog body) — it never makes the window scroll
-and never adds a fifth band.
+**The No-Scroll-Frame Rule.** *Applies to the NARRATE surface.* Its desk is
+always exactly the content area. New narrate content finds room inside an
+existing band's own scroll region (the editor, the sidebar, the queue strip, a
+dialog body) — it never makes the window scroll and never adds a fifth band. The
+RIP tab is a deliberate exception: an unbounded episode library scrolls.
 
 **The Fixed Column Rule.** The control column is exactly 240px. Controls are
 full-width buttons stacked in labelled groups; they do not reflow into a grid or
@@ -314,10 +341,10 @@ as a bullet, an avatar frame, or decoration.
 - **State:** the active cell flips to `signal-lavender` fill / `accent-ink` text. Used for author gender (`UNK` / `M` / `F`) and as the model for any small either/or choice.
 
 ### Status Lamp (signature)
-- A housing (`panel-raised`, 1px `line`, 4px radius, `min-width: 108px`) holding a 10px round **bulb** + a mono status word.
+- A housing (`panel-raised`, 1px `line`, 4px radius, `min-width: 108px`) holding a 10px round **bulb** + a mono status word. One lamp reads **both** workers (see *The combined lamp* under Layout); an optional `label` prop supplies the word, else the lamp derives it.
 - **Idle:** bulb `idle` grey, word `IDLE`, no glow.
-- **Queued:** bulb + word `signal-lavender`, `box-shadow: 0 0 8px` halo, word `QUEUED n`.
-- **On air:** bulb + word `danger` red, `box-shadow: 0 0 10px`, `onair-pulse` 1.4s ease-in-out infinite (halo shrinks + 0.75 opacity at the midpoint), word `RENDERING`. Reduced-motion drops the pulse for a steady 12px halo.
+- **Queued:** bulb + word `signal-lavender`, `box-shadow: 0 0 8px` halo, word `QUEUED n` (combined narrate + rip count).
+- **On air:** bulb + word `danger` red, `box-shadow: 0 0 10px`, `onair-pulse` 1.4s ease-in-out infinite (halo shrinks + 0.75 opacity at the midpoint). Word is `RENDERING` (narrate), `RIPPING` (rip), or `ON AIR` (both). Reduced-motion drops the pulse for a steady 12px halo.
 - The queue bar's `Rendering` item disc echoes this pulse on the same 1.4s cadence — one "desk is live" heartbeat in two places.
 
 ### Queue Bar (signature)

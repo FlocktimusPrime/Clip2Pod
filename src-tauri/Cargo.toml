@@ -1,9 +1,9 @@
 [workspace]
-members = ["crates/clip2pod-core"]
+members = ["crates/clip2pod-core", "crates/ytdlfeed-core"]
 
 [package]
 name = "clip2podv2"
-version = "0.6.1"
+version = "0.7.0"
 description = "Clip2Pod — clipboard text to narrated MP3"
 authors = ["kketover"]
 edition = "2021"
@@ -23,6 +23,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 clip2pod-core = { path = "crates/clip2pod-core" }
+ytdlfeed-core = { path = "crates/ytdlfeed-core" }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-clipboard-manager = "2"
@@ -35,4 +36,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "sync", "macros"] }
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "6"
 tiny_http = "0.12"
+
+[dev-dependencies]
+tempfile = "3"
 

@@ -1,7 +1,15 @@
 # Design reconciliation — Clip2Pod ↔ yt-dlFeed
 
-**Written:** 2026-09-09, from a design pass on the sibling app **yt-dlFeed**
-(`C:\Users\ketov\Projects\yt-dlFeed`).
+> **Resolved 2026-09 (v0.7.0).** yt-dlFeed was merged into Clip2Pod as the **RIP**
+> tab; `ytdlfeed-core` is now a vendored crate in this repo and the standalone
+> yt-dlFeed repo is archived. The "shared design system" is no longer two files
+> kept in sync — it is one `theme.css` and one `src/lib/components/` set that both
+> tabs import. There is nothing left to port *between* apps. The checklist below is
+> kept for history and because the shared-layer a11y/responsive items it lists
+> still apply to the merged app; run `/impeccable audit` against `DESIGN.md` to
+> re-check them.
+
+**Written:** 2026-09-09, from a design pass on the then-sibling app **yt-dlFeed**.
 
 Clip2Pod and yt-dlFeed share one design system — North Star **"The Production
 Desk"**, one palette, one type system, one set of Named Rules. The shared
