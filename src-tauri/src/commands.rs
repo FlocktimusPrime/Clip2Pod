@@ -427,7 +427,7 @@ pub fn delete_all_episodes(state: State<AppState>) -> CmdResult<usize> {
 #[tauri::command]
 pub fn feed_url() -> String {
     format!(
-        "http://{}:{}/feed.xml",
+        "http://{}:{}/tts/feed.xml",
         crate::feed::lan_ip(),
         crate::feed::FEED_PORT
     )
