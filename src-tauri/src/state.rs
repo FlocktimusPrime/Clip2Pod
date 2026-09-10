@@ -18,6 +18,13 @@ pub struct AppState {
     /// Set by the Cancel command; the worker clears it before each job and the
     /// synth loop checks it between chunks.
     pub cancel_flag: Arc<AtomicBool>,
+
+    // --- RIP mode (yt-dlp) ---
+    /// `config_dir/rip/` — keeps the rip config.json and log.json out of the
+    /// narrate ones. Both cores' load/save take a dir, so no code overlap.
+    pub rip_config_dir: PathBuf,
+    pub rip_config: Mutex<ytdlfeed_core::config::Config>,
+    pub rip_queue: Mutex<ytdlfeed_core::queue::Queue>,
 }
 
 impl AppState {
@@ -50,6 +57,44 @@ impl AppState {
         let cfg = self.config.lock().unwrap();
         if let Err(e) = clip2pod_core::config::save_config(&self.config_dir, &cfg) {
             eprintln!("failed to save config: {e}");
+        }
+    }
+
+    /// Effective rip episode folder: configured dir, or ~/Music/yt-dlFeed.
+    pub fn rip_output_dir(&self) -> PathBuf {
+        self.rip_config
+            .lock()
+            .unwrap()
+            .output_dir
+            .clone()
+            .unwrap_or_else(ytdlfeed_core::config::default_output_dir)
+    }
+
+    /// Effective yt-dlp args template: configured, or the bundled default.
+    pub fn rip_args_template(&self) -> String {
+        self.rip_config
+            .lock()
+            .unwrap()
+            .args_template
+            .clone()
+            .unwrap_or_else(|| ytdlfeed_core::ytdlp::DEFAULT_ARGS.to_string())
+    }
+
+    /// yt-dlp executable to spawn: the configured path, or `yt-dlp` from PATH.
+    pub fn rip_ytdlp_bin(&self) -> String {
+        self.rip_config
+            .lock()
+            .unwrap()
+            .ytdlp_path
+            .clone()
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or_else(|| "yt-dlp".to_string())
+    }
+
+    pub fn save_rip_config(&self) {
+        let cfg = self.rip_config.lock().unwrap();
+        if let Err(e) = ytdlfeed_core::config::save_config(&self.rip_config_dir, &cfg) {
+            eprintln!("failed to save rip config: {e}");
         }
     }
 }
