@@ -2,6 +2,7 @@
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import * as api from "$lib/api";
   import { app, toast } from "$lib/stores.svelte";
+  import type { FirewallHelp } from "$lib/types";
   import Modal from "./Modal.svelte";
 
   let url = $state("");
@@ -47,17 +48,30 @@
     }
   }
 
-  let openingPort = $state(false);
+  let help = $state<FirewallHelp | null>(null);
+  let showHelp = $state(false);
+  let cmdCopied = $state(false);
 
-  async function openPort() {
-    openingPort = true;
+  async function toggleHelp() {
+    showHelp = !showHelp;
+    if (showHelp && !help) {
+      try {
+        help = await api.firewallHelp();
+      } catch (e) {
+        toast(`Firewall help failed: ${e}`, "error");
+        showHelp = false;
+      }
+    }
+  }
+
+  async function copyCmd() {
+    if (!help) return;
     try {
-      const message = await api.openFirewallPort();
-      toast(message);
+      await writeText(help.command);
+      cmdCopied = true;
+      setTimeout(() => (cmdCopied = false), 1600);
     } catch (e) {
-      toast(`${e}`, "error");
-    } finally {
-      openingPort = false;
+      toast(`Copy failed: ${e}`, "error");
     }
   }
 </script>
@@ -78,10 +92,26 @@
   {/if}
   <p class="hint firewall-hint">
     Phone can't reach the feed? It may be blocked by your firewall.
-    <button class="btn" onclick={openPort} disabled={openingPort}>
-      {openingPort ? "Opening…" : "Open firewall port"}
+    <button class="btn" onclick={toggleHelp} aria-expanded={showHelp}>
+      {showHelp ? "Hide firewall help" : "Firewall help"}
     </button>
   </p>
+  {#if showHelp && help}
+    <div class="fw-help">
+      <p class="hint">{help.shell_hint}</p>
+      <div class="url-row">
+        <code>{help.command}</code>
+        <button class="btn" onclick={copyCmd}>{cmdCopied ? "Copied" : "Copy"}</button>
+      </div>
+      {#if help.tips.length}
+        <ul class="fw-tips">
+          {#each help.tips as tip}
+            <li>{tip}</li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  {/if}
 </Modal>
 
 <style>
@@ -130,5 +160,24 @@
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+  }
+
+  .fw-help {
+    margin-top: 10px;
+  }
+
+  .fw-help code {
+    white-space: pre-wrap;
+  }
+
+  .fw-tips {
+    margin: 12px 0 0;
+    padding-left: 18px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .fw-tips li + li {
+    margin-top: 6px;
   }
 </style>

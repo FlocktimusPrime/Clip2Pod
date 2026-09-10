@@ -89,6 +89,12 @@ export interface Extracted {
   text: string;
 }
 
+export interface FirewallHelp {
+  shell_hint: string;
+  command: string;
+  tips: string[];
+}
+
 export interface CapturedArticle extends Extracted {
   url: string;
 }
