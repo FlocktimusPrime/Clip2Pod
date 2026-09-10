@@ -114,14 +114,15 @@
   {#if missingTools && app.doctor}
     <div class="notice" role="status">
       <p class="notice-head">
+        <span class="dot" aria-hidden="true"></span>
         {#if !app.doctor.ytdlp_found && !app.doctor.ffmpeg_found}
-          yt-dlp and ffmpeg aren't on your PATH.
+          Install yt-dlp and ffmpeg to rip audio.
         {:else if !app.doctor.ytdlp_found}
-          yt-dlp isn't on your PATH.
+          Install yt-dlp to rip audio.
         {:else}
-          ffmpeg isn't on your PATH.
+          Install ffmpeg to rip audio.
         {/if}
-        RIP needs both to work.
+        It isn't on your PATH yet — narration still works without it.
       </p>
       <ul>
         {#if !app.doctor.ytdlp_found}
@@ -180,6 +181,7 @@
             {#if job.status === "Failed"}
               <button
                 class="btn small"
+                aria-expanded={expanded === job.id}
                 onclick={() => (expanded = expanded === job.id ? null : job.id)}
               >
                 {expanded === job.id ? "Hide" : "Why?"}
@@ -251,7 +253,11 @@
                 <td>{fmtSize(ep.size)}</td>
                 <td>{fmtDate(ep.modified)}</td>
                 <td class="right">
-                  <button class="btn small" onclick={() => removeEpisode(ep.filename)}>
+                  <button
+                    class="btn small"
+                    aria-label="Delete {ep.title}"
+                    onclick={() => removeEpisode(ep.filename)}
+                  >
                     Delete
                   </button>
                 </td>
@@ -348,7 +354,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     padding: 2px 7px;
-    border-radius: 3px;
+    border-radius: 4px;
     border: 1px solid var(--line);
     color: var(--muted);
   }
@@ -372,7 +378,7 @@
   .bar {
     margin-top: 7px;
     height: 6px;
-    border-radius: 3px;
+    border-radius: 4px;
     background: var(--panel-raised);
     border: 1px solid var(--line-soft);
     overflow: hidden;
@@ -459,16 +465,26 @@
   }
 
   .notice {
-    border: 1px solid var(--danger);
-    border-radius: 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
     padding: 12px 14px;
-    background: color-mix(in srgb, var(--danger) 10%, transparent);
+    background: var(--panel-raised);
   }
 
   .notice-head {
     margin: 0;
     font-size: 13px;
     color: var(--text);
+  }
+
+  .notice-head .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--danger);
+    margin-right: 6px;
+    vertical-align: middle;
   }
 
   .notice ul {
@@ -486,7 +502,7 @@
     font-size: 12px;
     background: var(--panel-raised);
     border: 1px solid var(--line-soft);
-    border-radius: 3px;
+    border-radius: 4px;
     padding: 1px 5px;
     user-select: all;
   }

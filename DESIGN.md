@@ -241,8 +241,15 @@ A **single scrolling column** (`overflow-y: auto`, `padding: 14px 18px`, `gap:
 14px`) of bordered `panel` cards: Add-episode (URL field + Paste link + Download),
 Queue (per-job rows, badges, progress bars — only when non-empty), and Episodes
 (the table). The library is unbounded, so this surface scrolls; the No-Scroll
-rule does not reach it. A `--danger`-bordered notice card appears at the top only
-when `yt-dlp` / `ffmpeg` is missing.
+rule does not reach it.
+
+When `yt-dlp` / `ffmpeg` is missing, a **neutral notice card** leads the column
+(`panel-raised` fill, 1px `line`, 4px radius — chrome weight, not an alarm)
+carrying a 6px `danger` state dot, the one-line ask, the `winget` commands as
+`code`, and a **Re-check** button. RIP is unusable without the tools but nothing
+has *failed* yet, so the card informs rather than shouts; the `danger` dot is the
+only red, per Circle-Means-Status. A rip that actually fails still shows red in
+the queue.
 
 ### The combined lamp
 
