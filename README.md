@@ -5,12 +5,12 @@
 <h1 align="center">Clip2Pod</h1>
 
 <p align="center">
-  Turn any article into a narrated MP3 — and listen to it as your own private podcast feed.
+  Turn an article — or a video's audio — into your own private podcast feed.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
-  <img src="https://img.shields.io/badge/version-0.6.1-orange.svg" alt="Version 0.6.1">
+  <img src="https://img.shields.io/badge/version-0.7.0-orange.svg" alt="Version 0.7.0">
   <img src="https://img.shields.io/badge/Tauri-2-24C8DB.svg" alt="Tauri 2">
   <img src="https://img.shields.io/badge/Rust-stable-dea584.svg" alt="Rust">
   <img src="https://img.shields.io/badge/Svelte-5-ff3e00.svg" alt="Svelte 5">
@@ -19,47 +19,110 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/main-window-dark.png" alt="Clip2Pod main window, dark theme" width="49%" />
-  <img src="docs/screenshots/main-window-light.png" alt="Clip2Pod main window, light theme" width="49%" />
+  <img src="docs/screenshots/main-window-dark.png" alt="Clip2Pod, NARRATE tab, dark theme" width="49%" />
+  <img src="docs/screenshots/main-window-light.png" alt="Clip2Pod, RIP tab, light theme" width="49%" />
 </p>
 
-Clip2Pod is a desktop app for converting written content into audio. Paste an article (or send it straight from your browser), clean it up, and generate an MP3 narrated by one of Microsoft Edge's neural text-to-speech voices. Finished episodes are tagged, named safely, and served over a local RSS feed — so your phone's podcast app can subscribe and download them like any other show.
+Clip2Pod is a desktop app that produces MP3 episodes and serves them over a local
+RSS feed, so your phone's podcast app can subscribe and download them like any
+other show. It has two modes:
 
-**The core loop:** article → script → voice → MP3 → podcast feed.
+- **Narrate** — paste an article (or send it from your browser), clean it up, and
+  generate an MP3 read aloud by one of Microsoft Edge's neural text-to-speech
+  voices.
+- **Rip** — give it a video URL and it downloads the audio track as an MP3 (via
+  [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)).
 
-## Features
+Both produce tagged, safely-named MP3s in a folder that *is* the feed. The two
+feeds are kept separate — a 6-minute narrated blog post and a 2-hour conference
+talk are different listening experiences.
 
-- **Four ways in** — paste from the clipboard (`Ctrl+Shift+V`), fetch an article by URL, press the global hotkey (`Ctrl+Alt+G`) from anywhere, or click the companion browser extension to send the page you're reading (paywalled content included, since it captures your logged-in session).
-- **Readability extraction** — web pages are boiled down to title, author, and article text; navigation, ads, and boilerplate are stripped automatically.
-- **Script cleanup tools** — one-click *Clean for TTS* normalizes smart punctuation, strips emoji and decorative symbols, and collapses whitespace. A *junk phrase finder* walks you through lines that read badly aloud ("Getty Images", "min read", raw URLs…), with a fully editable phrase list that supports `*` wildcards. Highlight any stray line and press `Ctrl+K` to add it, or let *Suggest Junk* scan the script for boilerplate.
-- **Spoken intros** — each episode opens with its title and author ("*My Title. By Jane Doe.*"), skipped automatically if the text already starts that way.
-- **A real voice library** — audition, enable, and disable any of Edge's English neural voices. Voices rotate round-robin (and alternate gender when the author's gender is unknown) so a backlog of episodes doesn't sound monotonous.
-- **Background queue** — generation never blocks the UI. A status lamp shows `IDLE` / `QUEUED n` / `RENDERING`, a bar under the editor lists what's rendering (with chunk progress %), waiting, or failed plus the last success, lets you **Cancel** the current render, and a full log records every job with the voice used.
-- **Proper MP3s** — ID3 tags (title, artist, album, narrating voice), sanitized collision-safe filenames, optional `C2P_` prefix.
-- **Built-in podcast feed** — a local RSS server (port `4738`) lists every generated episode with cover art. Scan the QR code in the app with your phone and subscribe in any podcast client on your network.
-- **One-click cleanup** — once your podcatcher has downloaded the episodes, **Delete episodes** in the Queue bar clears every MP3 the feed lists from the output folder. It asks for confirmation with a file count first, and never touches a file still being rendered.
-- **Quality of life** — light/dark themes, system tray (closing the window keeps it running), and every setting persisted between sessions.
+Everything runs on your machine and your LAN. No account, no cloud, no
+per-character bill. The only outbound call is Edge's TTS service, and only when
+you narrate.
+
+## Modes
+
+### Narrate — text → voice → MP3
+
+**Four ways in:** paste from the clipboard (`Ctrl+Shift+V`), fetch an article by
+URL, press the global hotkey (`Ctrl+Alt+G`) from anywhere, or click the browser
+extension to send the page you're reading (paywalled content included — it
+captures your logged-in session).
+
+- **Readability extraction** strips nav, ads, and boilerplate down to title,
+  author, and article text.
+- **Script cleanup** — one-click *Clean for TTS* normalizes smart punctuation,
+  strips emoji and decorative symbols, and collapses whitespace. A *junk phrase
+  finder* walks you through lines that read badly aloud ("Getty Images", "min
+  read", raw URLs), with an editable phrase list that supports `*` wildcards.
+- **Spoken intros** — each episode opens with its title and author, skipped if the
+  text already starts that way.
+- **A real voice library** — audition, enable, and disable any of Edge's English
+  neural voices. Voices rotate round-robin (and alternate gender when the author's
+  is unknown) so a backlog doesn't sound monotonous. Right-click a bad take in the
+  log to drop that voice.
+
+### Rip — video URL → yt-dlp → MP3
+
+- Paste a link, click **Paste link** to grab it from the clipboard, or send it
+  from the extension. Known video hosts (YouTube, Vimeo, …) route here
+  automatically.
+- `yt-dlp` downloads and transcodes to MP3, embedding the thumbnail, metadata, and
+  chapters, running SponsorBlock, and applying a small volume boost. The command
+  template is fully editable in Settings.
+- Live download progress per job; **Stop** kills the current one.
+- Requires **`yt-dlp` and `ffmpeg` on your PATH** — the app is not bundled with
+  them. The Rip tab shows an install notice with the `winget` commands if either
+  is missing, and Settings shows the detected `yt-dlp` version. You can point at a
+  specific `yt-dlp` build (e.g. a nightly) in Settings if rips start failing.
+
+### Shared
+
+- **Background queues** — narration and ripping run on independent workers, so you
+  can rip a video while an article narrates. One header lamp reads both: `IDLE` /
+  `QUEUED n` / `RENDERING` / `RIPPING` / `ON AIR`.
+- **Proper MP3s** — ID3 tags, sanitized collision-safe filenames.
+- **Two podcast feeds** — a local RSS server (port `4738`) serves
+  `/tts/feed.xml` (narrated) and `/video/feed.xml` (ripped). Open **Feed** on
+  either tab, scan the QR code, and subscribe.
+- **One-click cleanup** — once your podcatcher has the episodes, **Delete all**
+  clears every MP3 the feed lists from that mode's folder (with a count
+  confirmation; never a file still being written).
+- **Quality of life** — light/dark themes, system tray (left-click to show;
+  closing the window keeps it running), every setting persisted.
 
 ## Installation
 
-### Prebuilt packages (Linux)
+### Prebuilt packages
 
 Grab the latest build from the [Releases](../../releases) page:
 
 | Package | For |
 |---|---|
-| `Clip2Pod_x.y.z_amd64.AppImage` | Any distro — `chmod +x` and run |
+| `Clip2Pod_x.y.z_amd64.AppImage` | Any Linux distro — `chmod +x` and run |
 | `Clip2Pod_x.y.z_amd64.deb` | Debian, Ubuntu, Mint |
 | `Clip2Pod-x.y.z-1.x86_64.rpm` | Fedora, openSUSE |
+| `Clip2Pod_x.y.z_x64-setup.exe` | Windows |
+
+For the **Rip** mode, install `yt-dlp` and `ffmpeg` yourself:
 
 ```sh
-chmod +x Clip2Pod_*.AppImage
-./Clip2Pod_*.AppImage
+# Windows
+winget install yt-dlp.yt-dlp
+winget install yt-dlp.FFmpeg
+
+# macOS / Linux
+brew install yt-dlp ffmpeg        # or your package manager / pipx install yt-dlp
 ```
+
+Narrate mode has no extra dependencies.
 
 ### Build from source
 
-Prerequisites: [Rust](https://rustup.rs) (stable), [Node.js](https://nodejs.org) 18+, and the [Tauri 2 system dependencies](https://tauri.app/start/prerequisites/) for your platform (on Linux: `webkit2gtk-4.1`, `libappindicator3`, etc.).
+Prerequisites: [Rust](https://rustup.rs) (stable), [Node.js](https://nodejs.org)
+18+, and the [Tauri 2 system dependencies](https://tauri.app/start/prerequisites/)
+for your platform.
 
 ```sh
 git clone https://github.com/FlocktimusPrime/Clip2Pod.git
@@ -68,48 +131,52 @@ npm install
 npm run tauri build          # bundles land in src-tauri/target/release/bundle/
 ```
 
-For development with hot reload:
-
-```sh
-npm run tauri dev
-```
+For development with hot reload: `npm run tauri dev`.
 
 ### Browser extension (Chrome / Brave / Edge / Firefox)
 
-The extension sends the article you're reading — as rendered in your logged-in browser session — straight to the Clip2Pod editor.
+The extension sends the page you're reading — as rendered in your logged-in
+session — to whichever mode fits.
 
-**Chrome / Brave / Edge:**
+- **Chrome / Brave / Edge:** `chrome://extensions` → enable **Developer mode** →
+  **Load unpacked** → pick [`extension/chrome/`](extension/chrome/).
+- **Firefox** (temporary): `about:debugging#/runtime/this-firefox` → **Load
+  Temporary Add-on…** → pick [`extension/firefox/manifest.json`](extension/firefox/manifest.json).
 
-1. Open `chrome://extensions` (or `brave://extensions`, `edge://extensions`).
-2. Enable **Developer mode** (top-right toggle).
-3. Click **Load unpacked** and choose the [`extension/chrome/`](extension/chrome/) folder.
+**Click** the toolbar button and the app decides: a known video host goes to Rip,
+everything else to Narrate. **Right-click the page** for "Narrate this page" /
+"Rip this page's audio" to force a mode — handy for a YouTube page you want *read*
+(its transcript) instead of ripped.
 
-**Firefox** (temporary — resets on restart):
-
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on…** and pick [`extension/firefox/manifest.json`](extension/firefox/manifest.json).
-
-The extension only acts when clicked, only on the active tab, and only talks to `127.0.0.1:4737` — the Clip2Pod app on your own machine. See [`extension/README.md`](extension/README.md) for details.
+The extension only acts when you click, only on the active tab, and only talks to
+`127.0.0.1:4737`. See [`extension/README.md`](extension/README.md).
 
 ## Usage
 
-### Quick start
+### Narrate an article
 
-1. Copy an article (or click the browser extension, or paste a URL into the **Intake** field and hit **Fetch**).
-2. **Paste Clipboard** (`Ctrl+Shift+V`) drops it into the editor; title and author auto-fill.
-3. Run **Find Junk** (`Ctrl+F`) to review lines that read badly aloud, deleting flagged ones with `Ctrl+D` — or skip straight to **Clean for TTS** (`Ctrl+L`).
-4. Check the metadata bar: Title and Author become ID3 tags; Author gender steers voice selection.
-5. **Generate MP3** (`Ctrl+Enter`). The job queues, a voice is picked from the rotation, and you can keep working while it renders.
-6. The finished MP3 lands in your output folder — tagged, collision-safe, and already listed in your podcast feed.
+1. Copy an article (or click the extension, or paste a URL and hit **Fetch**).
+2. **Paste Clipboard** (`Ctrl+Shift+V`); title and author auto-fill.
+3. **Find Junk** (`Ctrl+F`) to review lines that read badly, `Ctrl+D` to delete —
+   or skip to **Clean for TTS** (`Ctrl+L`).
+4. Check the metadata bar (Title, Author, Author gender).
+5. **Generate MP3** (`Ctrl+Enter`). It queues; keep working while it renders.
+
+### Rip a video
+
+1. Switch to the **RIP** tab (or just send a video link from the extension).
+2. Paste the URL and hit **Download** (or **Paste link** to use the clipboard).
+3. Watch it in the Queue; the finished MP3 lands in the ripped-audio folder.
 
 ### Subscribe on your phone
 
-1. Click **Feed** in the header.
-2. Scan the QR code with your phone (or type the shown `http://<your-ip>:4738/feed.xml` URL into any podcast app).
-3. Episodes appear as they're generated. Your phone must be on the same network as the desktop app.
-4. After your podcast app has downloaded the episodes, click **Delete episodes** in the Queue bar under the editor to clear them from the output folder — a confirmation shows how many files will be removed.
+1. Click **Feed** on the tab whose feed you want.
+2. Scan the QR code, or enter the shown `http://<your-ip>:4738/tts/feed.xml`
+   (or `/video/feed.xml`) in any podcast app on the same network.
+3. After your podcatcher downloads the episodes, **Delete all** clears that
+   folder for the next batch.
 
-### Keyboard shortcuts
+### Keyboard shortcuts (NARRATE tab)
 
 | Shortcut | Action |
 |---|---|
@@ -123,67 +190,79 @@ The extension only acts when clicked, only on the active tab, and only talks to 
 | `Ctrl+Enter` | Generate MP3 |
 | `Ctrl+J` | Edit junk phrases |
 | `Ctrl+M` | Manage voices |
-| `Ctrl+Shift+L` | Open generation log |
+| `Ctrl+Shift+L` | Open the log (the active tab's) |
 
 A full feature walkthrough lives in [ABOUT.md](ABOUT.md).
 
 ## How it works
 
 ```
-┌─────────────┐   ┌──────────────┐   ┌─────────────┐   ┌──────────────┐
-│   Intake     │   │   Cleanup     │   │  Narration   │   │   Delivery    │
-│ clipboard,   │──▶│ readability,  │──▶│ Edge TTS,    │──▶│ ID3 tags,     │
-│ URL, hotkey, │   │ junk phrases, │   │ voice        │   │ RSS feed,     │
-│ extension    │   │ TTS cleanup   │   │ rotation     │   │ QR subscribe  │
-└─────────────┘   └──────────────┘   └─────────────┘   └──────────────┘
+NARRATE   clipboard / URL / hotkey / extension
+             │  readability + junk-phrase cleanup
+             ▼  Edge TTS (chunked, frames concatenated) → ID3 → /tts feed
+
+RIP       video URL / extension
+             │  yt-dlp + ffmpeg (extract-audio, embed, SponsorBlock)
+             ▼  duration tag → /video feed
+
+          one capture listener (:4737, routes by host) ─┐
+          one LAN RSS server  (:4738, /tts + /video)  ──┴─▶  phone subscribes
 ```
 
 | Component | Role |
 |---|---|
-| `src/` | SvelteKit 5 frontend — editor (CodeMirror), metadata bar, dialogs |
-| `src-tauri/src/` | Tauri 2 shell — tray, global hotkey, capture server (`:4737`), feed server (`:4738`) |
-| `src-tauri/crates/clip2pod-core/` | Pure-Rust core — extraction, text cleaning, TTS, voice cycling, queue, tagging, feed generation |
-| `extension/` | Manifest V3 browser extension (Chrome + Firefox variants) — posts rendered page HTML to the capture server |
+| `src/` | SvelteKit 5 frontend — a shared header + tab shell over the NARRATE desk and the RIP list |
+| `src-tauri/src/` | Tauri 2 shell — tray, global hotkey, capture listener (`:4737`), feed server (`:4738`), two workers |
+| `src-tauri/crates/clip2pod-core/` | Narrate logic (AGPL-3.0) — extraction, cleaning, TTS, voice cycling, tagging, feed |
+| `src-tauri/crates/ytdlfeed-core/` | Rip logic (GPL-3.0) — yt-dlp arg building, progress parsing, feed. Vendored from the archived [yt-dlFeed](https://github.com/FlocktimusPrime/yt-dlFeed) repo |
+| `extension/` | Manifest V3 browser extension (Chrome + Firefox) — posts the rendered page, plus a mode hint |
 
-Narration is synthesized by **Microsoft Edge's neural TTS service** (via [`msedge-tts`](https://crates.io/crates/msedge-tts)); article extraction uses [`dom_smoothie`](https://crates.io/crates/dom_smoothie), a Rust port of Mozilla's Readability. Long articles are split into per-request chunks on sentence boundaries before synthesis and the MP3 frames are concatenated, so full-length articles narrate in one file rather than hitting Edge TTS's per-request text limit. Text is XML-escaped before it goes into the SSML request — the service silently returns no audio when characters like `&` or `<` reach it raw.
+Narration uses **Microsoft Edge's neural TTS service** (via
+[`msedge-tts`](https://crates.io/crates/msedge-tts)); extraction uses
+[`dom_smoothie`](https://crates.io/crates/dom_smoothie), a Rust Readability port.
+Long articles are chunked on sentence boundaries and the MP3 frames concatenated,
+so a full article narrates as one file. Ripping shells out to the system `yt-dlp`.
 
 ## Privacy
 
-- Text you narrate is sent to Microsoft's Edge TTS service for synthesis — the same service the Edge browser's "Read aloud" uses. Don't feed it text you wouldn't paste into a cloud service.
+- Text you narrate is sent to Microsoft's Edge TTS service — the same service
+  Edge's "Read aloud" uses. Don't feed it text you wouldn't paste into a cloud
+  service.
+- Ripping talks to whatever site `yt-dlp` fetches from; nothing else leaves your
+  machine.
 - The browser extension talks only to `127.0.0.1` and only when you click it.
-- The podcast feed binds to your local network (`0.0.0.0:4738`) so your phone can reach it; it serves only generated episodes and cover art.
+- The podcast feeds bind to your LAN (`0.0.0.0:4738`) so your phone can reach
+  them; they serve only your episodes and cover art.
 - No telemetry, no accounts, no data collection.
 
 ## Development
 
 ```sh
-npm run tauri dev        # run the app with hot reload
-npm run check            # svelte-check (frontend types)
-cargo test --workspace   # Rust test suite (run from src-tauri/)
-cargo clippy --workspace # lints
+npm run tauri dev              # run with hot reload
+npm run check                  # svelte-check (frontend types)
+cargo test --workspace         # Rust tests (run from src-tauri/)
+cargo clippy --workspace       # lints
 ```
 
-The core logic (`clip2pod-core`) has no Tauri dependency, so most behavior — cleaning, voice cycling, filename collision handling, feed XML — is covered by fast unit tests.
-
-## Contributing
-
-Issues and pull requests are welcome. For anything non-trivial, please open an issue first to discuss the approach. Before submitting a PR:
-
-1. `cargo test --workspace` passes (from `src-tauri/`).
-2. `npm run check` passes.
-3. New behavior comes with tests where the core crate is involved.
+The core crates have no Tauri dependency, so most behavior — cleaning, voice
+cycling, collision handling, feed XML, yt-dlp arg building, progress parsing — is
+covered by fast unit tests.
 
 ## License
 
 [GNU AGPL-3.0](LICENSE) © 2026 FlocktimusPrime
 
-Clip2Pod is free software: you can use, study, modify, and redistribute it, but any distributed or network-hosted derivative must be released under the same license, with full source code. Commercial redistribution without source disclosure is not permitted.
+Clip2Pod is free software: use, study, modify, and redistribute it, but any
+distributed or network-hosted derivative must ship full source under the same
+license. The Rip logic (`ytdlfeed-core`) is GPL-3.0-only; AGPLv3 §13 permits
+combining it into this AGPL program, and the effective license of the whole
+binary is AGPL-3.0.
 
 ## Acknowledgements
 
 - [Tauri](https://tauri.app) — the desktop shell
 - [msedge-tts](https://crates.io/crates/msedge-tts) — Microsoft Edge neural TTS bindings
 - [dom_smoothie](https://crates.io/crates/dom_smoothie) — Readability-style article extraction
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — the ripping engine
 - [CodeMirror](https://codemirror.net) — the script editor
-- [Mozilla Readability](https://github.com/mozilla/readability) — powers the browser extension's extraction
-- [Claude Code](https://claude.com/claude-code) — Clip2Pod was developed with Claude Code using the Claude Fable 5 model
+- [Claude Code](https://claude.com/claude-code) — Clip2Pod was developed with Claude Code
