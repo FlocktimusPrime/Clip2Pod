@@ -173,6 +173,13 @@
       Leave blank to use <code>yt-dlp</code> from your PATH, or point at a specific build (e.g. a
       nightly) if rips start failing.
     </p>
+    {#if app.doctor?.ytdlp_version}
+      <p class="hint">
+        Detected: yt-dlp {app.doctor.ytdlp_version}{app.doctor.ffmpeg_found ? "" : " · ffmpeg NOT found"}
+      </p>
+    {:else if app.doctor}
+      <p class="error">yt-dlp not found — see the notice on the Rip tab.</p>
+    {/if}
 
     <button class="btn primary" onclick={saveRip} disabled={!ripDirty}>Save rip settings</button>
   </div>
