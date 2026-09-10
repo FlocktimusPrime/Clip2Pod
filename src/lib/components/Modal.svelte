@@ -12,15 +12,20 @@
   const titleId = `modal-title-${Math.random().toString(36).slice(2)}`;
 
   // showModal() gives us the focus trap, Esc-to-close, focus return to the
-  // opener, and background inerting for free — no hand-rolled trapTab.
+  // opener, and background inerting for free — no hand-rolled trapTab. It
+  // also focuses the first control (Close); move focus to the panel instead
+  // so opening doesn't flash a ring on a button, while the dialog's
+  // aria-labelledby still gets announced.
   $effect(() => {
     dialogEl.showModal();
+    dialogEl.focus();
   });
 </script>
 
 <dialog
   class="modal"
   bind:this={dialogEl}
+  tabindex="-1"
   aria-labelledby={titleId}
   onclose={onclose}
   onclick={(e) => {

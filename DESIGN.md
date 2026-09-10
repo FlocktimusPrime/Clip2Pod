@@ -335,7 +335,12 @@ as a bullet, an avatar frame, or decoration.
 - **Backdrop:** `.modal::backdrop` — `--shadow` fill, fade-in 120ms.
 - **Header:** an `<h2 class="label">` title linked by `aria-labelledby` + a `Close` button showing `Esc`. Settings subsections are `<h3 class="label">`.
 - **Behaviour:** `Esc`, backdrop click, and the `Close` button all route through `onclose`. Don't add `role="dialog"` / `aria-modal` — `showModal()` implies them.
-- **In-dialog feedback is inline, not a toast.** A `<dialog>` sits in the top layer *above* the toast stack, so a toast fired from inside it is hidden. Confirm an action on the control itself (the feed dialog's Copy → `Copied`).
+- **In-dialog feedback is inline, not a toast.** A `<dialog>` sits in the top layer *above* the toast stack, so a toast fired from inside it is hidden. Confirm an action on the control itself (the feed dialog's Copy → `Copied`; the log's disable-voice menu item → `Removed from rotation`).
+- **Open focus is on the panel**, not the first control: `showModal()` then `dialogEl.focus()` on a `tabindex="-1"` dialog, so opening doesn't flash a focus ring on `Close` while the `aria-labelledby` title is still announced.
+
+### Context menu
+- The log's right-click "disable this voice" menu is a `popover` (so it clears the top-layer `<dialog>` it lives in) positioned at the pointer, clamped to the viewport with `min(…, calc(100vw - 220px))`.
+- Dismissal is handled in the component, not `popover="auto"`: a capture-phase `Escape` listener `preventDefault`s and closes **only the menu** (a second `Esc` then closes the dialog); an outside `pointerdown` closes it too. Its one item is focused on open.
 
 **The Native-Dialog Rule.** New overlays that need protected focus use `<dialog>` + `showModal()`, never a hand-rolled backdrop `<div>` with a JS focus trap. A confirm that doesn't need protected focus uses the inline expand-in-place pattern instead (see Queue Bar).
 
@@ -365,7 +370,8 @@ as a bullet, an avatar frame, or decoration.
 - **Do** handle destructive confirmation inline (the queue bar's expand-in-place pattern), keeping first focus on the safe choice and returning it to the trigger on close.
 - **Do** keep radii at `4px` for chrome, `6px` for the coach bar, `8px` for modals — and no further (The Sharp-Corner Rule).
 - **Do** drop looping and spatial motion under `prefers-reduced-motion`, but keep colour and opacity transitions that carry state.
-- **Do** reach for a native `<dialog>` + `showModal()` for any overlay that needs protected focus (The Native-Dialog Rule).
+- **Do** reach for a native `<dialog>` + `showModal()` for any overlay that needs protected focus (The Native-Dialog Rule); move focus to the panel after opening, and confirm in-dialog actions inline rather than with a toast.
+- **Do** render any transient overlay that appears *inside* an open dialog (a context menu, a picker) as a `popover` so it clears the top layer, and clamp its position to the viewport.
 - **Do** give every colour-only signal a text equivalent — `aria-pressed` on toggle buttons, the `.vh` `Error:` prefix on error toasts.
 - **Do** duplicate the full light palette under `@media (prefers-color-scheme: light) { :root:not([data-theme]) { … } }` so the pre-JS first paint matches the OS; an explicit `data-theme` still wins on specificity.
 - **Do** hold every light-theme token at 4.5:1 against **both** `--bg` and white `--panel` (The Light-Theme Note).
