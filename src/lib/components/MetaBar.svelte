@@ -33,7 +33,13 @@
     <span class="label" id="gender-label">Author gender</span>
     <div class="seg" role="group" aria-labelledby="gender-label">
       {#each genders as g (g)}
-        <button class="seg-cell" class:active={gender === g} onclick={() => ongender(g)}>
+        <button
+          class="seg-cell"
+          class:active={gender === g}
+          aria-pressed={gender === g}
+          aria-label={g}
+          onclick={() => ongender(g)}
+        >
           {g === "Unknown" ? "UNK" : g === "Male" ? "M" : "F"}
         </button>
       {/each}

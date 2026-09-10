@@ -37,12 +37,13 @@
   const canGenerate = $derived(app.voices !== null && !app.voicesError);
 </script>
 
-<aside class="side">
+<aside class="side" aria-label="Controls">
   <div class="group">
-    <span class="label">Intake</span>
+    <h2 class="label">Intake</h2>
     <div class="folder-row">
       <input
         class="field"
+        aria-label="Article URL"
         placeholder="Article URL…"
         bind:value={url}
         onkeydown={(e) => e.key === "Enter" && fetchUrl()}
@@ -54,7 +55,7 @@
   </div>
 
   <div class="group">
-    <span class="label">Transport</span>
+    <h2 class="label">Transport</h2>
     <button class="btn" onclick={onpaste}>Paste clipboard <kbd>Ctrl+Shift+V</kbd></button>
     <button class="btn" onclick={onclean}>Clean for TTS <kbd>Ctrl+L</kbd></button>
     <button class="btn primary" onclick={ongenerate} disabled={!canGenerate}>
@@ -63,14 +64,14 @@
   </div>
 
   <div class="group">
-    <span class="label">Junk</span>
+    <h2 class="label">Junk</h2>
     <button class="btn" onclick={onsuggestjunk}>Suggest junk <kbd>Ctrl+Shift+K</kbd></button>
     <button class="btn" onclick={onfind}>Find junk <kbd>Ctrl+F</kbd></button>
     <button class="btn" onclick={onaddjunk}>Add junk phrase <kbd>Ctrl+K</kbd></button>
   </div>
 
   <div class="group">
-    <span class="label">Tools</span>
+    <h2 class="label">Tools</h2>
     <button class="btn" onclick={() => (app.dialog = "voices")}>Manage voices <kbd>Ctrl+M</kbd></button>
     <button class="btn" onclick={() => (app.dialog = "junk")}>Junk phrases <kbd>Ctrl+J</kbd></button>
     <button class="btn" onclick={() => (app.dialog = "log")}>Log <kbd>Ctrl+Shift+L</kbd></button>

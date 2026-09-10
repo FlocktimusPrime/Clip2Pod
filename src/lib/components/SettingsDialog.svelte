@@ -43,7 +43,7 @@
 
 <Modal title="Settings" onclose={() => (app.dialog = null)}>
   <div class="section">
-    <span class="label">Episode folder</span>
+    <h3 class="label">Episode folder</h3>
     <div class="row">
       <p class="path mono" title={app.config?.output_dir}>{app.config?.output_dir ?? "…"}</p>
       <button class="btn" onclick={pickOutputDir}>Browse</button>
@@ -56,7 +56,7 @@
   </div>
 
   <div class="section">
-    <span class="label">Startup</span>
+    <h3 class="label">Startup</h3>
     <label class="check">
       <input
         type="checkbox"
@@ -76,16 +76,18 @@
   </div>
 
   <div class="section">
-    <span class="label">Theme</span>
+    <h3 class="label">Theme</h3>
     <div class="row">
       <button
         class="btn"
         class:primary={app.config?.theme === "dark"}
+        aria-pressed={app.config?.theme === "dark"}
         onclick={() => switchTheme("dark")}>Dark</button
       >
       <button
         class="btn"
         class:primary={app.config?.theme === "light"}
+        aria-pressed={app.config?.theme === "light"}
         onclick={() => switchTheme("light")}>Light</button
       >
     </div>

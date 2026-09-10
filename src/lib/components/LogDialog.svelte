@@ -45,7 +45,12 @@
 
 <Modal title="Generation log" onclose={() => (app.dialog = null)}>
   <div class="toolbar">
-    <input class="field" placeholder="Search by title…" bind:value={search} />
+    <input
+      class="field"
+      aria-label="Search log by title"
+      placeholder="Search by title…"
+      bind:value={search}
+    />
   </div>
 
   <div class="table-wrap">

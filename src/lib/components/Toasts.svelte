@@ -4,7 +4,9 @@
 
 <div class="toasts" role="status" aria-live="polite" aria-atomic="false">
   {#each app.toasts as t (t.id)}
-    <div class="toast" data-kind={t.kind}>{t.text}</div>
+    <div class="toast" data-kind={t.kind}
+      >{#if t.kind === "error"}<span class="vh">Error: </span>{/if}{t.text}</div
+    >
   {/each}
 </div>
 
