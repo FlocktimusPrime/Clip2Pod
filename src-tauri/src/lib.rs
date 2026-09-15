@@ -30,6 +30,7 @@ pub fn run() {
     let config_dir = clip2pod_core::config::default_config_dir();
     install_panic_hook(config_dir.clone());
     let config = clip2pod_core::config::load_config(&config_dir);
+    let authors = clip2pod_core::authors::load_authors(&config_dir);
     let cached_voices = config.cached_voices.clone();
     let start_minimized = config.start_minimized;
     let launch_at_startup = config.launch_at_startup;
@@ -77,6 +78,7 @@ pub fn run() {
         .manage(AppState {
             config_dir,
             config: Mutex::new(config),
+            authors: Mutex::new(authors),
             queue: Mutex::new(Default::default()),
             voices: Mutex::new(cached_voices),
             wake_worker: wake_tx,
@@ -157,6 +159,12 @@ pub fn run() {
             commands::set_output_dir,
             commands::set_prefix,
             commands::set_author_gender,
+            commands::lookup_author_gender,
+            commands::list_authors,
+            commands::upsert_author_gender,
+            commands::rename_author,
+            commands::delete_author,
+            commands::merge_authors,
             commands::set_theme,
             commands::set_start_minimized,
             commands::set_launch_at_startup,

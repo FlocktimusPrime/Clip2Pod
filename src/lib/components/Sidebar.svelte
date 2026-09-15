@@ -73,9 +73,12 @@
   <div class="group">
     <h2 class="label">Tools</h2>
     <button class="btn" onclick={() => (app.dialog = "voices")}>Manage voices <kbd>Ctrl+M</kbd></button>
+    <button class="btn" onclick={() => (app.dialog = "authors")}>
+      Manage Author Genders <kbd>Ctrl+G</kbd>
+    </button>
     <button class="btn" onclick={() => (app.dialog = "junk")}>Junk phrases <kbd>Ctrl+J</kbd></button>
     <button class="btn" onclick={() => (app.dialog = "log")}>Log <kbd>Ctrl+Shift+L</kbd></button>
-    <button class="btn" onclick={() => (app.dialog = "settings")}>Settings</button>
+    <button class="btn" onclick={() => (app.dialog = "settings")}>Settings <kbd>Ctrl+,</kbd></button>
   </div>
 
   <div class="group">
@@ -110,7 +113,7 @@
     padding: 10px;
     background: var(--panel);
     border-left: 1px solid var(--line);
-    width: 240px;
+    width: 280px;
     overflow-y: auto;
   }
 

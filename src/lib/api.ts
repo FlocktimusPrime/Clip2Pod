@@ -3,6 +3,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  AuthorEntry,
   AuthorGender,
   CleanResult,
   ConfigView,
@@ -66,6 +67,22 @@ export const setPrefix = (prefix: boolean) => invoke<void>("set_prefix", { prefi
 
 export const setAuthorGender = (gender: AuthorGender) =>
   invoke<void>("set_author_gender", { gender });
+
+export const lookupAuthorGender = (name: string) =>
+  invoke<AuthorGender | null>("lookup_author_gender", { name });
+
+export const listAuthors = () => invoke<AuthorEntry[]>("list_authors");
+
+export const upsertAuthorGender = (name: string, gender: AuthorGender) =>
+  invoke<AuthorGender | null>("upsert_author_gender", { name, gender });
+
+export const renameAuthor = (oldName: string, newName: string) =>
+  invoke<void>("rename_author", { old: oldName, new: newName });
+
+export const deleteAuthor = (name: string) => invoke<void>("delete_author", { name });
+
+export const mergeAuthors = (primary: string, other: string) =>
+  invoke<void>("merge_authors", { primary, other });
 
 export const setTheme = (theme: Theme) => invoke<void>("set_theme", { theme });
 

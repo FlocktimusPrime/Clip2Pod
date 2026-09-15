@@ -133,6 +133,7 @@
       <span>Prefix filenames with C2P</span>
     </label>
     <button class="btn" onclick={() => (app.dialog = "voices")}>Manage voices</button>
+    <button class="btn" onclick={() => (app.dialog = "authors")}>Manage Author Genders</button>
   </div>
 
   <h3 class="section-head label">Rip</h3>

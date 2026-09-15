@@ -13,9 +13,9 @@
     "windows": [
       {
         "title": "Clip2Pod",
-        "width": 1100,
+        "width": 1140,
         "height": 660,
-        "minWidth": 860,
+        "minWidth": 900,
         "minHeight": 640,
         "visible": false,
         "center": true

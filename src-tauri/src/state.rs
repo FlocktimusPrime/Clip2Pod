@@ -1,3 +1,4 @@
+use clip2pod_core::authors::AuthorEntry;
 use clip2pod_core::config::Config;
 use clip2pod_core::queue::Queue;
 use clip2pod_core::voices::VoiceInfo;
@@ -11,6 +12,10 @@ use tokio::sync::mpsc::UnboundedSender;
 pub struct AppState {
     pub config_dir: PathBuf,
     pub config: Mutex<Config>,
+    /// Recognized authors: gender remembered per author name, for pre-filling
+    /// the MetaBar gender picker on future articles. Persisted separately
+    /// (`authors.json`) since it's a distinct concern from `Config`.
+    pub authors: Mutex<Vec<AuthorEntry>>,
     pub queue: Mutex<Queue>,
     /// Filtered narration catalog (English, non-cartoon).
     pub voices: Mutex<Vec<VoiceInfo>>,
@@ -64,6 +69,13 @@ impl AppState {
         let cfg = self.config.lock().unwrap();
         if let Err(e) = clip2pod_core::config::save_config(&self.config_dir, &cfg) {
             eprintln!("failed to save config: {e}");
+        }
+    }
+
+    pub fn save_authors(&self) {
+        let authors = self.authors.lock().unwrap();
+        if let Err(e) = clip2pod_core::authors::save_authors(&self.config_dir, &authors) {
+            eprintln!("failed to save authors: {e}");
         }
     }
 

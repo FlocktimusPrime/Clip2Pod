@@ -1,5 +1,6 @@
 use crate::state::AppState;
 use crate::worker::{emit_lamp, emit_queue, log_and_emit};
+use clip2pod_core::authors::{self, AuthorEntry};
 use clip2pod_core::config::{self, Config, LogEntry, LogStatus, Theme};
 use clip2pod_core::junk::{self, JunkMatch};
 use clip2pod_core::naming;
@@ -367,6 +368,50 @@ pub fn set_prefix(state: State<AppState>, prefix: bool) {
 pub fn set_author_gender(state: State<AppState>, gender: AuthorGender) {
     state.config.lock().unwrap().author_gender = gender;
     state.save_config();
+}
+
+/// Recognized-authors lookup for MetaBar's pre-fill + indicator (exact,
+/// trimmed match on the article's author field).
+#[tauri::command]
+pub fn lookup_author_gender(state: State<AppState>, name: String) -> Option<AuthorGender> {
+    authors::find(&state.authors.lock().unwrap(), &name)
+}
+
+#[tauri::command]
+pub fn list_authors(state: State<AppState>) -> Vec<AuthorEntry> {
+    state.authors.lock().unwrap().clone()
+}
+
+/// Called when the user manually picks a gender for the current article's
+/// author. Returns the gender now on record (None if nothing was saved —
+/// e.g. a brand-new author picked as Unknown).
+#[tauri::command]
+pub fn upsert_author_gender(
+    state: State<AppState>,
+    name: String,
+    gender: AuthorGender,
+) -> Option<AuthorGender> {
+    let result = authors::upsert(&mut state.authors.lock().unwrap(), &name, gender);
+    state.save_authors();
+    result
+}
+
+#[tauri::command]
+pub fn rename_author(state: State<AppState>, old: String, new: String) {
+    authors::rename(&mut state.authors.lock().unwrap(), &old, &new);
+    state.save_authors();
+}
+
+#[tauri::command]
+pub fn delete_author(state: State<AppState>, name: String) {
+    authors::delete(&mut state.authors.lock().unwrap(), &name);
+    state.save_authors();
+}
+
+#[tauri::command]
+pub fn merge_authors(state: State<AppState>, primary: String, other: String) {
+    authors::merge(&mut state.authors.lock().unwrap(), &primary, &other);
+    state.save_authors();
 }
 
 #[tauri::command]

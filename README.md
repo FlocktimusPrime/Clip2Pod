@@ -62,6 +62,13 @@ captures your logged-in session).
   neural voices. Voices rotate round-robin (and alternate gender when the author's
   is unknown) so a backlog doesn't sound monotonous. Right-click a bad take in the
   log to drop that voice.
+- **Recognized authors** — the first time you pick Male or Female for an author,
+  Clip2Pod remembers it (exact match on the Author field). The next article from
+  that byline pre-fills the gender picker automatically, with a ring on the
+  selected button so you can tell it came from memory rather than being left over
+  from the last article. **Manage Author Genders** (`Ctrl+G`) lists everyone
+  remembered, with rename, edit, delete, and merge (for byline variants of the
+  same person).
 
 ### Rip — video URL → yt-dlp → MP3
 
@@ -190,7 +197,9 @@ The extension only acts when you click, only on the active tab, and only talks t
 | `Ctrl+Enter` | Generate MP3 |
 | `Ctrl+J` | Edit junk phrases |
 | `Ctrl+M` | Manage voices |
+| `Ctrl+G` | Manage Author Genders |
 | `Ctrl+Shift+L` | Open the log (the active tab's) |
+| `Ctrl+,` | Settings |
 
 A full feature walkthrough lives in [ABOUT.md](ABOUT.md).
 

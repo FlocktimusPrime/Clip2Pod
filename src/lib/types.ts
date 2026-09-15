@@ -74,6 +74,11 @@ export interface JunkMatch {
   phrase: string;
 }
 
+export interface AuthorEntry {
+  name: string;
+  gender: AuthorGender;
+}
+
 export interface ConfigView {
   output_dir: string;
   prefix_c2p: boolean;
