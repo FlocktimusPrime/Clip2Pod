@@ -6,10 +6,13 @@
   let {
     meta,
     gender,
+    recognized = false,
     ongender,
   }: {
     meta: { title: string; author: string; filenameTitle: string };
     gender: AuthorGender;
+    /** True when `gender` came from the recognized-authors table, not just left over. */
+    recognized?: boolean;
     ongender: (g: AuthorGender) => void;
   } = $props();
 
@@ -36,8 +39,10 @@
         <button
           class="seg-cell"
           class:active={gender === g}
+          class:recognized={recognized && gender === g}
           aria-pressed={gender === g}
           aria-label={g}
+          title={recognized && gender === g ? "Recognized author — remembered in Manage Authors" : undefined}
           onclick={() => ongender(g)}
         >
           {g === "Unknown" ? "UNK" : g === "Male" ? "M" : "F"}
@@ -86,6 +91,13 @@
   .seg-cell.active {
     background: var(--accent);
     color: var(--accent-ink);
+  }
+
+  /* Ring in the active segment's own ink color: visible against the accent
+     fill in both themes without needing a dedicated "recognized" color token. */
+  .seg-cell.recognized {
+    outline: 2px solid currentColor;
+    outline-offset: -3px;
   }
 
   @media (max-width: 900px) {

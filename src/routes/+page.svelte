@@ -6,6 +6,7 @@
   import NarrateTab from "$lib/components/NarrateTab.svelte";
   import RipTab from "$lib/components/RipTab.svelte";
   import VoicesDialog from "$lib/components/VoicesDialog.svelte";
+  import ManageAuthorsDialog from "$lib/components/ManageAuthorsDialog.svelte";
   import JunkDialog from "$lib/components/JunkDialog.svelte";
   import LogDialog from "$lib/components/LogDialog.svelte";
   import RipLogDialog from "$lib/components/RipLogDialog.svelte";
@@ -62,6 +63,8 @@
 
 {#if app.dialog === "voices"}
   <VoicesDialog />
+{:else if app.dialog === "authors"}
+  <ManageAuthorsDialog />
 {:else if app.dialog === "junk"}
   <JunkDialog />
 {:else if app.dialog === "log"}

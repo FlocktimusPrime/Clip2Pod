@@ -83,7 +83,7 @@ pub fn default_output_dir() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
 }
 
-fn write_atomic(path: &Path, contents: &str) -> io::Result<()> {
+pub(crate) fn write_atomic(path: &Path, contents: &str) -> io::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }

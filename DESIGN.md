@@ -297,7 +297,7 @@ supported widths, but is allowed to if OS text scaling forces it.
 Three bands filling the content area, no whole-surface scroll:
 
 1. **Meta bar** (`padding: 12px 16px`, panel, bottom `line-soft`): a CSS grid, `grid-template-columns: 2fr 1.2fr 1.2fr auto` — Title, Author, Filename title, and the author-gender segmented control. Collapses to `1fr 1fr` below 900px.
-2. **Deck** (`flex: 1`, `min-height: 0`): a flexible `main` (the CodeMirror editor, `min-width: 0`, its own `.cm-scroller`) beside a fixed **240px** sidebar (`border-left: 1px line`, its own `overflow-y: auto`). The coach bar floats absolutely centred 14px above the deck's bottom edge.
+2. **Deck** (`flex: 1`, `min-height: 0`): a flexible `main` (the CodeMirror editor, `min-width: 0`, its own `.cm-scroller`) beside a fixed **280px** sidebar (`border-left: 1px line`, its own `overflow-y: auto`). The coach bar floats absolutely centred 14px above the deck's bottom edge.
 3. **Queue bar** (`padding: 8px 16px`, panel, top `line`): status label, a wrapping status strip (`max-height: 92px`, scrolls), right-aligned actions. A 2px render rail rides its top edge.
 
 ### The RIP desk
@@ -333,7 +333,10 @@ existing band's own scroll region — the editor, the sidebar, the queue strip, 
 job list, the episode table, a dialog body. It never makes the window scroll and
 never adds a fifth band.
 
-**The Fixed Column Rule.** The NARRATE control column is exactly 240px.
+**The Fixed Column Rule.** The NARRATE control column is exactly 280px (grown
+from 240px once "Manage Author Genders" — the longest control label — needed
+the room to keep its `kbd` shortcut on one line; the app's default window
+width grew by the same 40px, to 1140px, so the editor didn't lose it).
 Full-width buttons stacked in labelled groups; they do not reflow into a grid or
 change width with the window.
 
@@ -414,6 +417,7 @@ hover treatment all at once; the merge fixed exactly this in the header.
 ### Segmented Control (signature)
 - **Style:** one box, 1px `line` border, 4px radius, `overflow: hidden`, fixed `height: 31px`. Cells are borderless mono/10px/uppercase, `panel-raised` fill, `muted` text; a `:focus-visible` cell gets an inset 2px accent outline.
 - **State:** the active cell carries `aria-pressed="true"` and flips to `signal-lavender` fill / `accent-ink` text.
+- **Recognized:** on the MetaBar's author-gender control, the active cell additionally gets a `2px solid currentColor` inset ring (`outline-offset: -3px`) when its value came from the recognized-authors table rather than the leftover sticky default — `currentColor` picks up `accent-ink` against the `signal-lavender` fill automatically, so no new colour token was needed for either theme. A `title` tooltip on the cell states the same thing for anyone who can't see the ring.
 - **Uses:** the header mode toggle (`NARRATE` / `RIP`), author gender (`UNK` / `M` / `F`), and the model for any small either/or choice. It is **not** an ARIA tablist — it is a group of toggle buttons.
 
 ### Status Lamp (signature)
@@ -504,7 +508,7 @@ focus uses the inline expand-in-place pattern (see Queue Bar).
 - **Don't** use uppercased monospace without letter-spacing.
 - **Don't** colour a settings section header, or any passive label, in the accent — labels are `muted` mono.
 - **Don't** use a filled circle as a bullet, avatar frame, or decoration (The Circle-Means-Status Rule).
-- **Don't** widen or reflow the 240px NARRATE control column.
+- **Don't** widen or reflow the 280px NARRATE control column.
 - **Don't** exceed an 8px corner radius, and don't reach 8px anywhere but the modal (The Sharp-Corner Rule).
 - **Don't** open a modal for a destructive confirm when an inline expand fits.
 - **Don't** hand-roll a modal backdrop `<div>` with a JS focus trap (The Native-Dialog Rule).

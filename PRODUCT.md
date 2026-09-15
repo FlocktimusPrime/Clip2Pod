@@ -100,6 +100,10 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
   10-voice `en-US` pool; per-gender pools; Unknown author gender alternates each
   generation; round-robin within a pool; cycling state persisted; disable a voice
   from the Log.
+- **Recognized authors:** gender remembered per author name (exact match on the
+  Author field, first set the moment Male/Female is picked); pre-filled and
+  visually flagged on a future article from the same byline; managed (rename,
+  edit, delete, merge byline variants) via Manage Author Genders.
 - **Spoken intro:** "Title. By Author." unless the text already starts that way.
 - **Rip:** `yt-dlp` with an editable args template (app appends `-P <dir>` and the
   URL); `--newline` progress parsing (percent / speed / stage); **Stop** kills the
@@ -130,8 +134,9 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
 - Global hotkey may not register under Linux Wayland; the tray menu is the
   fallback.
 - Config: JSON at the platform config dir — narrate at `Clip2Pod2/config.json`,
-  rip at `Clip2Pod2/rip/config.json`. Logs capped at 200 entries each; atomic
-  writes; panic hook writes `crash.log`.
+  recognized authors at `Clip2Pod2/authors.json`, rip at
+  `Clip2Pod2/rip/config.json`. Logs capped at 200 entries each; atomic writes;
+  panic hook writes `crash.log`.
 - **Licensing:** `clip2pod-core` is AGPL-3.0-only, `ytdlfeed-core` is GPL-3.0-only
   (vendored from the archived yt-dlFeed repo). AGPLv3 §13 permits the combination;
   the whole binary is effectively AGPL-3.0.

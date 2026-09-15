@@ -77,7 +77,7 @@ Stories", raw URLs):
 | **Title** | ID3 Title tag. Auto-filled from line 1; editable. |
 | **Author** | ID3 Artist tag. Auto-filled from the likely byline; editable. |
 | **Filename title** | Builds the output filename. Auto-filled from line 1. |
-| **Author gender** | `Unknown` / `Male` / `Female` — picks the voice pool. |
+| **Author gender** | `Unknown` / `Male` / `Female` — picks the voice pool. Pre-filled and ringed when the Author field exactly matches someone in **Manage Author Genders** (see below). |
 
 ### 5. Voice library
 
@@ -100,12 +100,30 @@ Stories", raw URLs):
 - Right-click a bad take in the **Log** → "Disable this voice" removes it from the
   rotation immediately.
 
-### 7. Spoken intro
+### 7. Recognized authors
+
+- The first time you pick **Male** or **Female** for an author, Clip2Pod
+  remembers that gender against the exact text in the **Author** field —
+  picking **Unknown** never creates an entry, since there's nothing to
+  remember yet.
+- The next article whose Author field exactly matches a remembered name
+  pre-fills the gender picker as soon as it loads, and rings the selected
+  cell so you can tell it came from memory rather than being left over from
+  the previous article. The check re-runs live if you edit the Author field.
+- Picking a different gender for a recognized author's article overwrites
+  their saved value — including picking Unknown again, which un-recognizes
+  them until you pick Male/Female for them again.
+- **Manage Author Genders** (`Ctrl+G`, or Settings → Narrate) lists everyone
+  remembered: search, rename (fix a byline typo), edit gender, delete, and
+  merge two rows into one (fold a byline variant like "J. Doe" into "Jane
+  Doe" — the surviving row's name and gender are kept as-is).
+
+### 8. Spoken intro
 
 Each episode opens with "*Title. By Author.*" — skipped automatically if the text
 already starts that way.
 
-### 8. Output
+### 9. Output
 
 - ID3v2 tags: Title, Artist, Album = "Clip2Pod", a Comment recording the voice.
 - Filenames sanitized for Windows on every OS, trimmed, length-capped.
@@ -194,7 +212,8 @@ confirmation dialog).
 One dialog, three sections:
 
 - **General** — theme (dark/light), start minimized to tray, launch at sign-in.
-- **Narrate** — episode folder, C2P filename prefix, Manage voices.
+- **Narrate** — episode folder, C2P filename prefix, Manage voices, Manage
+  Author Genders.
 - **Rip** — episode folder, yt-dlp arguments (+ reset), yt-dlp binary path.
 
 All settings persist between sessions.
@@ -220,8 +239,10 @@ window; right-click for Show / Hide / Quit.
 | `Ctrl+L` | Clean text for TTS |
 | `Ctrl+J` | Edit junk phrases |
 | `Ctrl+M` | Manage voices |
+| `Ctrl+G` | Manage Author Genders |
 | `Ctrl+Enter` | Generate MP3 |
 | `Ctrl+Shift+L` | Open the log (the active tab's) |
+| `Ctrl+,` | Open Settings |
 
 ---
 

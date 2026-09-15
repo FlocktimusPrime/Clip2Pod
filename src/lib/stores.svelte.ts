@@ -24,6 +24,7 @@ export type TabName = "narrate" | "rip";
 
 export type DialogName =
   | "voices"
+  | "authors"
   | "junk"
   | "log"
   | "rip-log"

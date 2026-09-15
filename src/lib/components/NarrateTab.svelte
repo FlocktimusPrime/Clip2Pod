@@ -24,6 +24,11 @@
 
   const meta = $state({ title: "", author: "", filenameTitle: "" });
 
+  /** Recognized-authors gender for the current `meta.author`, or null if
+   *  unrecognized. Drives MetaBar's indicator and the pre-fill on load/edit. */
+  let savedGenderForAuthor = $state<AuthorGender | null>(null);
+  let authorLookupTimer: ReturnType<typeof setTimeout> | undefined;
+
   /** Origin URL of the current script when it came from fetch/capture. */
   let sourceUrl = $state<string | null>(null);
 
@@ -54,6 +59,23 @@
   // remeasure when it comes back or the gutter/scroll geometry is stale.
   $effect(() => {
     if (app.tab === "narrate" && view) view.requestMeasure();
+  });
+
+  // Recognize the author on load and live as the name field is edited
+  // (debounced so every keystroke doesn't round-trip). A match pre-fills the
+  // gender picker; no match leaves whatever gender is already selected alone.
+  $effect(() => {
+    const name = meta.author;
+    clearTimeout(authorLookupTimer);
+    if (!name.trim()) {
+      savedGenderForAuthor = null;
+      return;
+    }
+    authorLookupTimer = setTimeout(async () => {
+      const found = await api.lookupAuthorGender(name);
+      savedGenderForAuthor = found;
+      if (found) await setGender(found);
+    }, 300);
   });
 
   function resetFind() {
@@ -278,9 +300,20 @@
     }
   }
 
-  async function changeGender(g: AuthorGender) {
+  /** Set the active gender without touching the recognized-authors table —
+   *  used for the automatic pre-fill from a lookup match. */
+  async function setGender(g: AuthorGender) {
     if (app.config) app.config.author_gender = g;
     await api.setAuthorGender(g);
+  }
+
+  /** The user manually picked a gender for this article: apply it, and
+   *  remember it for this author going forward (see AuthorGender rules in
+   *  clip2pod-core/src/authors.rs). */
+  async function changeGender(g: AuthorGender) {
+    await setGender(g);
+    const name = meta.author.trim();
+    if (name) savedGenderForAuthor = await api.upsertAuthorGender(name, g);
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -312,6 +345,9 @@
     if (key === "d") return run(deleteLine);
     if (key === "j") return run(() => (app.dialog = "junk"));
     if (key === "m") return run(() => (app.dialog = "voices"));
+    if (key === "g") return run(() => (app.dialog = "authors"));
+    // Ctrl+, is the conventional Settings/Preferences shortcut.
+    if (key === ",") return run(() => (app.dialog = "settings"));
     if (key === "enter") return run(generate);
   }
 </script>
@@ -319,7 +355,13 @@
 <svelte:window onkeydowncapture={onKeydown} />
 
 <div class="desk">
-  <MetaBar {meta} gender={app.config?.author_gender ?? "Unknown"} ongender={changeGender} />
+  <MetaBar
+    {meta}
+    gender={app.config?.author_gender ?? "Unknown"}
+    recognized={savedGenderForAuthor !== null &&
+      savedGenderForAuthor === (app.config?.author_gender ?? "Unknown")}
+    ongender={changeGender}
+  />
 
   <div class="deck">
     <main class="script" aria-label="Script editor">
