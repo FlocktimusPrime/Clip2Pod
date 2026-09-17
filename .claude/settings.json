@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/svelte-check.cjs",
+            "timeout": 90,
+            "statusMessage": "Running svelte-check..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/confirm-ytdlfeed-edit.js",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
