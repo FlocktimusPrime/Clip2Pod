@@ -192,6 +192,26 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
         return Err(detail);
     }
 
+    // yt-dlp keeps title punctuation (a title ending in "." gives "x..mp3", which
+    // the feed server refuses); rename to the same punctuation-free form narrate uses.
+    // Overwriting an existing target mirrors yt-dlp's own title-based dedupe.
+    let name = {
+        let state = app.state::<AppState>();
+        let q = state.rip_queue.lock().unwrap();
+        q.jobs().iter().find(|j| j.id == job.id).and_then(|j| j.filename.clone())
+    };
+    if let Some(stem) = name.as_deref().and_then(|n| n.strip_suffix(".mp3")) {
+        let safe = clip2pod_core::naming::rss_safe_stem(stem);
+        if !safe.is_empty() && safe != stem {
+            let fixed = format!("{safe}.mp3");
+            std::fs::rename(dir.join(format!("{stem}.mp3")), dir.join(&fixed))
+                .map_err(|e| format!("cannot rename to {fixed}: {e}"))?;
+            let state = app.state::<AppState>();
+            state.rip_queue.lock().unwrap().set_filename(&job.id, &fixed);
+            emit_queue(app);
+        }
+    }
+
     // yt-dlp doesn't write TLEN; measure so the feed carries durations.
     ytdlfeed_core::feed::ensure_durations(&dir);
     Ok(if skipped {
