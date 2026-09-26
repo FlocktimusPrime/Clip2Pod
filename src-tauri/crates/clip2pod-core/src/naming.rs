@@ -4,17 +4,30 @@ use std::path::Path;
 /// inside Windows' 260-char limit even in deep output directories.
 const MAX_STEM_CHARS: usize = 80;
 
-/// Make a title safe as a filename on Windows and Linux: strip characters
-/// Windows forbids, collapse whitespace, trim trailing dots/spaces, cap length.
-pub fn sanitize_filename(title: &str) -> String {
-    const ILLEGAL: &[char] = &['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
-    let cleaned: String = title
+/// Strip every punctuation mark from a filename stem so the only `.` in the
+/// final name is the one before the extension (the feed servers 404 any name
+/// containing `..`, and some podcatchers choke on odd punctuation). Keeps
+/// letters, digits, spaces and `_` (yt-dlp's space replacement); collapses
+/// runs of spaces/underscores and trims them from both ends.
+pub fn rss_safe_stem(stem: &str) -> String {
+    let kept: String = stem
         .chars()
-        .filter(|c| !ILLEGAL.contains(c) && !c.is_control())
+        .filter(|c| c.is_alphanumeric() || c.is_whitespace() || *c == '_')
         .collect();
-    let collapsed = cleaned.split_whitespace().collect::<Vec<_>>().join(" ");
-    let capped: String = collapsed.chars().take(MAX_STEM_CHARS).collect();
-    let trimmed = capped.trim_end_matches(['.', ' ']).to_string();
+    let spaced = kept.split_whitespace().collect::<Vec<_>>().join(" ");
+    let underscored = spaced
+        .split('_')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("_");
+    underscored.trim_matches([' ', '_']).to_string()
+}
+
+/// Make a title safe as a filename on Windows, Linux and in RSS enclosure
+/// URLs: punctuation-free (see `rss_safe_stem`), length-capped.
+pub fn sanitize_filename(title: &str) -> String {
+    let capped: String = rss_safe_stem(title).chars().take(MAX_STEM_CHARS).collect();
+    let trimmed = capped.trim_end_matches([' ', '_']).to_string();
     if trimmed.is_empty() {
         "Untitled".to_string()
     } else {
@@ -23,7 +36,7 @@ pub fn sanitize_filename(title: &str) -> String {
 }
 
 /// Build the final output filename (with .mp3 extension), applying the
-/// optional C2P_ prefix and appending " (2)", " (3)", ... until the name
+/// optional C2P_ prefix and appending " 2", " 3", ... until the name
 /// collides with neither an existing file in `dir` nor a name in `reserved`
 /// (filenames already claimed by queued/processing jobs).
 pub fn output_filename(dir: &Path, filename_title: &str, prefix: bool, reserved: &[String]) -> String {
@@ -37,7 +50,7 @@ pub fn output_filename(dir: &Path, filename_title: &str, prefix: bool, reserved:
     }
     let mut n = 2u32;
     loop {
-        let candidate = format!("{stem} ({n}).mp3");
+        let candidate = format!("{stem} {n}.mp3");
         if !taken(&candidate) {
             return candidate;
         }
@@ -53,6 +66,16 @@ mod tests {
     #[test]
     fn strips_windows_illegal_characters() {
         assert_eq!(sanitize_filename(r#"a<b>c:d"e/f\g|h?i*j"#), "abcdefghij");
+    }
+
+    #[test]
+    fn rss_safe_stem_strips_all_punctuation() {
+        assert_eq!(rss_safe_stem("We_all_wish_the_ride."), "We_all_wish_the_ride");
+        assert_eq!(rss_safe_stem("A_-_B"), "A_B");
+        assert_eq!(rss_safe_stem("Tom & Jerry's: Part 2!"), "Tom Jerrys Part 2");
+        assert_eq!(rss_safe_stem("v1.2"), "v12");
+        assert_eq!(rss_safe_stem("Café"), "Café");
+        assert_eq!(sanitize_filename("Wait.. what..."), "Wait what");
     }
 
     #[test]
@@ -86,15 +109,15 @@ mod tests {
     fn suffixes_on_disk_collision() {
         let dir = tempdir().unwrap();
         std::fs::write(dir.path().join("Tale.mp3"), b"x").unwrap();
-        assert_eq!(output_filename(dir.path(), "Tale", false, &[]), "Tale (2).mp3");
-        std::fs::write(dir.path().join("Tale (2).mp3"), b"x").unwrap();
-        assert_eq!(output_filename(dir.path(), "Tale", false, &[]), "Tale (3).mp3");
+        assert_eq!(output_filename(dir.path(), "Tale", false, &[]), "Tale 2.mp3");
+        std::fs::write(dir.path().join("Tale 2.mp3"), b"x").unwrap();
+        assert_eq!(output_filename(dir.path(), "Tale", false, &[]), "Tale 3.mp3");
     }
 
     #[test]
     fn suffixes_on_reserved_queue_names() {
         let dir = tempdir().unwrap();
-        let reserved = vec!["Tale.mp3".to_string(), "Tale (2).mp3".to_string()];
-        assert_eq!(output_filename(dir.path(), "Tale", false, &reserved), "Tale (3).mp3");
+        let reserved = vec!["Tale.mp3".to_string(), "Tale 2.mp3".to_string()];
+        assert_eq!(output_filename(dir.path(), "Tale", false, &reserved), "Tale 3.mp3");
     }
 }
