@@ -5,9 +5,9 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager};
 
-// ponytail: static light-glyph icon, not theme-reactive. Upgrade path if
-// ever reported illegible on a light taskbar: swap in the -dark variant
-// based on the OS theme at startup.
+// ponytail: static lavender C2P glyph (branding/png/c2p-tray-32.png), not
+// theme-reactive; the mid-tone reads on light and dark taskbars. Upgrade path
+// if ever reported illegible: pick a variant from the OS theme at startup.
 const TRAY_ICON: &[u8] = include_bytes!("../assets/tray-icon.png");
 
 pub fn toggle_main(app: &AppHandle) {
