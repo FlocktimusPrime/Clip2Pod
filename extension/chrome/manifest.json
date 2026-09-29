@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Send to Clip2Pod",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Send the page you are reading to Clip2Pod — narrated as an article, or its audio ripped.",
-  "permissions": ["activeTab", "scripting", "contextMenus"],
+  "permissions": ["activeTab", "scripting", "contextMenus", "offscreen"],
   "host_permissions": ["http://127.0.0.1:4737/*"],
   "background": { "service_worker": "background.js" },
   "icons": {

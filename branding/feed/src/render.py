@@ -39,6 +39,8 @@ if __name__ == '__main__':
     for s in (16, 24, 32, 48, 64, 128, 256, 512, 1024):
         render('feed-symbol-small.svg' if small(s) else 'feed-symbol.svg', f'feed-symbol-{s}.png', s)
         render('feed-app-icon-small.svg' if small(s) else 'feed-app-icon.svg', f'feed-icon-{s}.png', s)
+    for s in (16, 32, 48, 128):                      # extension icons: no tile, light-ground lavender for the toolbar
+        render('feed-symbol-small-light.svg' if small(s) else 'feed-symbol-light.svg', f'feed-ext-{s}.png', s)
     for s in (16, 24, 32, 64):                       # tray glyphs: lavender (dark taskbar) and white
         render('feed-symbol-small.svg' if small(s) else 'feed-symbol.svg', f'feed-tray-{s}.png', s)
         render('feed-symbol-small-white.svg' if small(s) else 'feed-symbol-white.svg', f'feed-tray-white-{s}.png', s)
