@@ -43,6 +43,45 @@ async function send(tab, overrideHint) {
 
 chrome.action.onClicked.addListener((tab) => send(tab, undefined));
 
+// Chrome has no manifest equivalent of Firefox's theme_icons, so swap the
+// toolbar icon at runtime: the default (dark lavender) reads on light
+// toolbars, the -light variant on dark ones. offscreen.js reports the scheme.
+// Follows Chrome's light/dark mode; a custom dark theme isn't detectable.
+const ICONS = {
+  light: { 16: "icons/icon16.png", 32: "icons/icon32.png" },
+  dark: { 16: "icons/icon16-light.png", 32: "icons/icon32-light.png" },
+};
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === "c2p-scheme") {
+    chrome.action.setIcon({ path: msg.dark ? ICONS.dark : ICONS.light });
+  }
+});
+
+// One offscreen document at most per extension; it stays open to catch
+// scheme changes. Runs on every service-worker start, so a browser restart
+// or extension reload recreates it.
+async function watchColorScheme() {
+  const url = chrome.runtime.getURL("offscreen.html");
+  const open = await chrome.runtime.getContexts({
+    contextTypes: ["OFFSCREEN_DOCUMENT"],
+    documentUrls: [url],
+  });
+  if (open.length > 0) return;
+  try {
+    await chrome.offscreen.createDocument({
+      url: "offscreen.html",
+      reasons: ["MATCH_MEDIA"],
+      justification: "Pick a toolbar icon that reads on the browser's light or dark theme.",
+    });
+  } catch (e) {
+    // Lost a race with a concurrent start; the other call created it.
+    if (!String(e).includes("single offscreen")) console.error("Clip2Pod icon watcher:", e);
+  }
+}
+
+watchColorScheme();
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({

@@ -46,6 +46,12 @@ to `127.0.0.1:4737` (the Clip2Pod app on your own machine).
 
 ## Layout
 
-`chrome/` and `firefox/` differ only in their manifests (Chrome runs MV3
-service workers, Firefox runs MV3 event pages and requires a gecko id);
-`background.js` and the icons are identical copies.
+`chrome/` and `firefox/` share `background.js` and the icons, apart from the
+toolbar icon's light/dark switching. Chrome runs MV3 service workers, Firefox runs MV3
+event pages and requires a gecko id.
+
+The toolbar icon has no tile, so it needs a lighter variant (`icon{16,32}-light.png`)
+on dark toolbars. Firefox picks it via `theme_icons` in its manifest. Chrome has no
+equivalent: its `background.js` keeps a hidden offscreen document (`offscreen.html`,
+`offscreen` permission) that watches `prefers-color-scheme` and swaps the icon with
+`chrome.action.setIcon`. That follows Chrome's light/dark mode, not custom themes.

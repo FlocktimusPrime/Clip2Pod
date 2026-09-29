@@ -20,6 +20,7 @@ This is the shipped mark (since 0.8.3). Retired marks are in [`../archive/`](../
 | `svg/feed-cover-{narrate,rip}.svg` | 3000 px podcast covers |
 | `png/feed-icon-{16…1024}.png` | App tile rasters (16/24 from the small cut) |
 | `png/feed-symbol-{16…1024}.png` | Transparent symbol rasters |
+| `png/feed-ext-{16,32,48,128}.png` | Extension icons: transparent, `#5b4fc4` (16 from the small cut) |
 | `png/feed-tray-{16,24,32,64}.png`, `feed-tray-white-*.png` | Tray glyphs, lavender and white |
 | `png/feed-tray-app-32.png` | The shipped tray asset: small cut at 2x |
 | `png/feed-{horizontal,stacked}[-light]-1200.png` | Lockup rasters |
@@ -45,9 +46,11 @@ ICO/PNG favicons recoloured to `#5b4fc4` so they read on light browser tabs.
   Then patch the small slots with the small-cut tile: the `.ico`'s 16/24 frames
   (`png/feed-icon-{16,24}.png`) and `ios/AppIcon-20x20@1x.png` (flattened on white, like
   tauri's other iOS outputs).
-- **Extensions:** copy `png/feed-icon-{16,32,48,128}.png` to
-  `extension/{chrome,firefox}/icons/icon*.png`. The README header also uses the
-  128 px icon.
+- **Extensions:** copy `png/feed-ext-{16,32,48,128}.png` to
+  `extension/{chrome,firefox}/icons/icon*.png` (no tile, so they sit on the toolbar).
+  Both also get `png/feed-symbol-{16,32}.png` as `icons/icon{16,32}-light.png`, the
+  variant for dark toolbars (see `extension/README.md`). The README header
+  uses `png/feed-icon-128.png` (the tile) directly.
 - **Tray:** copy `png/feed-tray-app-32.png` (the small cut at 2x) to
   `src-tauri/assets/tray-icon.png`.
 - **Webview favicon:** copy `png/feed-icon-32.png` to `static/favicon.png`.

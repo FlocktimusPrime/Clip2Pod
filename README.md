@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="extension/chrome/icons/icon128.png" alt="Clip2Pod logo" width="96" />
+  <img src="branding/feed/png/feed-icon-128.png" alt="Clip2Pod logo" width="96" />
 </p>
 
 <h1 align="center">Clip2Pod</h1>

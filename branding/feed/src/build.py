@@ -155,6 +155,7 @@ def symbols():
     write('feed-symbol-desk', sq, p(MARK, DESK))
     write('feed-symbol-white', sq, p(MARK_REV, '#ffffff'))       # reversed, thinned
     write('feed-symbol-small', sq, p(MARK_SMALL, LAV))           # 16–32 px
+    write('feed-symbol-small-light', sq, p(MARK_SMALL, LAV_LIGHT))
     write('feed-symbol-small-black', sq, p(MARK_SMALL, '#000000'))
     write('feed-symbol-small-white', sq, p(MARK_SMALL, '#ffffff'))
 
