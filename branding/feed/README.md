@@ -3,8 +3,7 @@
 The paragraph-into-RSS mark. Usage rules: [GUIDELINES.md](GUIDELINES.md). Presentation:
 `board/board.html` (slides as PNGs in `board/slides/`).
 
-This is the shipped mark (since 0.8.3). The previous C2P mark stays in `../svg`, `../png`
-and `../src` for reference.
+This is the shipped mark (since 0.8.3). Retired marks are in [`../archive/`](../archive/).
 
 ## Files
 
