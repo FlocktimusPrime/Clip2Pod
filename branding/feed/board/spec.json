@@ -1,0 +1,37 @@
+{
+  "brand": "Clip2Pod",
+  "tagline": "Your reading pile, as a private podcast",
+  "brief": "A local-only desktop app that turns copied or paywalled text (and any video's audio) into MP3s served as private podcast feeds on the home network. No accounts, no cloud. The mark has to hold at 16 px in the system tray and sit credibly next to real podcast covers.",
+  "adjectives": ["private", "handy", "quiet", "transformative"],
+  "criteria": "Distinct from mic/headphone/play-button podcast marks; says 'text becomes a feed'; one colour; legible at 16 px; lives inside the DESIGN.md palette (Signal Lavender is the only accent).",
+  "industry": "software",
+  "nav": ["Download", "How it works", "Source"],
+  "brand_color": "#b5abfc",
+  "tile_color": "#161826",
+  "greyscale": false,
+  "final": true,
+  "designer": "Clip2Pod",
+  "round": 2,
+  "concepts": [
+    {
+      "name": "Feed",
+      "symbol": "../svg/feed-symbol-light.svg",
+      "lockup": "../svg/feed-horizontal-light.svg",
+      "stacked": "../svg/feed-stacked-light.svg",
+      "symbol_on_tile": "../svg/feed-symbol.svg",
+      "symbol_on_dark": "../svg/feed-symbol.svg",
+      "lockup_on_dark": "../svg/feed-horizontal.svg",
+      "stacked_on_dark": "../svg/feed-stacked.svg",
+      "stacked_on_tile": "../svg/feed-stacked.svg",
+      "idea": "The lines of a paragraph bend at the right margin into the RSS signal; the paragraph's full stop is the feed's dot.",
+      "rationale": [
+        "Shows the whole product in one glance: text in, feed out",
+        "Uses the feed the app really serves instead of podcast clichés (mic, headphones, play)",
+        "One stroke, one pitch, concentric radii; a pixel-fitted small cut for the 16 px tray",
+        "Signal Lavender on Desk Black, following DESIGN.md's One Signal Rule"
+      ]
+    }
+  ],
+  "recommendation": "Adopt Feed across app icon, tray, extension and both feed covers (narrate dark, rip inverted).",
+  "next_steps": ["Swap the shipped C2P icons for the Feed set", "Retake the stale README screenshots with the new icon"]
+}
