@@ -158,8 +158,8 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
 
 - `README.md` and `ABOUT.md` — full feature walkthrough and end-to-end flows.
 - `DESIGN.md` — the "Production Desk" design system, updated for the two-tab shell.
-- `docs/screenshots/main-window-{dark,light}.png` — **stale** (single-mode UI);
-  need retaking against v0.7.0.
+- `docs/screenshots/main-window-{dark,light}.png` — v0.8.3 (Feed icon):
+  NARRATE in dark theme, RIP in light theme.
 - `docs/design-reconciliation.md` — history of the yt-dlFeed merge (resolved).
 - `docs/superpowers/specs/` — v2 design record, RSS feed design, Firefox
   extension workflow.
