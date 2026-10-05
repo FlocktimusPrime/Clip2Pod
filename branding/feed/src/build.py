@@ -1,7 +1,8 @@
 """Clip2Pod "Feed" mark -> SVG masters and variants.
 
 The mark: the lines of a paragraph bend at the right margin into the RSS arcs;
-the paragraph's full stop is the feed's dot. Everything is built from one stroke
+the paragraph's full stop is the feed's dot, and a chevron cut where each line turns
+marks the conversion (master only; the small cut has none). Everything is built from one stroke
 width, one row pitch and concentric radii on a 256 grid; no strokes or live text
 ship in the output (letters are outlined from the fonts below).
 
@@ -54,23 +55,51 @@ def quarter(O, R, w):
             f'A{f(ri)} {f(ri)} 0 0 0 {f(O[0])} {f(O[1] - ri)}Z')
 
 
-def feed(w=28, pitch=56, dot=18, O=(114, 179), x0=30, last_line=True, stop_gap=16):
+def arrow_line(x0, O, R, w, arrow):
+    """A line that bends into its arc, cut by a right-pointing chevron gap just before the bend.
+
+    arrow = (tip, run, rise, gap): the gap's centreline is a chevron whose tip sits `tip`
+    units left of the bend, with arms that go `run` left for every `rise` up or down; `gap`
+    is the cut's width measured square to the arms. Two subpaths: the line ending in a point,
+    and a notched stub that runs on into the quarter ring.
+    """
+    tip, run, rise, gap = arrow
+    r = w / 2
+    y = O[1] - R
+    ro, ri = R + r, R - r
+    shift = (gap / 2) / math.sin(math.atan2(rise, run))   # half the gap, measured along x
+    lean = r * run / rise                                   # how far the arms lean back over half a stroke
+    tl, tr = O[0] - tip - shift, O[0] - tip + shift         # tips of the two cut edges
+    left = (f'M{f(x0)} {f(y - r)}H{f(tl - lean)}L{f(tl)} {f(y)}L{f(tl - lean)} {f(y + r)}'
+            f'H{f(x0)}A{f(r)} {f(r)} 0 0 1 {f(x0)} {f(y - r)}Z')
+    right = (f'M{f(tr - lean)} {f(y - r)}H{f(O[0])}A{f(ro)} {f(ro)} 0 0 1 {f(O[0] + ro)} {f(O[1])}'
+             f'A{f(r)} {f(r)} 0 0 1 {f(O[0] + ri)} {f(O[1])}'
+             f'A{f(ri)} {f(ri)} 0 0 0 {f(O[0])} {f(O[1] - ri)}'
+             f'H{f(tr - lean)}L{f(tr)} {f(y)}Z')
+    return left + right
+
+
+def feed(w=28, pitch=56, dot=18, O=(114, 179), x0=30, last_line=True, stop_gap=16, arrow=None):
     """All subpaths wind clockwise, so overlaps union under the default nonzero rule."""
     d = ''
     for k in (2, 1):                          # the two lines that bend into arcs
         R = k * pitch
-        d += capsule(x0, O[1] - R, O[0], w) + quarter(O, R, w)
+        d += (arrow_line(x0, O, R, w, arrow) if arrow
+              else capsule(x0, O[1] - R, O[0], w) + quarter(O, R, w))
     if last_line:                             # the short last line, then the full stop
         d += capsule(x0, O[1], O[0] - dot - stop_gap - w / 2, w)
     d += disc(O[0], O[1], dot)
     return d
 
 
+# the arrow joins: a chevron gap 8 units before each bend, arms 18 run : 26 rise, gap 12
+ARROW = (8, 18, 26, 12)
 # master: stroke 28, pitch 56, dot Ø36 (optically equal to the stroke), ink box 16..240 × 53..197
-MARK = feed()
+MARK = feed(arrow=ARROW)
 # reversed (light on dark): 1 unit thinner to offset irradiation
-MARK_REV = feed(w=27, dot=17.5)
-# small cut for 16–32 px: 16-unit pixel grid at 16 px (stroke = 2 px), no last line
+MARK_REV = feed(w=27, dot=17.5, arrow=ARROW)
+# small cut for 16–32 px: 16-unit pixel grid at 16 px (stroke = 2 px), no last line, no arrows
+# (a 12-unit cut is under 1 px at 16 px, so it would only blur the line)
 MARK_SMALL = feed(w=32, pitch=64, dot=24, O=(96, 176), x0=32, last_line=False)
 MARK_BOX = (16, 53, 240, 197)
 
