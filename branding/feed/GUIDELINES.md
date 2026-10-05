@@ -3,16 +3,25 @@
 ## 1. The logo
 
 **Idea:** the lines of a paragraph bend at the right margin into the RSS signal; the
-paragraph's full stop is the feed's dot. Text in, feed out: the whole product in one glance.
+paragraph's full stop is the feed's dot. Where each line turns, a right-pointing arrow is cut
+out of it: that's the moment text becomes feed. Text in, feed out: the whole product in one
+glance.
 
 **Versions:** horizontal lockup (primary) · stacked lockup · symbol · wordmark.
-The symbol has two drawings — the **master** and a pixel-fitted **small cut** (no last line)
-for 24 px and below.
+The symbol has two drawings — the **master** and a pixel-fitted **small cut** (no last line,
+no arrows) for 24 px and below.
 
 **Construction** (256 grid): one stroke (28), one row pitch (56), arcs concentric on the dot
 (R 56 / 112), dot Ø 36 — slightly larger than the stroke so it reads at the same weight.
 The white (reversed) master is 1 unit thinner to offset irradiation. Small cut: a 16-unit
 pixel grid, so at 16 px every stroke is exactly 2 px.
+
+**Arrow joins:** a chevron-shaped gap 12 units wide, measured square to its arms, with its
+tip 8 units before each bend. The arms lean back 18 for every 26 up or down, so they
+clear the stroke. The tips are deliberately sharp, the only corners in an otherwise round
+mark, because the sharpness is what makes them read as arrows. They hold down to about
+48 px and are gone by 32 px. That's why the small cut leaves them out: a sub-pixel cut
+would only blur the line.
 
 ## 2. Clear space
 
@@ -79,7 +88,9 @@ The mode label is JetBrains Mono Bold in uppercase, tracked 0.22 em (the DESIGN.
 - Don't recolour outside the table above.
 - Don't add a second accent colour.
 - Don't add gradients, glows or outlines.
-- Don't separate the lines from the arcs, or remove the full stop, in the master.
+- Don't separate the lines from the arcs except at the arrow joins, or remove the full
+  stop or the arrows, in the master.
+- Don't round off the arrow tips, or add arrows to the small cut.
 - Don't set the mark on a busy image. Put it on a Desk Black tile instead.
 
 ## 8. Files

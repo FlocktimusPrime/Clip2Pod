@@ -164,7 +164,7 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
 - `docs/superpowers/specs/` — v2 design record, RSS feed design, Firefox
   extension workflow.
 - `branding/feed/` — current Feed mark (paragraph lines bending into the RSS
-  arcs): source SVGs, exported icons, tray glyphs, per-feed covers, web icons,
+  arcs, with an arrow-shaped cut where each line turns): source SVGs, exported icons, tray glyphs, per-feed covers, web icons,
   generator (`src/`), usage rules in `GUIDELINES.md`. Retired marks (red mic,
   document-and-waves, C2P) are in `branding/archive/`.
 - No user testimonials, install counts, benchmarks, reviews, or press exist.
