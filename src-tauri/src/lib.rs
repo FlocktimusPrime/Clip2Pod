@@ -28,6 +28,7 @@ fn install_panic_hook(config_dir: std::path::PathBuf) {
 pub fn run() {
     const HOTKEY: &str = "Ctrl+Alt+G";
     let config_dir = clip2pod_core::config::default_config_dir();
+    migrate::migrate_legacy_config_dir(&config_dir);
     install_panic_hook(config_dir.clone());
     let config = clip2pod_core::config::load_config(&config_dir);
     let authors = clip2pod_core::authors::load_authors(&config_dir);

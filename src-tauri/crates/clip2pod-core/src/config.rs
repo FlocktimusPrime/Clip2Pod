@@ -67,11 +67,12 @@ pub struct LogEntry {
     pub detail: String,
 }
 
-/// Platform config dir, e.g. %APPDATA%\Clip2Pod2 or ~/.config/Clip2Pod2.
+/// Platform config dir, e.g. %APPDATA%\Clip2Pod or ~/.config/Clip2Pod.
+/// Before 0.9 it was `Clip2Pod2`; the app moves that folder here on startup.
 pub fn default_config_dir() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("Clip2Pod2")
+        .join("Clip2Pod")
 }
 
 /// Default episode folder when none is configured:

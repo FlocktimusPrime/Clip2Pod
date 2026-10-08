@@ -134,9 +134,9 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
   `yt-dlp` needs frequent updating as sites change.
 - Global hotkey may not register under Linux Wayland; the tray menu is the
   fallback.
-- Config: JSON at the platform config dir — narrate at `Clip2Pod2/config.json`,
-  recognized authors at `Clip2Pod2/authors.json`, rip at
-  `Clip2Pod2/rip/config.json`. Logs capped at 200 entries each; atomic writes;
+- Config: JSON at the platform config dir — narrate at `Clip2Pod/config.json`,
+  recognized authors at `Clip2Pod/authors.json`, rip at
+  `Clip2Pod/rip/config.json`. Logs capped at 200 entries each; atomic writes;
   panic hook writes `crash.log`.
 - **Licensing:** `clip2pod-core` is AGPL-3.0-only, `ytdlfeed-core` is GPL-3.0-only
   (vendored from the archived yt-dlFeed repo). AGPLv3 §13 permits the combination;
