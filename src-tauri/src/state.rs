@@ -24,6 +24,8 @@ pub struct AppState {
     /// Set by the Cancel command; the worker clears it before each job and the
     /// synth loop checks it between chunks.
     pub cancel_flag: Arc<AtomicBool>,
+    /// Secret path segment shared by both LAN feeds (see feed.rs).
+    pub feed_token: Mutex<String>,
 
     // --- RIP mode (yt-dlp) ---
     /// `config_dir/rip/` — keeps the rip config.json and log.json out of the

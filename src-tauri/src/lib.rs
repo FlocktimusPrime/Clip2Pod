@@ -34,6 +34,7 @@ pub fn run() {
     let cached_voices = config.cached_voices.clone();
     let start_minimized = config.start_minimized;
     let launch_at_startup = config.launch_at_startup;
+    let feed_token = feed::load_or_create_token(&config_dir);
     let (wake_tx, wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
     // RIP mode: its own config/log subdir, seeded once from a prior standalone
@@ -83,6 +84,7 @@ pub fn run() {
             voices: Mutex::new(cached_voices),
             wake_worker: wake_tx,
             cancel_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            feed_token: Mutex::new(feed_token),
             rip_config_dir,
             rip_config: Mutex::new(rip_config),
             rip_queue: Mutex::new(Default::default()),
@@ -171,6 +173,7 @@ pub fn run() {
             commands::episode_count,
             commands::delete_all_episodes,
             commands::feed_url,
+            commands::reset_feed_url,
             commands::firewall_help,
             rip_commands::rip_enqueue,
             rip_commands::rip_get_queue,
