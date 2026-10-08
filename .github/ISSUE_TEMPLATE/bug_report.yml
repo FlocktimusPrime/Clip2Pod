@@ -1,0 +1,59 @@
+name: Bug report
+description: Something doesn't work, or works differently than described.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying Clip2Pod. "It works on my machine" reports are welcome too,
+        especially from Linux and macOS, which are barely tested.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part?
+      options:
+        - Narrate (text to speech)
+        - Rip (yt-dlp)
+        - Podcast feed / phone subscription
+        - Browser extension
+        - Install / first launch
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+      placeholder: |
+        1. Sent a YouTube page from the extension
+        2. Expected it in the Rip queue
+        3. Nothing appeared
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Clip2Pod version
+      description: The version in the file name you downloaded, e.g. `Clip2Pod_0.9.0_x64-setup.exe`.
+      placeholder: 0.9.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      description: Include the distro and Wayland or X11 on Linux.
+      placeholder: Windows 11 24H2 / macOS 15 on M2 / Fedora 41 (Wayland)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error text or logs
+      description: |
+        Any error message from the app, the job's line in the log (Ctrl+Shift+L), or
+        `crash.log` if there is one. It lives in `%APPDATA%\Clip2Pod2` on Windows,
+        `~/Library/Application Support/Clip2Pod2` on macOS and `~/.config/Clip2Pod2`
+        on Linux. For Rip problems, the `yt-dlp --version` output helps.
+      render: text
