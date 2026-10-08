@@ -470,12 +470,19 @@ pub fn delete_all_episodes(state: State<AppState>) -> CmdResult<usize> {
 
 /// Subscribe URL for the LAN podcast feed, shown in the Feed dialog.
 #[tauri::command]
-pub fn feed_url() -> String {
-    format!(
-        "http://{}:{}/tts/feed.xml",
-        crate::feed::lan_ip(),
-        crate::feed::FEED_PORT
-    )
+pub fn feed_url(state: State<AppState>) -> String {
+    crate::feed::subscribe_url("tts", &state.feed_token.lock().unwrap())
+}
+
+/// New feed token for both feeds (narrate and rip share it): every subscribed
+/// device stops getting episodes until it re-subscribes with the new URL.
+#[tauri::command]
+pub fn reset_feed_url(state: State<AppState>) -> CmdResult<()> {
+    let token = crate::feed::new_token();
+    crate::feed::save_token(&state.config_dir, &token)
+        .map_err(|e| format!("could not save feed token: {e}"))?;
+    *state.feed_token.lock().unwrap() = token;
+    Ok(())
 }
 
 /// Per-OS instructions for opening the inbound firewall port the feed server
