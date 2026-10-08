@@ -8,19 +8,20 @@ out of it: that's the moment text becomes feed. Text in, feed out: the whole pro
 glance.
 
 **Versions:** horizontal lockup (primary) · stacked lockup · symbol · wordmark.
-The symbol has two drawings — the **master** and a pixel-fitted **small cut** (no last line,
-no arrows) for 24 px and below.
+The symbol has the **master** drawing plus two pixel-fitted **small cuts**, one for 16 px
+and one for 24 px: the whole mark (all three lines, both arcs, the dot) without arrows.
 
 **Construction** (256 grid): one stroke (28), one row pitch (56), arcs concentric on the dot
 (R 56 / 112), dot Ø 36 — slightly larger than the stroke so it reads at the same weight.
-The white (reversed) master is 1 unit thinner to offset irradiation. Small cut: a 16-unit
-pixel grid, so at 16 px every stroke is exactly 2 px.
+The white (reversed) master is 1 unit thinner to offset irradiation. Small cuts are drawn
+in whole pixels: at 16 px a 2 px stroke with 1 px gaps, at 24 px a 3 px stroke with 1 px
+gaps, the dot as wide as the stroke. Each is sharp only at its own size and at 2x.
 
 **Arrow joins:** a chevron-shaped gap 12 units wide, measured square to its arms, with its
 tip 8 units before each bend. The arms lean back 18 for every 26 up or down, so they
 clear the stroke. The tips are deliberately sharp, the only corners in an otherwise round
 mark, because the sharpness is what makes them read as arrows. They hold down to about
-48 px and are gone by 32 px. That's why the small cut leaves them out: a sub-pixel cut
+48 px and are gone by 32 px. That's why the small cuts leave them out: a sub-pixel cut
 would only blur the line.
 
 ## 2. Clear space
@@ -35,7 +36,7 @@ scales with the logo. In the horizontal lockup the symbol–wordmark gap is also
 | Horizontal lockup | 120 px wide | 30 mm wide |
 | Stacked lockup | 64 px wide | 18 mm wide |
 | Symbol, master | 32 px | 8 mm |
-| Symbol, small cut | 16–24 px (tray, favicon, `.ico` frames) | 4–6 mm |
+| Symbol, small cuts | 16 px and 24 px (tray, favicon, `.ico` frames) | 4–6 mm |
 
 ## 4. Colour
 
@@ -84,13 +85,13 @@ The mode label is JetBrains Mono Bold in uppercase, tracked 0.22 em (the DESIGN.
 ## 7. Don'ts
 
 - Don't stretch, rotate or mirror the mark. The arcs face up and right.
-- Don't use the master below 32 px or the small cut above 24 px.
+- Don't use the master below 32 px, or a small cut at any size but its own (or 2x).
 - Don't recolour outside the table above.
 - Don't add a second accent colour.
 - Don't add gradients, glows or outlines.
 - Don't separate the lines from the arcs except at the arrow joins, or remove the full
   stop or the arrows, in the master.
-- Don't round off the arrow tips, or add arrows to the small cut.
+- Don't round off the arrow tips, or add arrows to the small cuts.
 - Don't set the mark on a busy image. Put it on a Desk Black tile instead.
 
 ## 8. Files
