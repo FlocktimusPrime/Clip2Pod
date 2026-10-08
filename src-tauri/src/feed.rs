@@ -63,8 +63,18 @@ pub fn subscribe_url(feed: &str, token: &str) -> String {
 /// wrong or missing token, so old token-less URLs and guesses get the same 404.
 fn split_feed_path<'a>(url: &'a str, token: &str) -> Option<(&'a str, &'a str)> {
     let (feed, path) = url.strip_prefix('/')?.split_once('/')?;
-    let rest = path.strip_prefix(token)?.strip_prefix('/')?;
-    matches!(feed, "tts" | "video").then_some((feed, rest))
+    let (given, rest) = path.split_once('/')?;
+    (matches!(feed, "tts" | "video") && same_token(given, token)).then_some((feed, rest))
+}
+
+/// Constant-time compare, so response timing doesn't leak how much of a
+/// guessed token was right.
+fn same_token(a: &str, b: &str) -> bool {
+    a.len() == b.len()
+        && a.bytes()
+            .zip(b.bytes())
+            .fold(0, |acc, (x, y)| acc | (x ^ y))
+            == 0
 }
 
 /// Best-effort LAN address: a connected UDP socket picks the outbound
