@@ -1,0 +1,27 @@
+name: Idea
+description: Suggest a feature or a change.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation or annoyance behind the idea. This matters more than the solution.
+      placeholder: I save long Twitter threads and want to listen to them on my commute, but…
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: How you picture it working, if you have something in mind.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part?
+      options:
+        - Narrate
+        - Rip
+        - Podcast feed
+        - Browser extension
+        - Something else
