@@ -107,10 +107,45 @@ Grab the latest build from the [Releases](../../releases) page:
 
 | Package | For |
 |---|---|
+| `Clip2Pod_x.y.z_x64-setup.exe` | Windows (installer) |
+| `Clip2Pod_x.y.z_x64_en-US.msi` | Windows (MSI) |
+| `Clip2Pod_x.y.z_aarch64.dmg` | macOS, Apple Silicon (M1 and later) |
+| `Clip2Pod_x.y.z_x64.dmg` | macOS, Intel |
 | `Clip2Pod_x.y.z_amd64.AppImage` | Any Linux distro — `chmod +x` and run |
 | `Clip2Pod_x.y.z_amd64.deb` | Debian, Ubuntu, Mint |
 | `Clip2Pod-x.y.z-1.x86_64.rpm` | Fedora, openSUSE |
-| `Clip2Pod_x.y.z_x64-setup.exe` | Windows |
+
+### Platform status
+
+Clip2Pod is a personal project in public preview. How well each platform has been
+tested:
+
+- **Windows 11:** tested; this is the platform it's developed on.
+- **Linux:** earlier versions were tested, mostly on CachyOS. The current build
+  hasn't been tested yet.
+- **macOS:** builds are produced but have never been tested.
+
+On Linux under **Wayland**, the global hotkey (`Ctrl+Alt+G`) usually doesn't work,
+because Wayland doesn't let apps grab keys system-wide. The tray menu and the
+browser extension still work.
+
+If you try it on Linux or macOS, a [bug report](../../issues/new/choose) saying
+whether it works or not helps a lot.
+
+### First launch
+
+The builds aren't code-signed, so your OS will warn you the first time you open
+the app:
+
+- **Windows:** SmartScreen shows "Windows protected your PC". Click **More info**,
+  then **Run anyway**.
+- **macOS:** after dragging Clip2Pod into Applications, macOS may refuse to open
+  it or say it's damaged. Clear the quarantine flag in Terminal, then open it
+  normally:
+
+  ```sh
+  xattr -cr /Applications/Clip2Pod.app
+  ```
 
 For the **Rip** mode, install `yt-dlp` and `ffmpeg` yourself:
 
@@ -234,6 +269,10 @@ Narration uses **Microsoft Edge's neural TTS service** (via
 Long articles are chunked on sentence boundaries and the MP3 frames concatenated,
 so a full article narrates as one file. Ripping shells out to the system `yt-dlp`.
 
+> **Note:** `msedge-tts` is an unofficial client. Microsoft doesn't offer Edge's
+> read-aloud service as a public API, so narration may stop working if Microsoft
+> changes it. Rip mode doesn't depend on it.
+
 ## Privacy
 
 - Text you narrate is sent to Microsoft's Edge TTS service — the same service
@@ -259,6 +298,20 @@ The core crates have no Tauri dependency, so most behavior — cleaning, voice
 cycling, collision handling, feed XML, yt-dlp arg building, progress parsing — is
 covered by fast unit tests.
 
+## Built with Claude Code
+
+Clip2Pod was built with [Claude Code](https://claude.com/claude-code), Anthropic's
+AI coding agent: Claude Code wrote most of the code, and I set the direction,
+reviewed the changes and tested the builds. The files that steer it are kept in
+the repo so you can see how it was made:
+
+- [`CLAUDE.md`](CLAUDE.md): project instructions for the agent.
+- [`.claude/`](.claude/): project agents, skills and hooks (for example, the
+  reviewers that guard the AGPL/GPL boundary between the two cores).
+- [`docs/superpowers/`](docs/superpowers/): the design specs and implementation
+  plans written before each feature.
+- [`.impeccable/`](.impeccable/): the UI design context.
+
 ## License
 
 [GNU AGPL-3.0](LICENSE) © 2026 FlocktimusPrime
@@ -276,4 +329,3 @@ binary is AGPL-3.0.
 - [dom_smoothie](https://crates.io/crates/dom_smoothie) — Readability-style article extraction
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) — the ripping engine
 - [CodeMirror](https://codemirror.net) — the script editor
-- [Claude Code](https://claude.com/claude-code) — Clip2Pod was developed with Claude Code
