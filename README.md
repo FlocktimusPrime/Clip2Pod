@@ -89,7 +89,9 @@ captures your logged-in session).
 - **Background queues** — narration and ripping run on independent workers, so you
   can rip a video while an article narrates. One header lamp reads both: `IDLE` /
   `QUEUED n` / `RENDERING` / `RIPPING` / `ON AIR`.
-- **Proper MP3s** — ID3 tags, sanitized collision-safe filenames.
+- **Proper MP3s** — ID3 tags, sanitized collision-safe filenames. They land in
+  `Documents/Clip2Pod Feeds/Narrated` and `…/Ripped` unless you pick other
+  folders in Settings.
 - **Two podcast feeds** — a local RSS server (port `4738`) serves a narrated
   feed and a ripped feed, each behind a private URL. Open **Feed** on either
   tab, scan the QR code, and subscribe.

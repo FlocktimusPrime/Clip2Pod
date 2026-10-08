@@ -81,7 +81,7 @@ impl AppState {
         }
     }
 
-    /// Effective rip episode folder: configured dir, or ~/Music/yt-dlFeed.
+    /// Effective rip episode folder: configured dir, or the platform default.
     pub fn rip_output_dir(&self) -> PathBuf {
         self.rip_config
             .lock()
