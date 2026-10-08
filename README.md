@@ -262,7 +262,7 @@ RIP       video URL / extension
 | `src/` | SvelteKit 5 frontend — a shared header + tab shell over the NARRATE desk and the RIP list |
 | `src-tauri/src/` | Tauri 2 shell — tray, global hotkey, capture listener (`:4737`), feed server (`:4738`), two workers |
 | `src-tauri/crates/clip2pod-core/` | Narrate logic (AGPL-3.0) — extraction, cleaning, TTS, voice cycling, tagging, feed |
-| `src-tauri/crates/ytdlfeed-core/` | Rip logic (GPL-3.0) — yt-dlp arg building, progress parsing, feed. Vendored from the archived [yt-dlFeed](https://github.com/FlocktimusPrime/yt-dlFeed) repo |
+| `src-tauri/crates/clip2pod-rip/` | Rip logic (GPL-3.0) — yt-dlp arg building, progress parsing, feed |
 | `extension/` | Manifest V3 browser extension (Chrome + Firefox) — posts the rendered page, plus a mode hint |
 
 Narration uses **Microsoft Edge's neural TTS service** (via
@@ -320,7 +320,7 @@ the repo so you can see how it was made:
 
 Clip2Pod is free software: use, study, modify, and redistribute it, but any
 distributed or network-hosted derivative must ship full source under the same
-license. The Rip logic (`ytdlfeed-core`) is GPL-3.0-only; AGPLv3 §13 permits
+license. The Rip logic (`clip2pod-rip`) is GPL-3.0-only; AGPLv3 §13 permits
 combining it into this AGPL program, and the effective license of the whole
 binary is AGPL-3.0.
 

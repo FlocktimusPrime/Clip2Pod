@@ -1,8 +1,8 @@
 [workspace]
-members = ["crates/clip2pod-core", "crates/ytdlfeed-core"]
+members = ["crates/clip2pod-core", "crates/clip2pod-rip"]
 
 [package]
-name = "clip2podv2"
+name = "clip2pod"
 version = "0.8.3"
 description = "Clip2Pod — clipboard text to narrated MP3"
 authors = ["FlocktimusPrime"]
@@ -15,7 +15,7 @@ license = "AGPL-3.0-only"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "clip2podv2_lib"
+name = "clip2pod_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -23,7 +23,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 clip2pod-core = { path = "crates/clip2pod-core" }
-ytdlfeed-core = { path = "crates/ytdlfeed-core" }
+clip2pod-rip = { path = "crates/clip2pod-rip" }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-clipboard-manager = "2"

@@ -1,8 +1,7 @@
 // RIP mode background worker: drains the rip queue one URL at a time, spawning
-// yt-dlp and streaming its `--newline` progress to the frontend. Ported from the
-// standalone yt-dlFeed app; events are namespaced `rip:*` so they don't collide
-// with the narrate worker's, and the yt-dlp binary is whatever the user
-// configured (defaults to `yt-dlp` on PATH).
+// yt-dlp and streaming its `--newline` progress to the frontend. Events are
+// namespaced `rip:*` so they don't collide with the narrate worker's, and the
+// yt-dlp binary is whatever the user configured (defaults to `yt-dlp` on PATH).
 
 use crate::state::AppState;
 use serde::Serialize;
@@ -10,9 +9,9 @@ use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::UnboundedReceiver;
-use ytdlfeed_core::config::{append_log, LogEntry, LogStatus};
-use ytdlfeed_core::queue::{Job, JobProgress};
-use ytdlfeed_core::ytdlp::{build_args, parse_line, ProgressEvent};
+use clip2pod_rip::config::{append_log, LogEntry, LogStatus};
+use clip2pod_rip::queue::{Job, JobProgress};
+use clip2pod_rip::ytdlp::{build_args, parse_line, ProgressEvent};
 
 #[derive(Serialize, Clone)]
 #[serde(tag = "state", content = "queued")]
@@ -213,7 +212,7 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
     }
 
     // yt-dlp doesn't write TLEN; measure so the feed carries durations.
-    ytdlfeed_core::feed::ensure_durations(&dir);
+    clip2pod_rip::feed::ensure_durations(&dir);
     Ok(if skipped {
         "already downloaded".into()
     } else {
