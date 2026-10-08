@@ -7,7 +7,6 @@
 
 Add a Firefox variant of the "Send to Clip2Pod" browser extension and a GitHub
 Actions release workflow that builds installers for Linux, macOS, and Windows.
-Pattern mirrors the sibling project YT-DLFeed, which already ships both.
 
 ## 1. Firefox extension
 
@@ -39,7 +38,7 @@ Firefox manifest differences from Chrome:
 the capture server already sends permissive CORS headers
 (`src-tauri/src/capture.rs`), so the localhost fetch succeeds.
 
-Distribution is unsigned (same as YT-DLFeed): temporary install via
+Distribution is unsigned: temporary install via
 `about:debugging#/runtime/this-firefox`; permanent installs need Firefox
 ESR/Developer Edition with `xpinstall.signatures.required=false`, zipping the
 `firefox/` folder contents into an XPI.
@@ -50,7 +49,7 @@ path, install instructions, repo-layout table).
 
 ## 2. Release workflow
 
-`.github/workflows/release.yml`, near-copy of YT-DLFeed's:
+`.github/workflows/release.yml`:
 
 - **Trigger:** push of tags matching `v*`.
 - **Matrix:** `macos-latest` (aarch64 + x86_64 targets), `ubuntu-22.04`

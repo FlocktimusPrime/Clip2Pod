@@ -138,14 +138,13 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
   recognized authors at `Clip2Pod/authors.json`, rip at
   `Clip2Pod/rip/config.json`. Logs capped at 200 entries each; atomic writes;
   panic hook writes `crash.log`.
-- **Licensing:** `clip2pod-core` is AGPL-3.0-only, `ytdlfeed-core` is GPL-3.0-only
-  (vendored from the archived yt-dlFeed repo). AGPLv3 §13 permits the combination;
+- **Licensing:** `clip2pod-core` is AGPL-3.0-only, `clip2pod-rip` is GPL-3.0-only.
+  AGPLv3 §13 permits the combination;
   the whole binary is effectively AGPL-3.0.
 
 ## Brand Commitments
 
-- **Name: "Clip2Pod"** — binding. The only fixed identity element. It absorbed the
-  sibling app "yt-dlFeed" as the RIP tab; that name is retired.
+- **Name: "Clip2Pod"** — binding. The only fixed identity element.
 - Nothing else in the current interface is a commitment. The shipped app uses a
   broadcast "production desk" framing (status lamp, mono/uppercase chrome,
   `INTAKE` / `TRANSPORT` / `JUNK` / `TOOLS` sidebar labels on the NARRATE tab, a

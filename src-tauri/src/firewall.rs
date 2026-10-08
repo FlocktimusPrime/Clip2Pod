@@ -94,7 +94,7 @@ mod imp {
     pub fn firewall_help() -> FirewallHelp {
         let exe = std::env::current_exe()
             .map(|p| p.to_string_lossy().into_owned())
-            .unwrap_or_else(|_| "/Applications/Clip2Pod.app/Contents/MacOS/clip2pod2".into());
+            .unwrap_or_else(|_| "/Applications/Clip2Pod.app/Contents/MacOS/clip2pod".into());
         let fw = "/usr/libexec/ApplicationFirewall/socketfilterfw";
         FirewallHelp {
             shell_hint: "Run in Terminal (you'll be asked for your password).".into(),

@@ -48,13 +48,6 @@ pub struct LogEntry {
     pub detail: String,
 }
 
-/// Platform config dir, e.g. %APPDATA%\yt-dlFeed or ~/.config/yt-dlFeed.
-pub fn default_config_dir() -> PathBuf {
-    dirs::config_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("yt-dlFeed")
-}
-
 /// Default episode folder: ~/Documents/Clip2Pod Feeds/Ripped (home, then the
 /// current dir, if there is no Documents folder). Narrate's default is the
 /// `Narrated` sibling.

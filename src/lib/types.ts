@@ -109,7 +109,7 @@ export type Lamp =
   | { state: "Queued"; queued: number }
   | { state: "OnAir" };
 
-// --- RIP mode (yt-dlp). Mirrors ytdlfeed-core / rip_commands.rs. The narrate
+// --- RIP mode (yt-dlp). Mirrors clip2pod-rip / rip_commands.rs. The narrate
 // types above keep their bare names (this is the host app); rip types are
 // prefixed. `Lamp` and `Theme` are shared — identical shape on both sides. ---
 

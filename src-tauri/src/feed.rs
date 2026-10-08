@@ -156,8 +156,8 @@ fn handle(app: &AppHandle, request: Request) {
             );
         }
         ("video", "feed.xml") => {
-            let xml = ytdlfeed_core::feed::build_rss(
-                &ytdlfeed_core::feed::scan_episodes(&state.rip_output_dir()),
+            let xml = clip2pod_rip::feed::build_rss(
+                &clip2pod_rip::feed::scan_episodes(&state.rip_output_dir()),
                 &base,
             );
             respond(
@@ -189,10 +189,10 @@ fn handle(app: &AppHandle, request: Request) {
         }
         ("video", path) if path.starts_with("audio/") => {
             let dir = state.rip_output_dir();
-            let Some(name) = ytdlfeed_core::feed::decode_audio_name(&path["audio/".len()..]) else {
+            let Some(name) = clip2pod_rip::feed::decode_audio_name(&path["audio/".len()..]) else {
                 return status(request, 400, "bad filename");
             };
-            let listed: Vec<String> = ytdlfeed_core::feed::scan_episodes(&dir)
+            let listed: Vec<String> = clip2pod_rip::feed::scan_episodes(&dir)
                 .into_iter()
                 .map(|e| e.filename)
                 .collect();

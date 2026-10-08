@@ -31,8 +31,8 @@ pub struct AppState {
     /// `config_dir/rip/` — keeps the rip config.json and log.json out of the
     /// narrate ones. Both cores' load/save take a dir, so no code overlap.
     pub rip_config_dir: PathBuf,
-    pub rip_config: Mutex<ytdlfeed_core::config::Config>,
-    pub rip_queue: Mutex<ytdlfeed_core::queue::Queue>,
+    pub rip_config: Mutex<clip2pod_rip::config::Config>,
+    pub rip_queue: Mutex<clip2pod_rip::queue::Queue>,
     /// Wakes the yt-dlp worker when jobs are enqueued.
     pub rip_wake: UnboundedSender<()>,
     /// (job id, child handle) for the in-flight yt-dlp process, if any. Shared
@@ -88,7 +88,7 @@ impl AppState {
             .unwrap()
             .output_dir
             .clone()
-            .unwrap_or_else(ytdlfeed_core::config::default_output_dir)
+            .unwrap_or_else(clip2pod_rip::config::default_output_dir)
     }
 
     /// Effective yt-dlp args template: configured, or the bundled default.
@@ -98,7 +98,7 @@ impl AppState {
             .unwrap()
             .args_template
             .clone()
-            .unwrap_or_else(|| ytdlfeed_core::ytdlp::DEFAULT_ARGS.to_string())
+            .unwrap_or_else(|| clip2pod_rip::ytdlp::DEFAULT_ARGS.to_string())
     }
 
     /// yt-dlp executable to spawn: the configured path, or `yt-dlp` from PATH.
@@ -114,7 +114,7 @@ impl AppState {
 
     pub fn save_rip_config(&self) {
         let cfg = self.rip_config.lock().unwrap();
-        if let Err(e) = ytdlfeed_core::config::save_config(&self.rip_config_dir, &cfg) {
+        if let Err(e) = clip2pod_rip::config::save_config(&self.rip_config_dir, &cfg) {
             eprintln!("failed to save rip config: {e}");
         }
     }

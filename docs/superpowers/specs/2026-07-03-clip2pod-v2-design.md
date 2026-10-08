@@ -36,7 +36,7 @@ Key dependencies: `msedge-tts` (voice list + MP3 synthesis), `dom_smoothie` (rea
 - **queue** — jobs Queued/Processing/Done/Failed/Cancelled; single worker; Clear Pending never touches the in-flight job.
 - **naming** — Windows-safe sanitize on both OSes, trailing dot/space trim, length cap, optional `C2P_` prefix, `(2)/(3)` collision suffix vs disk and queue.
 - **tagging** — ID3v2 Title/Artist/Album="Clip2Pod"/Comment=voice; best-effort.
-- **config** — JSON at platform config dir `Clip2Pod2/config.json`; log.json capped 200; atomic writes; crash.log panic hook.
+- **config** — JSON at platform config dir `Clip2Pod/config.json`; log.json capped 200; atomic writes; crash.log panic hook.
 - **extract** — reqwest + dom_smoothie → plain text.
 
 ## Data flow (Generate)
