@@ -13,12 +13,14 @@
   let url = $state("");
   let qr = $state("");
 
-  $effect(() => {
+  function loadUrl() {
     (isRip ? rip.feedUrl() : api.feedUrl()).then(
       (u) => (url = u),
       (e) => toast(`Feed URL failed: ${e}`, "error"),
     );
-  });
+  }
+
+  $effect(loadUrl);
 
   // qrcode is ~40 kB and only reachable through this dialog — load it on open
   // instead of shipping it in the initial page chunk.
@@ -50,6 +52,38 @@
       setTimeout(() => (copied = false), 1600);
     } catch (e) {
       toast(`Copy failed: ${e}`, "error");
+    }
+  }
+
+  // Same inline confirm flow as QueuePanel's "Delete episodes": focus lands on
+  // the safe choice (Keep) when it opens, back on the trigger when it closes.
+  let confirmReset = $state(false);
+  let resetting = $state(false);
+  let keepBtn = $state<HTMLButtonElement>();
+  let resetBtn = $state<HTMLButtonElement>();
+  let confirmWasOpen = false;
+  $effect(() => {
+    if (confirmReset) {
+      confirmWasOpen = true;
+      keepBtn?.focus();
+    } else if (confirmWasOpen) {
+      confirmWasOpen = false;
+      resetBtn?.focus();
+    }
+  });
+
+  async function reset() {
+    resetting = true;
+    try {
+      await api.resetFeedUrl();
+      url = "";
+      qr = "";
+      loadUrl();
+    } catch (e) {
+      toast(`Reset failed: ${e}`, "error");
+    } finally {
+      resetting = false;
+      confirmReset = false;
     }
   }
 
@@ -96,6 +130,26 @@
       <img class="qr" src={qr} alt="QR code for feed URL" />
     </div>
   {/if}
+  <div class="reset-row">
+    {#if !confirmReset}
+      <button class="btn" bind:this={resetBtn} onclick={() => (confirmReset = true)}>
+        Reset feed URL
+      </button>
+    {:else}
+      <span class="confirm" role="alert">
+        New URL for both feeds — every subscribed device stops getting episodes until you
+        re-subscribe it.
+      </span>
+      <div class="reset-actions">
+        <button class="btn" onclick={reset} disabled={resetting}>
+          {resetting ? "Resetting…" : "Reset"}
+        </button>
+        <button class="btn" bind:this={keepBtn} onclick={() => (confirmReset = false)} disabled={resetting}>
+          Keep
+        </button>
+      </div>
+    {/if}
+  </div>
   <p class="hint firewall-hint">
     Phone can't reach the feed? It may be blocked by your firewall.
     <button class="btn" onclick={toggleHelp} aria-expanded={showHelp}>
@@ -158,6 +212,25 @@
     background: #fff;
     border: 1px solid var(--line);
     border-radius: 4px;
+  }
+
+  .reset-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .reset-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .confirm {
+    flex: 1 1 260px;
+    font-size: 12.5px;
+    color: var(--danger);
   }
 
   .firewall-hint {

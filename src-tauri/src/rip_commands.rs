@@ -275,12 +275,8 @@ pub fn rip_delete_all_episodes(state: State<AppState>) -> CmdResult<usize> {
 
 /// Subscribe URL for the ripped-audio feed, shown in the Feed dialog.
 #[tauri::command]
-pub fn rip_feed_url() -> String {
-    format!(
-        "http://{}:{}/video/feed.xml",
-        crate::feed::lan_ip(),
-        crate::feed::FEED_PORT
-    )
+pub fn rip_feed_url(state: State<AppState>) -> String {
+    crate::feed::subscribe_url("video", &state.feed_token.lock().unwrap())
 }
 
 #[derive(Serialize)]

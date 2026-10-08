@@ -96,6 +96,9 @@ export const extractUrl = (url: string) => invoke<Extracted>("extract_url", { ur
 
 export const feedUrl = () => invoke<string>("feed_url");
 
+/** Rotates the token shared by both feeds; every subscribed device must re-subscribe. */
+export const resetFeedUrl = () => invoke<void>("reset_feed_url");
+
 export const episodeCount = () => invoke<number>("episode_count");
 
 export const deleteAllEpisodes = () => invoke<number>("delete_all_episodes");
