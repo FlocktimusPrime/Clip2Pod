@@ -1,10 +1,15 @@
 <script lang="ts">
+  import { getVersion } from "@tauri-apps/api/app";
   import { open } from "@tauri-apps/plugin-dialog";
   import * as api from "$lib/api";
   import * as rip from "$lib/rip_api";
   import { app, applyTheme, refreshDoctor, refreshRipEpisodes, toast } from "$lib/stores.svelte";
   import type { Theme } from "$lib/types";
   import Modal from "./Modal.svelte";
+
+  // Shown at the bottom so bug reports can quote it.
+  let version = $state("");
+  getVersion().then((v) => (version = v));
 
   // --- General ---
   async function switchTheme(theme: Theme) {
@@ -188,6 +193,10 @@
 
     <button class="btn primary" onclick={saveRip} disabled={!ripDirty}>Save rip settings</button>
   </div>
+
+  {#if version}
+    <p class="hint mono version">Clip2Pod {version}</p>
+  {/if}
 </Modal>
 
 <style>
@@ -245,6 +254,11 @@
     font-size: 12px;
     color: var(--muted);
     margin: 0;
+  }
+
+  .version {
+    margin-top: 20px;
+    user-select: text;
   }
 
   .error {
