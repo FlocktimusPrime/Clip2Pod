@@ -193,11 +193,14 @@ confirmation dialog).
 
 ### Two podcast feeds
 
-- A local RSS server on port `4738` serves `/tts/feed.xml` (narrated articles) and
-  `/video/feed.xml` (ripped audio), each with cover art. There is no combined
-  feed — subscribe to whichever you want.
+- A local RSS server on port `4738` serves `/tts/<token>/feed.xml` (narrated
+  articles) and `/video/<token>/feed.xml` (ripped audio), each with cover art. There
+  is no combined feed — subscribe to whichever you want.
+- The token is a random secret shared by both feeds, so other people on the same
+  Wi-Fi can't read them without the URL.
 - **Feed** in the header opens a dialog for the *active* tab's feed: the URL, a QR
-  code to scan from your phone, a Copy button, and firewall help.
+  code to scan from your phone, a Copy button, firewall help, and **Reset feed
+  URL**, which issues a new token (every subscribed device must re-subscribe).
 - Firewall help gives you the exact command to open the inbound port (per OS) plus
   the common gotchas — it does not try to change the firewall itself.
 

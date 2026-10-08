@@ -30,10 +30,10 @@ podcast feeds on the local network. It has two modes behind a header tab:
   extraction, a global hotkey, or a browser extension that captures the current
   page from the logged-in session so paywalled articles work) is cleaned for TTS,
   narrated with a Microsoft Edge neural voice, ID3-tagged, given a collision-safe
-  filename, and listed in `/tts/feed.xml`.
+  filename, and listed in `/tts/<token>/feed.xml`.
 - **Rip** — a video URL (pasted, or sent from the extension) is handed to `yt-dlp`,
   which downloads the audio track as an MP3 (embed thumbnail/metadata/chapters,
-  SponsorBlock, volume boost), duration-tagged and listed in `/video/feed.xml`.
+  SponsorBlock, volume boost), duration-tagged and listed in `/video/<token>/feed.xml`.
 
 Both feeds are served from one LAN RSS server (port 4738); the browser extension
 posts to one capture listener (port 4737) that routes by video-host match or an
@@ -70,8 +70,9 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
   closing the window keeps it running; left-click the tray icon to show it. Global
   hotkey default `Ctrl+Alt+G` (narrate intake).
 - Local servers: capture endpoint on `127.0.0.1:4737` (the extension POSTs
-  `{ url, html, override_hint? }`), RSS feed on `0.0.0.0:4738` serving
-  `/tts/feed.xml` + `/video/feed.xml` (the phone reaches it over LAN).
+  `{ url, html, override_hint? }`; web-page origins are refused), RSS feed on
+  `0.0.0.0:4738` serving `/tts/<token>/feed.xml` + `/video/<token>/feed.xml` (the
+  phone reaches it over LAN; the token keeps the rest of the LAN out).
 - **Rip depends on `yt-dlp` and `ffmpeg` on the PATH** — not bundled. A startup
   probe surfaces an install notice on the Rip tab if either is missing; the
   `yt-dlp` binary path is configurable.
