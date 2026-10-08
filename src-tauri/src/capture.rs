@@ -6,6 +6,12 @@
 // Routing: an explicit override wins; otherwise a known video host goes to RIP
 // and everything else is treated as an article. The extension always includes
 // the HTML, so the article path always has what it needs.
+//
+// Origin gate: browsers attach `Origin` to cross-origin fetches, so a web page
+// trying to POST here arrives with its own origin and is refused. Extensions
+// arrive as `chrome-extension://` / `moz-extension://`; curl and local scripts
+// send no Origin at all and are allowed (anything that can run them already
+// runs as the user).
 
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter};
@@ -29,6 +35,21 @@ struct CapturedArticle {
     author: String,
     text: String,
     url: String,
+}
+
+fn origin_allowed(origin: Option<&str>) -> bool {
+    match origin {
+        None => true,
+        Some(o) => o.starts_with("chrome-extension://") || o.starts_with("moz-extension://"),
+    }
+}
+
+fn origin_of(request: &tiny_http::Request) -> Option<String> {
+    request
+        .headers()
+        .iter()
+        .find(|h| h.field.equiv("Origin"))
+        .map(|h| h.value.to_string())
 }
 
 fn with_cors(mut response: Response<std::io::Cursor<Vec<u8>>>) -> Response<std::io::Cursor<Vec<u8>>> {
@@ -97,6 +118,10 @@ pub fn serve(app: AppHandle) {
             }
         };
         for mut request in server.incoming_requests() {
+            if !origin_allowed(origin_of(&request).as_deref()) {
+                let _ = request.respond(Response::from_string("forbidden").with_status_code(403));
+                continue;
+            }
             if request.method() == &Method::Options {
                 let _ = request.respond(with_cors(Response::from_data(Vec::new())));
                 continue;
@@ -118,4 +143,20 @@ pub fn serve(app: AppHandle) {
                 request.respond(with_cors(Response::from_string(message).with_status_code(status)));
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::origin_allowed;
+
+    #[test]
+    fn only_extensions_and_originless_callers_get_in() {
+        assert!(origin_allowed(None));
+        assert!(origin_allowed(Some("chrome-extension://abcdefghijklmnop")));
+        assert!(origin_allowed(Some("moz-extension://1234-5678")));
+        assert!(!origin_allowed(Some("https://evil.example")));
+        assert!(!origin_allowed(Some("http://127.0.0.1:4737")));
+        assert!(!origin_allowed(Some("null")));
+        assert!(!origin_allowed(Some("")));
+    }
 }
