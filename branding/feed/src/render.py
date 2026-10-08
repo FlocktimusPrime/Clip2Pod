@@ -1,6 +1,7 @@
 """Rasterise the SVG masters in ../svg into ../png via headless Edge (transparent background).
 
-Sizes follow the small-size rule in ../GUIDELINES.md: <=24 px uses the *-small drawing.
+Sizes follow the small-size rule in ../GUIDELINES.md: 16 px uses the *-small drawing,
+24 px the *-small24 one, 32 px and up the master.
 Run after build.py:  python render.py
 """
 import os, subprocess, tempfile, pathlib
@@ -31,20 +32,21 @@ def aspect(svg):
     return float(vb[2]) / float(vb[3])
 
 
-def small(s):
-    return s <= 24
+def cut(base, s, suffix=''):
+    """The drawing for size s: base-small (16), base-small24 (24) or the master."""
+    return {16: f'{base}-small', 24: f'{base}-small24'}.get(s, base) + suffix + '.svg'
 
 
 if __name__ == '__main__':
     for s in (16, 24, 32, 48, 64, 128, 256, 512, 1024):
-        render('feed-symbol-small.svg' if small(s) else 'feed-symbol.svg', f'feed-symbol-{s}.png', s)
-        render('feed-app-icon-small.svg' if small(s) else 'feed-app-icon.svg', f'feed-icon-{s}.png', s)
+        render(cut('feed-symbol', s), f'feed-symbol-{s}.png', s)
+        render(cut('feed-app-icon', s), f'feed-icon-{s}.png', s)
     for s in (16, 32, 48, 128):                      # extension icons: no tile, light-ground lavender for the toolbar
-        render('feed-symbol-small-light.svg' if small(s) else 'feed-symbol-light.svg', f'feed-ext-{s}.png', s)
+        render(cut('feed-symbol', s, '-light'), f'feed-ext-{s}.png', s)
     for s in (16, 24, 32, 64):                       # tray glyphs: lavender (dark taskbar) and white
-        render('feed-symbol-small.svg' if small(s) else 'feed-symbol.svg', f'feed-tray-{s}.png', s)
-        render('feed-symbol-small-white.svg' if small(s) else 'feed-symbol-white.svg', f'feed-tray-white-{s}.png', s)
-    # the shipped tray asset: small cut at 32, which the OS halves cleanly to 16 on the same pixel grid
+        render(cut('feed-symbol', s), f'feed-tray-{s}.png', s)
+        render(cut('feed-symbol', s, '-white'), f'feed-tray-white-{s}.png', s)
+    # the shipped tray asset: the 16 px cut at 2x, which the OS halves cleanly to 16
     render('feed-symbol-small.svg', 'feed-tray-app-32.png', 32)
     for name in ('feed-horizontal', 'feed-horizontal-light', 'feed-stacked', 'feed-stacked-light'):
         w = 1200
