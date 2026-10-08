@@ -5,7 +5,7 @@ members = ["crates/clip2pod-core", "crates/ytdlfeed-core"]
 name = "clip2podv2"
 version = "0.8.3"
 description = "Clip2Pod — clipboard text to narrated MP3"
-authors = ["kketover"]
+authors = ["FlocktimusPrime"]
 edition = "2021"
 license = "AGPL-3.0-only"
 

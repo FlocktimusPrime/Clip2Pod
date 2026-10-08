@@ -8,7 +8,7 @@
   "background": { "scripts": ["background.js"] },
   "browser_specific_settings": {
     "gecko": {
-      "id": "clip2pod@kketover",
+      "id": "clip2pod@flocktimusprime",
       "strict_min_version": "115.0"
     }
   },
