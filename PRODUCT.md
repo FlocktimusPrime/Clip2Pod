@@ -161,7 +161,6 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
 - `DESIGN.md` — the "Production Desk" design system, updated for the two-tab shell.
 - `docs/screenshots/main-window-{dark,light}.png` — v0.8.3 (Feed icon):
   NARRATE in dark theme, RIP in light theme.
-- `docs/design-reconciliation.md` — history of the yt-dlFeed merge (resolved).
 - `docs/superpowers/specs/` — v2 design record, RSS feed design, Firefox
   extension workflow.
 - `branding/feed/` — current Feed mark (paragraph lines bending into the RSS
