@@ -14,7 +14,8 @@ pub enum Theme {
 }
 
 /// All persisted settings. `output_dir: None` means "use the default
-/// (~/Music/yt-dlFeed)"; `args_template: None` means "use DEFAULT_ARGS".
+/// (~/Documents/Clip2Pod Feeds/Ripped)"; `args_template: None` means "use
+/// DEFAULT_ARGS".
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Config {
@@ -54,13 +55,15 @@ pub fn default_config_dir() -> PathBuf {
         .join("yt-dlFeed")
 }
 
-/// Default episode folder: ~/Music/yt-dlFeed (fallbacks mirror worker use).
+/// Default episode folder: ~/Documents/Clip2Pod Feeds/Ripped (home, then the
+/// current dir, if there is no Documents folder). Narrate's default is the
+/// `Narrated` sibling.
 pub fn default_output_dir() -> PathBuf {
-    dirs::audio_dir()
-        .or_else(dirs::download_dir)
+    dirs::document_dir()
         .or_else(dirs::home_dir)
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("yt-dlFeed")
+        .join("Clip2Pod Feeds")
+        .join("Ripped")
 }
 
 fn write_atomic(path: &Path, contents: &str) -> io::Result<()> {
@@ -175,6 +178,6 @@ mod tests {
 
     #[test]
     fn default_output_dir_ends_with_app_folder() {
-        assert!(default_output_dir().ends_with("yt-dlFeed"));
+        assert!(default_output_dir().ends_with("Clip2Pod Feeds/Ripped"));
     }
 }

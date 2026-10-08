@@ -74,13 +74,15 @@ pub fn default_config_dir() -> PathBuf {
         .join("Clip2Pod2")
 }
 
-/// Default episode folder when none is configured: ~/Music, falling back to
-/// Downloads, home, then the current dir.
+/// Default episode folder when none is configured:
+/// ~/Documents/Clip2Pod Feeds/Narrated (home, then the current dir, if there
+/// is no Documents folder). Rip's default is the `Ripped` sibling.
 pub fn default_output_dir() -> PathBuf {
-    dirs::audio_dir()
-        .or_else(dirs::download_dir)
+    dirs::document_dir()
         .or_else(dirs::home_dir)
         .unwrap_or_else(|| PathBuf::from("."))
+        .join("Clip2Pod Feeds")
+        .join("Narrated")
 }
 
 pub(crate) fn write_atomic(path: &Path, contents: &str) -> io::Result<()> {
@@ -129,6 +131,11 @@ pub fn clear_log(dir: &Path) -> io::Result<()> {
 mod tests {
     use super::*;
     use tempfile::tempdir;
+
+    #[test]
+    fn default_output_dir_is_the_narrated_feed_folder() {
+        assert!(default_output_dir().ends_with("Clip2Pod Feeds/Narrated"));
+    }
 
     fn entry(title: &str) -> LogEntry {
         LogEntry {
