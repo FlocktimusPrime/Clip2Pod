@@ -15,7 +15,7 @@ Clip2Pod has two modes behind a tab bar:
 The shell (`src-tauri/src/`) wires both: one capture listener (`:4737`, routes by
 `ytdlfeed_core::ytdlp::rippable_host` or the extension's `override_hint`), one feed
 server (`:4738`, `/tts/*` + `/video/*`), two independent workers/queues. Rip config
-and log live in `<config dir>/Clip2Pod2/rip/`, separate from the narrate ones.
+and log live in `<config dir>/Clip2Pod/rip/`, separate from the narrate ones.
 
 **Licensing:** the combined binary links a GPL-3.0 crate into an AGPL-3.0 program.
 AGPLv3 §13 permits this; the effective licence of the whole is AGPL-3.0. Keep

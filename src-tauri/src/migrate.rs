@@ -1,11 +1,40 @@
-// One-time import from a standalone yt-dlFeed install. yt-dlFeed shipped as its
-// own app with config at `<config dir>/yt-dlFeed/config.json`; the merged app
-// keeps rip settings under `<config dir>/Clip2Pod2/rip/`. On first run we copy
-// the two rip-relevant fields across so a prior yt-dlFeed user keeps their
-// episode folder and yt-dlp args. Narrate settings (theme, startup) are never
-// sourced from here.
+// One-time imports from older installs.
+//
+// Before 0.9 the config folder was `<config dir>/Clip2Pod2`. It is moved
+// wholesale to `<config dir>/Clip2Pod`, so settings, logs and the feed token
+// (and with it every subscribed phone) carry over.
+//
+// yt-dlFeed shipped as its own app with config at
+// `<config dir>/yt-dlFeed/config.json`; the merged app keeps rip settings under
+// `<config dir>/Clip2Pod/rip/`. On first run we copy the two rip-relevant
+// fields across so a prior yt-dlFeed user keeps their episode folder and yt-dlp
+// args. Narrate settings (theme, startup) are never sourced from here.
 
 use std::path::Path;
+
+/// Move the pre-0.9 `Clip2Pod2` folder next to `config_dir` into its place.
+/// Must run before anything reads or creates `config_dir`.
+pub fn migrate_legacy_config_dir(config_dir: &Path) {
+    if let Some(parent) = config_dir.parent() {
+        move_dir_if_absent(&parent.join("Clip2Pod2"), config_dir);
+    }
+}
+
+/// Rename `old` to `new` unless `new` already exists (then both are left
+/// alone) or there is no `old`.
+fn move_dir_if_absent(old: &Path, new: &Path) {
+    if new.exists() || !old.is_dir() {
+        return;
+    }
+    match std::fs::rename(old, new) {
+        Ok(()) => eprintln!(
+            "clip2pod: moved settings from {} to {}",
+            old.display(),
+            new.display()
+        ),
+        Err(e) => eprintln!("clip2pod: could not move {}: {e}", old.display()),
+    }
+}
 
 /// Import yt-dlFeed's config into `rip_dir` if it hasn't been imported yet.
 pub fn migrate_ytdlfeed_config(rip_dir: &Path) {
@@ -77,6 +106,46 @@ mod tests {
 
         let got = ytdlfeed_core::config::load_config(rip.path());
         assert_eq!(got.output_dir.as_deref(), Some(Path::new("/media/kept")));
+    }
+
+    #[test]
+    fn moves_old_config_folder_with_its_contents() {
+        let root = tempdir().unwrap();
+        let old = root.path().join("Clip2Pod2");
+        std::fs::create_dir_all(old.join("rip")).unwrap();
+        std::fs::write(old.join("feed_token"), "abc").unwrap();
+        std::fs::write(old.join("rip").join("config.json"), "{}").unwrap();
+        let new = root.path().join("Clip2Pod");
+
+        move_dir_if_absent(&old, &new);
+
+        assert!(!old.exists());
+        assert_eq!(std::fs::read_to_string(new.join("feed_token")).unwrap(), "abc");
+        assert!(new.join("rip").join("config.json").exists());
+    }
+
+    #[test]
+    fn leaves_both_folders_alone_when_new_one_exists() {
+        let root = tempdir().unwrap();
+        let old = root.path().join("Clip2Pod2");
+        let new = root.path().join("Clip2Pod");
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::create_dir_all(&new).unwrap();
+        std::fs::write(old.join("feed_token"), "old").unwrap();
+        std::fs::write(new.join("feed_token"), "new").unwrap();
+
+        move_dir_if_absent(&old, &new);
+
+        assert_eq!(std::fs::read_to_string(old.join("feed_token")).unwrap(), "old");
+        assert_eq!(std::fs::read_to_string(new.join("feed_token")).unwrap(), "new");
+    }
+
+    #[test]
+    fn no_old_folder_creates_nothing() {
+        let root = tempdir().unwrap();
+        let new = root.path().join("Clip2Pod");
+        move_dir_if_absent(&root.path().join("Clip2Pod2"), &new);
+        assert!(!new.exists());
     }
 
     #[test]
