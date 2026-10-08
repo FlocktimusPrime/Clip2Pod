@@ -90,9 +90,9 @@ captures your logged-in session).
   can rip a video while an article narrates. One header lamp reads both: `IDLE` /
   `QUEUED n` / `RENDERING` / `RIPPING` / `ON AIR`.
 - **Proper MP3s** — ID3 tags, sanitized collision-safe filenames.
-- **Two podcast feeds** — a local RSS server (port `4738`) serves
-  `/tts/feed.xml` (narrated) and `/video/feed.xml` (ripped). Open **Feed** on
-  either tab, scan the QR code, and subscribe.
+- **Two podcast feeds** — a local RSS server (port `4738`) serves a narrated
+  feed and a ripped feed, each behind a private URL. Open **Feed** on either
+  tab, scan the QR code, and subscribe.
 - **One-click cleanup** — once your podcatcher has the episodes, **Delete all**
   clears every MP3 the feed lists from that mode's folder (with a count
   confirmation; never a file still being written).
@@ -178,8 +178,10 @@ The extension only acts when you click, only on the active tab, and only talks t
 ### Subscribe on your phone
 
 1. Click **Feed** on the tab whose feed you want.
-2. Scan the QR code, or enter the shown `http://<your-ip>:4738/tts/feed.xml`
-   (or `/video/feed.xml`) in any podcast app on the same network.
+2. Scan the QR code, or enter the shown `http://<your-ip>:4738/tts/<token>/feed.xml`
+   (or `/video/<token>/feed.xml`) in any podcast app on the same network. The
+   token keeps others on your Wi-Fi out; **Reset feed URL** issues a new one if the
+   URL leaks, and every device then has to re-subscribe.
 3. After your podcatcher downloads the episodes, **Delete all** clears that
    folder for the next batch.
 
