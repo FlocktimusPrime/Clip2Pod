@@ -58,6 +58,6 @@ ICO/PNG favicons recoloured to `#5b4fc4` so they read on light browser tabs.
   `src-tauri/assets/tray-icon.png`.
 - **Webview favicon:** copy `png/feed-icon-32.png` to `static/favicon.png`.
 - Covers (`src-tauri/src/feed.rs` embeds both):
-  - `png/feed-cover-narrate-3000.png` → `src-tauri/assets/cover.png` (served at `/tts/cover.png`)
-  - `png/feed-cover-rip-3000.jpg` → `src-tauri/assets/cover.jpg` (served at `/video/cover.jpg`, unless
+  - `png/feed-cover-narrate-3000.png` → `src-tauri/assets/cover.png` (served at `/tts/<token>/cover.png`)
+  - `png/feed-cover-rip-3000.jpg` → `src-tauri/assets/cover.jpg` (served at `/video/<token>/cover.jpg`, unless
     the user has put a `cover.jpg` in the rip output folder)
