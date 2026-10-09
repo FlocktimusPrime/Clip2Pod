@@ -9,7 +9,7 @@ glance.
 
 **Versions:** horizontal lockup (primary) · stacked lockup · symbol · wordmark.
 The symbol has the **master** drawing plus two pixel-fitted **small cuts**, one for 16 px
-and one for 24 px: the whole mark (all three lines, both arcs, the dot) without arrows.
+and one for 24 px: the whole mark (all three lines, both arcs, the dot), with the arrow joins reduced to a break.
 
 **Construction** (256 grid): one stroke (28), one row pitch (56), arcs concentric on the dot
 (R 56 / 112), dot Ø 36 — slightly larger than the stroke so it reads at the same weight.
@@ -21,8 +21,8 @@ gaps, the dot as wide as the stroke. Each is sharp only at its own size and at 2
 tip 8 units before each bend. The arms lean back 18 for every 26 up or down, so they
 clear the stroke. The tips are deliberately sharp, the only corners in an otherwise round
 mark, because the sharpness is what makes them read as arrows. They hold down to about
-48 px and are gone by 32 px. That's why the small cuts leave them out: a sub-pixel cut
-would only blur the line.
+48 px and are gone by 32 px. The small cuts keep the join as a plain 1 px break (16 units
+wide, pixel-aligned), so every size has the same gap even where the arrow no longer reads.
 
 ## 2. Clear space
 
