@@ -2,7 +2,7 @@
 
 The mark: the lines of a paragraph bend at the right margin into the RSS arcs;
 the paragraph's full stop is the feed's dot, and a chevron cut where each line turns
-marks the conversion (master only; the small cuts have none). Everything is built from one stroke
+marks the conversion (the small cuts keep it as a 1 px break). Everything is built from one stroke
 width, one row pitch and concentric radii on a 256 grid; no strokes or live text
 ship in the output (letters are outlined from the fonts below).
 
@@ -94,6 +94,8 @@ def feed(w=28, pitch=56, dot=18, O=(114, 179), x0=30, last_line=True, stop_gap=1
 
 # the arrow joins: a chevron gap 8 units before each bend, arms 18 run : 26 rise, gap 12
 ARROW = (8, 18, 26, 12)
+# small cuts: same chevron, gap widened to 16 units (1 px at 16 px) so it survives as a break
+ARROW_SMALL = (8, 18, 26, 16)
 # master: stroke 28, pitch 56, dot Ø36 (optically equal to the stroke), ink box 16..240 × 53..197
 MARK = feed(arrow=ARROW)
 # reversed (light on dark): 1 unit thinner to offset irradiation
@@ -104,12 +106,12 @@ def small_cut(size, s, gap, O, x0):
     """The whole mark (all three lines, the dot) fitted to whole pixels at `size` px.
 
     Measured in pixels: stroke `s`, `gap` between rows, arcs and dot, dot as wide as the
-    stroke; scaled back to the 256 grid. No arrows: a 12-unit cut is under 1 px at these
-    sizes, so it would only blur the line.
+    stroke; scaled back to the 256 grid. The arrow joins are kept, with the gap widened to
+    one pixel (16 units): at these sizes they read as a break, not an arrow.
     """
     k = 256 / size
     return feed(w=s * k, pitch=(s + gap) * k, dot=s / 2 * k, O=(O[0] * k, O[1] * k),
-                x0=x0 * k, stop_gap=gap * k)
+                x0=x0 * k, stop_gap=gap * k, arrow=ARROW_SMALL)
 
 
 # small cuts: 16 px (stroke 2, gap 1; ink 1..15 x 4..12) and 24 px (stroke 3, gap 1;
