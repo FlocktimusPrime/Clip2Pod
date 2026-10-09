@@ -165,7 +165,7 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
 - `branding/feed/` — current Feed mark (paragraph lines bending into the RSS
   arcs, with an arrow-shaped cut where each line turns): source SVGs, exported icons, tray glyphs, per-feed covers, web icons,
   generator (`src/`), usage rules in `GUIDELINES.md`. Retired marks (red mic,
-  document-and-waves, C2P) are in `branding/archive/`.
+  document-and-waves, C2P) are no longer kept in the repo.
 - No user testimonials, install counts, benchmarks, reviews, or press exist.
   Future work must not fabricate them.
 
