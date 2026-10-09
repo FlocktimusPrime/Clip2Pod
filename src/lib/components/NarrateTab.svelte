@@ -335,7 +335,6 @@
     };
 
     if (key === "v" && shift) return run(pasteClipboard);
-    if (key === "l" && shift) return run(() => (app.dialog = "log"));
     if (key === "k" && shift) return run(suggestJunk);
     if (shift) return;
 

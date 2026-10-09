@@ -1,9 +1,10 @@
 <script lang="ts">
-  import * as rip from "$lib/rip_api";
   import { ariaSort, sortIndicator, sortRows, toggleSort, type SortState } from "$lib/sort";
   import { app } from "$lib/stores.svelte";
   import type { RipLogEntry } from "$lib/types";
-  import Modal from "./Modal.svelte";
+
+  // Rip tab of the Log dialog. Stays mounted while the Narrate tab shows, so
+  // its search and sort survive switching back.
 
   type Col = "time" | "status" | "title" | "detail";
 
@@ -18,55 +19,44 @@
   const sorted = $derived(sortRows(filtered, sort, pick));
 
   const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { hour12: false });
-
-  async function clear() {
-    await rip.clearLog();
-    app.ripLog = [];
-  }
 </script>
 
-<Modal title="Rip log" onclose={() => (app.dialog = null)}>
-  <div class="toolbar">
-    <input
-      class="field"
-      aria-label="Search log by title"
-      placeholder="Search by title…"
-      bind:value={search}
-    />
-  </div>
+<div class="toolbar">
+  <input
+    class="field"
+    aria-label="Search Rip log by title"
+    placeholder="Search by title…"
+    bind:value={search}
+  />
+</div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          {#each [["time", "Time"], ["status", "Status"], ["title", "Title"], ["detail", "Detail"]] as const as [key, label] (key)}
-            <th aria-sort={ariaSort(sort, key)}>
-              <button class="th-sort" onclick={() => (sort = toggleSort(sort, key))}>
-                {label} <span class="arrow">{sortIndicator(sort, key)}</span>
-              </button>
-            </th>
-          {/each}
-        </tr>
-      </thead>
-      <tbody>
-        {#each sorted as entry, i (i)}
-          <tr>
-            <td class="mono">{fmt(entry.timestamp)}</td>
-            <td><span class="status" data-status={entry.status}>{entry.status}</span></td>
-            <td class="clip" title={entry.title}>{entry.title}</td>
-            <td class="clip" title={entry.detail}>{entry.detail}</td>
-          </tr>
-        {:else}
-          <tr><td colspan="4" class="empty">No log entries yet. Finished rips land here.</td></tr>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        {#each [["time", "Time"], ["status", "Status"], ["title", "Title"], ["detail", "Detail"]] as const as [key, label] (key)}
+          <th aria-sort={ariaSort(sort, key)}>
+            <button class="th-sort" onclick={() => (sort = toggleSort(sort, key))}>
+              {label} <span class="arrow">{sortIndicator(sort, key)}</span>
+            </button>
+          </th>
         {/each}
-      </tbody>
-    </table>
-  </div>
-
-  {#snippet footer()}
-    <button class="btn" onclick={clear} disabled={app.ripLog.length === 0}>Clear log</button>
-  {/snippet}
-</Modal>
+      </tr>
+    </thead>
+    <tbody>
+      {#each sorted as entry, i (i)}
+        <tr>
+          <td class="mono">{fmt(entry.timestamp)}</td>
+          <td><span class="status" data-status={entry.status}>{entry.status}</span></td>
+          <td class="clip" title={entry.title}>{entry.title}</td>
+          <td class="clip" title={entry.detail}>{entry.detail}</td>
+        </tr>
+      {:else}
+        <tr><td colspan="4" class="empty">No log entries yet. Finished rips land here.</td></tr>
+      {/each}
+    </tbody>
+  </table>
+</div>
 
 <style>
   .toolbar {

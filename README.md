@@ -93,8 +93,8 @@ captures your logged-in session).
   `Documents/Clip2Pod Feeds/Narrated` and `…/Ripped` unless you pick other
   folders in Settings.
 - **Two podcast feeds** — a local RSS server (port `4738`) serves a narrated
-  feed and a ripped feed, each behind a private URL. Open **Feed** on either
-  tab, scan the QR code, and subscribe.
+  feed and a ripped feed, each behind a private URL. Open **Feed**, pick the
+  Narrate or Rip tab, scan the QR code, and subscribe.
 - **One-click cleanup** — once your podcatcher has the episodes, **Delete all**
   clears every MP3 the feed lists from that mode's folder (with a count
   confirmation; never a file still being written).
@@ -214,7 +214,8 @@ The extension only acts when you click, only on the active tab, and only talks t
 
 ### Subscribe on your phone
 
-1. Click **Feed** on the tab whose feed you want.
+1. Click **Feed**. The dialog has a tab for each feed, and opens on the mode
+   you're in.
 2. Scan the QR code, or enter the shown `http://<your-ip>:4738/tts/<token>/feed.xml`
    (or `/video/<token>/feed.xml`) in any podcast app on the same network. The
    token keeps others on your Wi-Fi out; **Reset feed URL** issues a new one if the
@@ -237,7 +238,7 @@ The extension only acts when you click, only on the active tab, and only talks t
 | `Ctrl+J` | Edit junk phrases |
 | `Ctrl+M` | Manage voices |
 | `Ctrl+G` | Manage Author Genders |
-| `Ctrl+Shift+L` | Open the log (the active tab's) |
+| `Ctrl+Shift+L` | Open the log (on the active mode's tab) |
 | `Ctrl+,` | Settings |
 
 A full feature walkthrough lives in [ABOUT.md](ABOUT.md).
