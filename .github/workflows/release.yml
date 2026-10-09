@@ -53,7 +53,7 @@ jobs:
 
       - name: run core tests (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
-        run: cargo test -p clip2pod-core -p ytdlfeed-core --manifest-path src-tauri/Cargo.toml
+        run: cargo test -p clip2pod-core -p clip2pod-rip --manifest-path src-tauri/Cargo.toml
 
       - uses: tauri-apps/tauri-action@v1
         env:

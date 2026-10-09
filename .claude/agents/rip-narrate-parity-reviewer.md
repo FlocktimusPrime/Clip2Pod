@@ -21,7 +21,7 @@ command/event belongs to.
   `"rip:lamp"`, `"rip:queue-changed"`, `"rip:log-appended"`, `"rip:job-progress"`.
 - The same split applies to TS types on the frontend (`RipJob`, `RipConfigView`,
   etc. vs. unprefixed narrate types) and to config/log file locations (rip's
-  live under `<config dir>/Clip2Pod2/rip/`, separate from narrate's).
+  live under `<config dir>/Clip2Pod/rip/`, separate from narrate's).
 - One capture listener (port 4737) and one feed server (port 4738,
   `/tts/*` + `/video/*`) are shared by the shell, but the two queues/workers
   behind them are independent — a fix to `worker.rs` (narrate) is not

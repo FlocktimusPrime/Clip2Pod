@@ -2,7 +2,6 @@ mod capture;
 mod commands;
 mod feed;
 mod firewall;
-mod migrate;
 mod rip_commands;
 mod rip_worker;
 mod state;
@@ -37,11 +36,9 @@ pub fn run() {
     let feed_token = feed::load_or_create_token(&config_dir);
     let (wake_tx, wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    // RIP mode: its own config/log subdir, seeded once from a prior standalone
-    // yt-dlFeed install if the user had one.
+    // RIP mode: its own config/log subdir.
     let rip_config_dir = config_dir.join("rip");
-    migrate::migrate_ytdlfeed_config(&rip_config_dir);
-    let rip_config = ytdlfeed_core::config::load_config(&rip_config_dir);
+    let rip_config = clip2pod_rip::config::load_config(&rip_config_dir);
     let (rip_wake_tx, rip_wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
     // Intake, not generate: surface the window and let the frontend run

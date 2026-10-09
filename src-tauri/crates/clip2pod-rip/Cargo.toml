@@ -1,9 +1,9 @@
 [package]
-name = "ytdlfeed-core"
+name = "clip2pod-rip"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-only"
-description = "yt-dlFeed application logic: config, queue, yt-dlp invocation, podcast feed"
+description = "Clip2Pod Rip logic: config, queue, yt-dlp invocation, podcast feed"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

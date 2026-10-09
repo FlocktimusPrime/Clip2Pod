@@ -53,7 +53,7 @@ body:
       label: Error text or logs
       description: |
         Any error message from the app, the job's line in the log (Ctrl+Shift+L), or
-        `crash.log` if there is one. It lives in `%APPDATA%\Clip2Pod2` on Windows,
-        `~/Library/Application Support/Clip2Pod2` on macOS and `~/.config/Clip2Pod2`
+        `crash.log` if there is one. It lives in `%APPDATA%\Clip2Pod` on Windows,
+        `~/Library/Application Support/Clip2Pod` on macOS and `~/.config/Clip2Pod`
         on Linux. For Rip problems, the `yt-dlp --version` output helps.
       render: text
