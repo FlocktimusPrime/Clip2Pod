@@ -9,7 +9,6 @@
   import ManageAuthorsDialog from "$lib/components/ManageAuthorsDialog.svelte";
   import JunkDialog from "$lib/components/JunkDialog.svelte";
   import LogDialog from "$lib/components/LogDialog.svelte";
-  import RipLogDialog from "$lib/components/RipLogDialog.svelte";
   import FeedDialog from "$lib/components/FeedDialog.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
   import StartupPromptDialog from "$lib/components/StartupPromptDialog.svelte";
@@ -42,7 +41,18 @@
 
     return { lamp, label };
   });
+  // App-wide: Ctrl+Shift+L opens the Log on the current mode's tab. Capture
+  // phase so the Narrate editor can't swallow it first.
+  function onKeydown(e: KeyboardEvent) {
+    if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "l") {
+      e.preventDefault();
+      e.stopPropagation();
+      app.dialog = "log";
+    }
+  }
 </script>
+
+<svelte:window onkeydowncapture={onKeydown} />
 
 <div class="shell">
   <Header
@@ -51,7 +61,7 @@
     lamp={combined.lamp}
     label={combined.label}
     onfeed={() => (app.dialog = "feed")}
-    onlog={() => (app.dialog = app.tab === "rip" ? "rip-log" : "log")}
+    onlog={() => (app.dialog = "log")}
     onsettings={() => (app.dialog = "settings")}
   />
 
@@ -69,8 +79,6 @@
   <JunkDialog />
 {:else if app.dialog === "log"}
   <LogDialog />
-{:else if app.dialog === "rip-log"}
-  <RipLogDialog />
 {:else if app.dialog === "feed"}
   <FeedDialog />
 {:else if app.dialog === "settings"}
