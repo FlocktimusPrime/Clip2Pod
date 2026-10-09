@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/confirm-ytdlfeed-edit.js",
+            "command": "node .claude/hooks/confirm-rip-crate-edit.js",
             "timeout": 10
           }
         ]

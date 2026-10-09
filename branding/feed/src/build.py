@@ -2,7 +2,7 @@
 
 The mark: the lines of a paragraph bend at the right margin into the RSS arcs;
 the paragraph's full stop is the feed's dot, and a chevron cut where each line turns
-marks the conversion (master only; the small cut has none). Everything is built from one stroke
+marks the conversion (master only; the small cuts have none). Everything is built from one stroke
 width, one row pitch and concentric radii on a 256 grid; no strokes or live text
 ship in the output (letters are outlined from the fonts below).
 
@@ -98,9 +98,24 @@ ARROW = (8, 18, 26, 12)
 MARK = feed(arrow=ARROW)
 # reversed (light on dark): 1 unit thinner to offset irradiation
 MARK_REV = feed(w=27, dot=17.5, arrow=ARROW)
-# small cut for 16–32 px: 16-unit pixel grid at 16 px (stroke = 2 px), no last line, no arrows
-# (a 12-unit cut is under 1 px at 16 px, so it would only blur the line)
-MARK_SMALL = feed(w=32, pitch=64, dot=24, O=(96, 176), x0=32, last_line=False)
+
+
+def small_cut(size, s, gap, O, x0):
+    """The whole mark (all three lines, the dot) fitted to whole pixels at `size` px.
+
+    Measured in pixels: stroke `s`, `gap` between rows, arcs and dot, dot as wide as the
+    stroke; scaled back to the 256 grid. No arrows: a 12-unit cut is under 1 px at these
+    sizes, so it would only blur the line.
+    """
+    k = 256 / size
+    return feed(w=s * k, pitch=(s + gap) * k, dot=s / 2 * k, O=(O[0] * k, O[1] * k),
+                x0=x0 * k, stop_gap=gap * k)
+
+
+# small cuts: 16 px (stroke 2, gap 1; ink 1..15 x 4..12) and 24 px (stroke 3, gap 1;
+# ink 2..22 x 6..17). Each lands on whole pixels only at its own size (and its 2x).
+MARK_SMALL = small_cut(16, s=2, gap=1, O=(8, 11), x0=2)
+MARK_SMALL24 = small_cut(24, s=3, gap=1, O=(12.5, 15.5), x0=3.5)
 MARK_BOX = (16, 53, 240, 197)
 
 
@@ -183,10 +198,11 @@ def symbols():
     write('feed-symbol-black', sq, p(MARK, '#000000'))
     write('feed-symbol-desk', sq, p(MARK, DESK))
     write('feed-symbol-white', sq, p(MARK_REV, '#ffffff'))       # reversed, thinned
-    write('feed-symbol-small', sq, p(MARK_SMALL, LAV))           # 16–32 px
-    write('feed-symbol-small-light', sq, p(MARK_SMALL, LAV_LIGHT))
-    write('feed-symbol-small-black', sq, p(MARK_SMALL, '#000000'))
-    write('feed-symbol-small-white', sq, p(MARK_SMALL, '#ffffff'))
+    for name, mark in (('feed-symbol-small', MARK_SMALL), ('feed-symbol-small24', MARK_SMALL24)):
+        write(name, sq, p(mark, LAV))                            # 16 px / 24 px (and 2x)
+        write(name + '-light', sq, p(mark, LAV_LIGHT))
+        write(name + '-black', sq, p(mark, '#000000'))
+        write(name + '-white', sq, p(mark, '#ffffff'))
 
 
 # lockup proportions (symbol at 256 scale): cap height 76, gap = one dot diameter (36)
@@ -234,8 +250,9 @@ def tiles():
     S = 1024
     rx = round(S * 0.225)
     mw = MARK_BOX[2] - MARK_BOX[0]
-    for name, mark in (('feed-app-icon', MARK), ('feed-app-icon-small', MARK_SMALL)):
-        if mark is MARK_SMALL:                                    # 1:1 on the tile so the 16 px pixel grid holds
+    for name, mark in (('feed-app-icon', MARK), ('feed-app-icon-small', MARK_SMALL),
+                       ('feed-app-icon-small24', MARK_SMALL24)):
+        if mark is not MARK:                                      # 1:1 on the tile so the pixel grid holds
             s, tx, ty = S / 256, 0, 0
         else:
             s = S * 0.62 / mw

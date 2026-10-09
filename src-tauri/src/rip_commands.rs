@@ -1,16 +1,16 @@
-// IPC commands for RIP mode. Ported from the standalone yt-dlFeed app; every
-// command is prefixed `rip_` so it doesn't collide with the narrate commands,
-// and every state access points at the rip slice of AppState. Theme / startup /
-// firewall commands are dropped — the narrate side owns those app-wide.
+// IPC commands for RIP mode. Every command is prefixed `rip_` so it doesn't
+// collide with the narrate commands, and every state access points at the rip
+// slice of AppState. Theme / startup / firewall commands live on the narrate
+// side, which owns them app-wide.
 
 use crate::rip_worker::{emit_lamp, emit_queue, log_and_emit};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, State};
-use ytdlfeed_core::config::{self, LogEntry, LogStatus};
-use ytdlfeed_core::queue::Job;
-use ytdlfeed_core::ytdlp;
+use clip2pod_rip::config::{self, LogEntry, LogStatus};
+use clip2pod_rip::queue::Job;
+use clip2pod_rip::ytdlp;
 
 use crate::state::AppState;
 
@@ -203,7 +203,7 @@ pub struct EpisodeView {
 
 #[tauri::command]
 pub fn rip_list_episodes(state: State<AppState>) -> Vec<EpisodeView> {
-    ytdlfeed_core::feed::scan_episodes(&state.rip_output_dir())
+    clip2pod_rip::feed::scan_episodes(&state.rip_output_dir())
         .into_iter()
         .map(|e| EpisodeView {
             title: e.title,
@@ -254,7 +254,7 @@ pub fn rip_delete_all_episodes(state: State<AppState>) -> CmdResult<usize> {
         .collect();
     let mut deleted = 0;
     let mut failed = Vec::new();
-    for episode in ytdlfeed_core::feed::scan_episodes(&dir) {
+    for episode in clip2pod_rip::feed::scan_episodes(&dir) {
         if reserved.contains(&episode.filename) {
             continue;
         }

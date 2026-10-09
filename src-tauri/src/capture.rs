@@ -74,7 +74,7 @@ fn handle(app: &AppHandle, body: &str) -> (u16, String) {
     let to_rip = match payload.override_hint.as_deref() {
         Some("video") => true,
         Some("article") => false,
-        _ => ytdlfeed_core::ytdlp::rippable_host(&payload.url),
+        _ => clip2pod_rip::ytdlp::rippable_host(&payload.url),
     };
 
     let result = if to_rip {

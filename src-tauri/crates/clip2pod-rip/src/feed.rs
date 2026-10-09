@@ -230,7 +230,7 @@ pub fn build_rss(episodes: &[Episode], base_url: &str) -> String {
         "{}{}{}{}{}{}{}{}",
         r#"<?xml version="1.0" encoding="UTF-8"?>"#,
         r#"<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">"#,
-        "<channel><title>yt-dlFeed</title><description>Audio ripped by yt-dlp</description>",
+        "<channel><title>Clip2Pod Ripped</title><description>Audio ripped by Clip2Pod</description>",
         format!("<link>{base_url}/feed.xml</link>"),
         "<language>en</language>",
         format!(r#"<itunes:image href="{base_url}/cover.jpg"/>"#),
@@ -388,14 +388,14 @@ mod tests {
         assert!(xml.contains(r#"<guid isPermaLink="false">tom &amp; jerry.mp3</guid>"#));
         assert!(xml.contains("<pubDate>"));
         assert!(xml.contains(r#"<itunes:image href="http://192.168.1.5:4740/cover.jpg"/>"#));
-        assert!(xml.contains("<title>yt-dlFeed</title>"));
+        assert!(xml.contains("<title>Clip2Pod Ripped</title>"));
     }
 
     #[test]
     fn rss_omits_absent_optional_elements() {
         let xml = build_rss(&[ep("T", "t.mp3")], "http://h:4740");
         // channel keeps its required description...
-        assert!(xml.contains("<description>Audio ripped by yt-dlp</description>"));
+        assert!(xml.contains("<description>Audio ripped by Clip2Pod</description>"));
         // ...but the item (no optional fields set) carries none of the optional elements
         let items = &xml[xml.find("<item>").unwrap()..];
         assert!(!items.contains("<description>"));

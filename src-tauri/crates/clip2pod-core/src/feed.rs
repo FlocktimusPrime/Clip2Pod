@@ -182,7 +182,7 @@ pub fn build_rss(episodes: &[Episode], base_url: &str) -> String {
         "{}{}{}{}{}{}{}{}",
         r#"<?xml version="1.0" encoding="UTF-8"?>"#,
         r#"<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">"#,
-        "<channel><title>Clip2Pod</title><description>Articles narrated by Clip2Pod</description>",
+        "<channel><title>Clip2Pod Narrated</title><description>Articles narrated by Clip2Pod</description>",
         format!("<link>{base_url}/feed.xml</link>"),
         "<language>en</language>",
         format!(r#"<itunes:image href="{base_url}/cover.png"/>"#),
@@ -321,7 +321,7 @@ mod tests {
         assert!(xml.contains(r#"<guid isPermaLink="false">tom &amp; jerry.mp3</guid>"#));
         assert!(xml.contains("<pubDate>"));
         assert!(xml.contains(r#"<itunes:image href="http://192.168.1.5:4738/cover.png"/>"#));
-        assert!(xml.contains("<title>Clip2Pod</title>"));
+        assert!(xml.contains("<title>Clip2Pod Narrated</title>"));
     }
 
     #[test]
