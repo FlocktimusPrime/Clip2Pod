@@ -101,15 +101,6 @@
   );
 </script>
 
-<svelte:window
-  onkeydown={(e) => {
-    if (app.tab === "rip" && e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "l") {
-      e.preventDefault();
-      app.dialog = "rip-log";
-    }
-  }}
-/>
-
 <div class="desk">
   {#if missingTools && app.doctor}
     <div class="doctor" role="status">

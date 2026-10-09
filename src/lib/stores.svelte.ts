@@ -27,7 +27,6 @@ export type DialogName =
   | "authors"
   | "junk"
   | "log"
-  | "rip-log"
   | "feed"
   | "settings"
   | "startup-prompt"

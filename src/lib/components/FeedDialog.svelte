@@ -2,36 +2,47 @@
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import * as api from "$lib/api";
   import * as rip from "$lib/rip_api";
-  import { app, toast } from "$lib/stores.svelte";
+  import { app, toast, type TabName } from "$lib/stores.svelte";
   import type { FirewallHelp } from "$lib/types";
   import Modal from "./Modal.svelte";
+  import ModeTabs from "./ModeTabs.svelte";
 
-  // The Feed button opens this from whichever tab you're on.
-  const isRip = app.tab === "rip";
-  const kind = isRip ? "ripped audio" : "narrated articles";
+  // Both feeds in one dialog, one per tab so only one QR is ever on screen.
+  // Opens on the mode you came from; the tabs here never change app.tab.
+  let mode = $state<TabName>(app.tab);
 
-  let url = $state("");
-  let qr = $state("");
+  const feeds: { id: TabName; title: string; kind: string; load: () => Promise<string> }[] = [
+    { id: "narrate", title: "Clip2Pod Narrated", kind: "Narrated articles", load: api.feedUrl },
+    { id: "rip", title: "Clip2Pod Ripped", kind: "Ripped audio", load: rip.feedUrl },
+  ];
 
-  function loadUrl() {
-    (isRip ? rip.feedUrl() : api.feedUrl()).then(
-      (u) => (url = u),
-      (e) => toast(`Feed URL failed: ${e}`, "error"),
-    );
+  let urls = $state<Record<TabName, string>>({ narrate: "", rip: "" });
+  let qrs = $state<Record<TabName, string>>({ narrate: "", rip: "" });
+
+  function loadUrls() {
+    for (const f of feeds) {
+      f.load().then(
+        (u) => (urls[f.id] = u),
+        (e) => toast(`Feed URL failed: ${e}`, "error"),
+      );
+    }
   }
 
-  $effect(loadUrl);
+  $effect(loadUrls);
 
   // qrcode is ~40 kB and only reachable through this dialog — load it on open
   // instead of shipping it in the initial page chunk.
   $effect(() => {
-    if (!url) return;
+    const pending = feeds.filter((f) => urls[f.id]).map((f) => [f.id, urls[f.id]] as const);
+    if (!pending.length) return;
     let stale = false;
     (async () => {
       try {
         const { default: QRCode } = await import("qrcode");
-        const dataUrl = await QRCode.toDataURL(url, { margin: 1, width: 220 });
-        if (!stale) qr = dataUrl;
+        for (const [id, u] of pending) {
+          const dataUrl = await QRCode.toDataURL(u, { margin: 1, width: 220 });
+          if (!stale) qrs[id] = dataUrl;
+        }
       } catch (e) {
         if (!stale) toast(`QR code failed: ${e}`, "error");
       }
@@ -41,15 +52,15 @@
     };
   });
 
-  let copied = $state(false);
+  let copied = $state<TabName | null>(null);
 
-  async function copy() {
+  async function copy(id: TabName) {
     try {
-      await writeText(url);
+      await writeText(urls[id]);
       // Inline confirmation, not a toast: a toast fires behind the open
       // <dialog> (top layer), where this feedback would be missed.
-      copied = true;
-      setTimeout(() => (copied = false), 1600);
+      copied = id;
+      setTimeout(() => (copied = null), 1600);
     } catch (e) {
       toast(`Copy failed: ${e}`, "error");
     }
@@ -76,9 +87,9 @@
     resetting = true;
     try {
       await api.resetFeedUrl();
-      url = "";
-      qr = "";
-      loadUrl();
+      urls = { narrate: "", rip: "" };
+      qrs = { narrate: "", rip: "" };
+      loadUrls();
     } catch (e) {
       toast(`Reset failed: ${e}`, "error");
     } finally {
@@ -115,21 +126,31 @@
   }
 </script>
 
-<Modal title="Podcast feed — {kind}" onclose={() => (app.dialog = null)}>
+<Modal title="Podcast feeds" onclose={() => (app.dialog = null)}>
   <p class="hint">
-    Subscribe in your podcast app for {kind} — same Wi-Fi, and Clip2Pod must be
-    running (the tray keeps it alive when the window is closed). The two feeds
-    are separate; switch tabs for the other one.
+    Two separate feeds — subscribe to the ones you want. Same Wi-Fi, and Clip2Pod
+    must be running (the tray keeps it alive).
   </p>
-  <div class="url-row">
-    <code>{url || "…"}</code>
-    <button class="btn" onclick={copy} disabled={!url}>{copied ? "Copied" : "Copy"}</button>
-  </div>
-  {#if qr}
-    <div class="qr-wrap">
-      <img class="qr" src={qr} alt="QR code for feed URL" />
+  <ModeTabs bind:value={mode} label="Which feed" idPrefix="feed" />
+  {#each feeds as f (f.id)}
+    <div role="tabpanel" id="feed-panel-{f.id}" aria-labelledby="feed-tab-{f.id}" hidden={mode !== f.id}>
+      <p class="hint">
+        {f.kind}. Shows up as <strong>{f.title}</strong> in your
+        podcast app.
+      </p>
+      <div class="url-row">
+        <code>{urls[f.id] || "…"}</code>
+        <button class="btn" onclick={() => copy(f.id)} disabled={!urls[f.id]}>
+          {copied === f.id ? "Copied" : "Copy"}
+        </button>
+      </div>
+      {#if qrs[f.id]}
+        <div class="qr-wrap">
+          <img class="qr" src={qrs[f.id]} alt="QR code for the {f.title} feed" />
+        </div>
+      {/if}
     </div>
-  {/if}
+  {/each}
   <div class="reset-row">
     {#if !confirmReset}
       <button class="btn" bind:this={resetBtn} onclick={() => (confirmReset = true)}>
