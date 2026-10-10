@@ -29,3 +29,6 @@ vite.config.ts.timestamp-*
 # Impeccable (track the DESIGN.md sidecar, ignore its working files)
 .impeccable/*
 !.impeccable/design.json
+
+# Personal drafts (not for the repo)
+docs/reddit-post.md
