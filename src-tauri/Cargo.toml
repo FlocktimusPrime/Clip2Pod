@@ -8,7 +8,7 @@ msedge-tts = { path = "vendor/msedge-tts" }
 
 [package]
 name = "clip2pod"
-version = "0.9.0"
+version = "0.9.1"
 description = "Clip2Pod — clipboard text to narrated MP3"
 authors = ["FlocktimusPrime"]
 edition = "2021"
