@@ -1,5 +1,10 @@
 [workspace]
-members = ["crates/clip2pod-core", "crates/clip2pod-rip"]
+members = ["crates/clip2pod-core", "crates/clip2pod-rip", "vendor/msedge-tts"]
+
+# shortcut: msedge-tts 0.2.5 + Sec-MS-GEC v2 token (vendor/msedge-tts/src/tts/gec.rs);
+# drop this patch and the vendor dir once an upstream release sends v2 tokens.
+[patch.crates-io]
+msedge-tts = { path = "vendor/msedge-tts" }
 
 [package]
 name = "clip2pod"
