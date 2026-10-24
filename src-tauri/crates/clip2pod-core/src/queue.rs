@@ -82,6 +82,25 @@ impl Queue {
         }
     }
 
+    /// Send a Failed or Cancelled job back to Queued, keeping its text, voice
+    /// and filename. A render writes its MP3 only after every chunk succeeds,
+    /// so there is no partial output to clean up first. Returns false when the
+    /// id is unknown or the job is not in a retryable state.
+    pub fn requeue(&mut self, id: &str) -> bool {
+        let Some(job) = self
+            .jobs
+            .iter_mut()
+            .find(|j| j.id == id && matches!(j.status, JobStatus::Failed | JobStatus::Cancelled))
+        else {
+            return false;
+        };
+        job.status = JobStatus::Queued;
+        job.started = None;
+        job.finished = None;
+        job.detail = String::new();
+        true
+    }
+
     /// Cancel every Queued job; the Processing one (if any) is untouched.
     /// Returns the cancelled jobs.
     pub fn clear_pending(&mut self) -> Vec<Job> {
@@ -150,6 +169,36 @@ mod tests {
         q.finish(&j1.id, JobStatus::Done, String::new());
         let j2 = q.start_next().unwrap();
         assert_eq!(j2.id, ids[1]);
+    }
+
+    #[test]
+    fn requeue_puts_a_failed_job_back_in_line() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let j = q.start_next().unwrap();
+        q.finish(&j.id, JobStatus::Failed, "os error 10054".into());
+
+        assert!(q.requeue(&j.id));
+        let job = q.jobs().iter().find(|x| x.id == j.id).unwrap();
+        assert_eq!(job.status, JobStatus::Queued);
+        assert_eq!(job.detail, "");
+        assert!(job.finished.is_none());
+        // Text, voice and filename survive, so the worker can render it as-is.
+        assert_eq!(job.text, "text");
+        assert_eq!(job.filename, "t0.mp3");
+        // Back in the reserved set, so a new job can't claim the same filename.
+        assert!(q.reserved_filenames().contains(&"t0.mp3".to_string()));
+    }
+
+    #[test]
+    fn requeue_refuses_unknown_and_non_terminal_jobs() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        assert!(!q.requeue("nope"));
+        let j = q.start_next().unwrap();
+        assert!(!q.requeue(&j.id), "a Processing job must not be requeued");
+        q.finish(&j.id, JobStatus::Done, String::new());
+        assert!(!q.requeue(&j.id), "a Done job must not be requeued");
     }
 
     #[test]

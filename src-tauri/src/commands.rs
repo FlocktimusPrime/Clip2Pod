@@ -276,6 +276,21 @@ pub fn cancel_current(state: State<AppState>) {
         .store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
+/// Re-render a job that Failed or was Cancelled, reusing its stored text,
+/// voice and filename. No new voice is picked, so the retry sounds like the
+/// episode the user was expecting.
+#[tauri::command]
+pub fn retry_job(app: AppHandle, id: String) -> CmdResult<()> {
+    let state = app.state::<AppState>();
+    if !state.queue.lock().unwrap().requeue(&id) {
+        return Err("that job is no longer retryable".into());
+    }
+    emit_lamp(&app);
+    emit_queue(&app);
+    let _ = state.wake_worker.send(());
+    Ok(())
+}
+
 #[tauri::command]
 pub fn clear_pending(app: AppHandle) {
     let cancelled = {

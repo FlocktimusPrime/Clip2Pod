@@ -55,6 +55,8 @@ export const clearPending = () => invoke<void>("clear_pending");
 
 export const cancelCurrent = () => invoke<void>("cancel_current");
 
+export const retryJob = (id: string) => invoke<void>("retry_job", { id });
+
 export const getLog = (query: string) => invoke<LogEntry[]>("get_log", { query });
 
 export const clearLog = () => invoke<void>("clear_log");
