@@ -215,6 +215,16 @@ fn retry_chunk(
     Err(last_err.expect("CHUNK_ATTEMPTS >= 1, so a failed loop always set an error"))
 }
 
+/// How long a single socket read may stall before we call the turn dead.
+///
+/// `synthesize` blocks reading frames until the service sends `turn.end`. A
+/// link that dies without the peer managing a FIN or RST — wifi switched off,
+/// laptop asleep, cable pulled — produces no error at all, so without this the
+/// read waits on TCP keepalive: two hours on Windows. Edge TTS streams MP3
+/// frames continuously once a turn starts, so a gap this long means the turn is
+/// gone, not slow.
+const READ_TIMEOUT: Duration = Duration::from_secs(20);
+
 /// One websocket turn: connect, synthesize, insist on audio. A fresh
 /// connection every time, because the client's socket state after a turn is
 /// not guaranteed reusable — and because reconnecting regenerates the
@@ -225,6 +235,11 @@ fn connect_and_synthesize(
 ) -> Result<Vec<u8>, TtsError> {
     let mut client =
         msedge_tts::tts::client::connect().map_err(|e| TtsError::Service(e.to_string()))?;
+    // Timing out mid-TLS-record would desync the session, but every error path
+    // here drops the client and reconnects, so there is no session to protect.
+    client
+        .set_read_timeout(Some(READ_TIMEOUT))
+        .map_err(|e| TtsError::Service(format!("could not set socket read timeout: {e}")))?;
     let audio = client
         .synthesize(chunk, config)
         .map_err(|e| TtsError::Service(e.to_string()))?;
@@ -249,7 +264,10 @@ pub fn synthesize_bytes(voice_name: &str, text: &str) -> Result<Vec<u8>, TtsErro
 /// `TtsError::Cancelled`) and calls `on_progress(chunks_done, chunks_total)`
 /// after each one.
 // ponytail: cancellation lands between chunks, not mid-chunk — a websocket
-// turn already in flight finishes before the loop bails.
+// turn already in flight finishes before the loop bails. `READ_TIMEOUT` bounds
+// that wait: a turn whose socket has gone silent gives up rather than pinning
+// the render (and so the Cancel button) on a connection that is never coming
+// back.
 pub fn synthesize_bytes_cb(
     voice_name: &str,
     text: &str,
