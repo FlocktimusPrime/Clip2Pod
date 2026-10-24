@@ -161,6 +161,47 @@ fn word_pack(text: &str) -> Vec<String> {
     chunks
 }
 
+/// Attempts per chunk before a render gives up. Edge TTS drops the websocket
+/// every so often — Windows surfaces it as "os error 10054" (connection reset
+/// by peer), and the Sec-MS-GEC token rotates every five minutes, so a long
+/// article is exposed to a reset at any chunk boundary. A reconnect
+/// regenerates the token and nearly always succeeds, and re-rendering one
+/// 2500-char chunk is far cheaper than discarding a whole article.
+const CHUNK_ATTEMPTS: u32 = 4;
+
+/// One chunk, with retries. Connects fresh each attempt (the client's socket
+/// state after a turn is not guaranteed reusable) and backs off between tries
+/// so a throttling service gets room rather than a reconnect storm.
+fn synthesize_chunk(
+    chunk: &str,
+    config: &msedge_tts::tts::SpeechConfig,
+    cancel: &AtomicBool,
+) -> Result<Vec<u8>, TtsError> {
+    let mut last_err = TtsError::EmptyAudio(config.voice_name.clone());
+    for attempt in 0..CHUNK_ATTEMPTS {
+        if attempt > 0 {
+            // 400ms, 1.2s, 3.6s.
+            let backoff = 400 * 3u64.pow(attempt - 1);
+            std::thread::sleep(std::time::Duration::from_millis(backoff));
+            if cancel.load(Ordering::Relaxed) {
+                return Err(TtsError::Cancelled);
+            }
+        }
+        match msedge_tts::tts::client::connect()
+            .map_err(|e| TtsError::Service(e.to_string()))
+            .and_then(|mut client| {
+                client
+                    .synthesize(chunk, config)
+                    .map_err(|e| TtsError::Service(e.to_string()))
+            }) {
+            Ok(audio) if !audio.audio_bytes.is_empty() => return Ok(audio.audio_bytes),
+            Ok(_) => last_err = TtsError::EmptyAudio(config.voice_name.clone()),
+            Err(e) => last_err = e,
+        }
+    }
+    Err(last_err)
+}
+
 /// Synthesize `text` with the given voice (VoiceInfo::name) to MP3 bytes.
 /// Edge TTS emits MP3 frames natively, so no re-encoding happens. Long text
 /// is split into per-request chunks and the resulting MP3 frames are
@@ -205,17 +246,8 @@ pub fn synthesize_bytes_cb(
         if cancel.load(Ordering::Relaxed) {
             return Err(TtsError::Cancelled);
         }
-        // Fresh connection per chunk: the client returns once a turn ends and
-        // its socket state afterward is not guaranteed reusable.
-        let mut client =
-            msedge_tts::tts::client::connect().map_err(|e| TtsError::Service(e.to_string()))?;
-        let audio = client
-            .synthesize(chunk, &config)
-            .map_err(|e| TtsError::Service(e.to_string()))?;
-        if audio.audio_bytes.is_empty() {
-            return Err(TtsError::EmptyAudio(voice_name.to_string()));
-        }
-        out.extend_from_slice(&audio.audio_bytes);
+        let audio = synthesize_chunk(chunk, &config, cancel)?;
+        out.extend_from_slice(&audio);
         on_progress(i + 1, total);
     }
     Ok(out)

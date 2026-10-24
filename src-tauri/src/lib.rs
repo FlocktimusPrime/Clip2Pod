@@ -152,6 +152,7 @@ pub fn run() {
             commands::get_queue,
             commands::clear_pending,
             commands::cancel_current,
+            commands::retry_job,
             commands::get_log,
             commands::clear_log,
             commands::get_config,

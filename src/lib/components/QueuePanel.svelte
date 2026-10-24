@@ -35,6 +35,14 @@
     api.cancelCurrent();
   }
 
+  async function retry(id: string) {
+    try {
+      await api.retryJob(id);
+    } catch (e) {
+      toast(String(e), "error");
+    }
+  }
+
   /** Episode count pending delete confirmation; null = no confirm active. */
   let confirmCount = $state<number | null>(null);
   let deleting = $state(false);
@@ -108,6 +116,7 @@
     {#each failed as job (job.id)}
       <span class="item fail" title={`${job.title} — ${job.detail}`}>
         {job.title} — {job.detail}
+        <button class="retry" onclick={() => retry(job.id)}>Retry</button>
       </span>
     {/each}
 
@@ -246,6 +255,23 @@
 
   .item.done {
     color: var(--ok);
+  }
+
+  /* Sits inline at the end of the failure text it belongs to, so a wrapped
+     row keeps its own action instead of stacking them all in .actions. */
+  .retry {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .retry:hover {
+    background: color-mix(in srgb, var(--danger) 18%, transparent);
   }
 
   .actions {
