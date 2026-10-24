@@ -1,6 +1,7 @@
 use crate::voices::{Gender, VoiceInfo};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 #[derive(Debug, thiserror::Error)]
 pub enum TtsError {
@@ -169,37 +170,70 @@ fn word_pack(text: &str) -> Vec<String> {
 /// 2500-char chunk is far cheaper than discarding a whole article.
 const CHUNK_ATTEMPTS: u32 = 4;
 
-/// One chunk, with retries. Connects fresh each attempt (the client's socket
-/// state after a turn is not guaranteed reusable) and backs off between tries
-/// so a throttling service gets room rather than a reconnect storm.
-fn synthesize_chunk(
-    chunk: &str,
-    config: &msedge_tts::tts::SpeechConfig,
+/// First backoff step; each later one triples it (400ms, 1.2s, 3.6s).
+const RETRY_BASE_DELAY: Duration = Duration::from_millis(400);
+
+/// Run `attempt` until it yields audio, up to `CHUNK_ATTEMPTS` times, waiting
+/// `base_delay * 3^(n-1)` between tries so a throttling service gets room
+/// rather than a reconnect storm. Returns the last error once the attempts run
+/// out, or `Cancelled` if `cancel` flips while we are backing off. `label`
+/// names the chunk in the retry notices. Split from the network call so the
+/// loop can be tested without a service: tests inject their own `attempt` and
+/// a zero `base_delay`.
+fn retry_chunk(
+    mut attempt: impl FnMut() -> Result<Vec<u8>, TtsError>,
     cancel: &AtomicBool,
+    base_delay: Duration,
+    label: &str,
 ) -> Result<Vec<u8>, TtsError> {
-    let mut last_err = TtsError::EmptyAudio(config.voice_name.clone());
-    for attempt in 0..CHUNK_ATTEMPTS {
-        if attempt > 0 {
-            // 400ms, 1.2s, 3.6s.
-            let backoff = 400 * 3u64.pow(attempt - 1);
-            std::thread::sleep(std::time::Duration::from_millis(backoff));
+    let mut last_err = None;
+    for n in 0..CHUNK_ATTEMPTS {
+        if n > 0 {
+            std::thread::sleep(base_delay * 3u32.pow(n - 1));
             if cancel.load(Ordering::Relaxed) {
                 return Err(TtsError::Cancelled);
             }
         }
-        match msedge_tts::tts::client::connect()
-            .map_err(|e| TtsError::Service(e.to_string()))
-            .and_then(|mut client| {
-                client
-                    .synthesize(chunk, config)
-                    .map_err(|e| TtsError::Service(e.to_string()))
-            }) {
-            Ok(audio) if !audio.audio_bytes.is_empty() => return Ok(audio.audio_bytes),
-            Ok(_) => last_err = TtsError::EmptyAudio(config.voice_name.clone()),
-            Err(e) => last_err = e,
+        match attempt() {
+            Ok(audio) => {
+                // Silence here would hide both a service that has started
+                // failing and one that has been quietly rescuing us.
+                if n > 0 {
+                    eprintln!("tts: {label} recovered on attempt {}", n + 1);
+                }
+                return Ok(audio);
+            }
+            Err(TtsError::Cancelled) => return Err(TtsError::Cancelled),
+            Err(e) => {
+                if n + 1 < CHUNK_ATTEMPTS {
+                    eprintln!("tts: {label} attempt {} failed ({e}), retrying", n + 1);
+                }
+                last_err = Some(e);
+            }
         }
     }
-    Err(last_err)
+    Err(last_err.expect("CHUNK_ATTEMPTS >= 1, so a failed loop always set an error"))
+}
+
+/// One websocket turn: connect, synthesize, insist on audio. A fresh
+/// connection every time, because the client's socket state after a turn is
+/// not guaranteed reusable — and because reconnecting regenerates the
+/// Sec-MS-GEC token.
+fn connect_and_synthesize(
+    chunk: &str,
+    config: &msedge_tts::tts::SpeechConfig,
+) -> Result<Vec<u8>, TtsError> {
+    let mut client =
+        msedge_tts::tts::client::connect().map_err(|e| TtsError::Service(e.to_string()))?;
+    let audio = client
+        .synthesize(chunk, config)
+        .map_err(|e| TtsError::Service(e.to_string()))?;
+    if audio.audio_bytes.is_empty() {
+        // Treated as retryable: now that text is escaped and chunked before
+        // sending, an empty turn is likelier throttling than bad input.
+        return Err(TtsError::EmptyAudio(config.voice_name.clone()));
+    }
+    Ok(audio.audio_bytes)
 }
 
 /// Synthesize `text` with the given voice (VoiceInfo::name) to MP3 bytes.
@@ -246,7 +280,13 @@ pub fn synthesize_bytes_cb(
         if cancel.load(Ordering::Relaxed) {
             return Err(TtsError::Cancelled);
         }
-        let audio = synthesize_chunk(chunk, &config, cancel)?;
+        let label = format!("chunk {}/{}", i + 1, total);
+        let audio = retry_chunk(
+            || connect_and_synthesize(chunk, &config),
+            cancel,
+            RETRY_BASE_DELAY,
+            &label,
+        )?;
         out.extend_from_slice(&audio);
         on_progress(i + 1, total);
     }
@@ -275,7 +315,90 @@ pub fn synthesize_to_file_cb(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::Cell;
     use tempfile::tempdir;
+
+    /// Backoff is skipped in these so the retry loop runs at full speed; the
+    /// delays themselves are arithmetic on `RETRY_BASE_DELAY`, not behaviour
+    /// worth sleeping through.
+    const NO_DELAY: Duration = Duration::ZERO;
+
+    #[test]
+    fn retry_recovers_from_transient_resets() {
+        let calls = Cell::new(0u32);
+        let audio = retry_chunk(
+            || {
+                calls.set(calls.get() + 1);
+                if calls.get() < 3 {
+                    // What a reset looks like by the time it reaches us.
+                    Err(TtsError::Service("os error 10054".into()))
+                } else {
+                    Ok(vec![0xFF, 0xF3, 0x01])
+                }
+            },
+            &AtomicBool::new(false),
+            NO_DELAY,
+            "chunk 1/1",
+        )
+        .unwrap();
+        assert_eq!(audio, vec![0xFF, 0xF3, 0x01]);
+        assert_eq!(calls.get(), 3, "should stop retrying the moment one succeeds");
+    }
+
+    #[test]
+    fn retry_gives_up_after_the_attempt_budget_and_keeps_the_last_error() {
+        let calls = Cell::new(0u32);
+        let err = retry_chunk(
+            || {
+                calls.set(calls.get() + 1);
+                Err(TtsError::Service(format!("reset {}", calls.get())))
+            },
+            &AtomicBool::new(false),
+            NO_DELAY,
+            "chunk 2/8",
+        )
+        .unwrap_err();
+        assert_eq!(calls.get(), CHUNK_ATTEMPTS);
+        // The surfaced error is the final failure, not the first.
+        assert!(matches!(&err, TtsError::Service(m) if m == "reset 4"), "got {err:?}");
+    }
+
+    #[test]
+    fn retry_bails_when_cancelled_between_attempts() {
+        let cancel = AtomicBool::new(false);
+        let calls = Cell::new(0u32);
+        let err = retry_chunk(
+            || {
+                calls.set(calls.get() + 1);
+                // User hits Cancel while the first attempt is in flight.
+                cancel.store(true, Ordering::Relaxed);
+                Err(TtsError::Service("os error 10054".into()))
+            },
+            &cancel,
+            NO_DELAY,
+            "chunk 1/1",
+        )
+        .unwrap_err();
+        assert!(matches!(err, TtsError::Cancelled), "got {err:?}");
+        assert_eq!(calls.get(), 1, "cancel must land before a second attempt");
+    }
+
+    #[test]
+    fn retry_does_not_retry_a_cancellation() {
+        let calls = Cell::new(0u32);
+        let err = retry_chunk(
+            || {
+                calls.set(calls.get() + 1);
+                Err(TtsError::Cancelled)
+            },
+            &AtomicBool::new(false),
+            NO_DELAY,
+            "chunk 1/1",
+        )
+        .unwrap_err();
+        assert!(matches!(err, TtsError::Cancelled), "got {err:?}");
+        assert_eq!(calls.get(), 1);
+    }
 
     #[test]
     fn xml_escape_replaces_all_five_specials() {
