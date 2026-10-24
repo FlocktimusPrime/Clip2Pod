@@ -1,0 +1,67 @@
+name: CI
+
+# release.yml runs the test suite, but only on a v* tag — and when that step
+# went red in #12 nothing reported it, so two releases shipped without Linux
+# bundles before anyone opened a run. These are the same checks, on every PR,
+# where they can still block a merge.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A follow-up push supersedes whatever was still running for the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    # Pinned to match release.yml, so a failure here means the same thing there.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # The set release.yml installs: webkit and friends for the Tauri shell,
+      # plus libasound2-dev for alsa-sys, which the vendored msedge-tts pulls
+      # in through its rodio dev-dependency.
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils libasound2-dev
+
+      - name: install frontend dependencies
+        run: npm ci
+
+      # --locked so a hand-edited Cargo.lock — every release bump edits one —
+      # cannot drift from the manifests without failing here. The frontend does
+      # not need building first: tauri-build only requires frontendDist for a
+      # real bundle, not for a check.
+      - name: cargo check
+        run: cargo check --locked --workspace --manifest-path src-tauri/Cargo.toml
+
+      # Verbatim the two lines release.yml runs before packaging a tag.
+      - name: cargo test
+        run: |
+          cargo test -p clip2pod-core -p clip2pod-rip --manifest-path src-tauri/Cargo.toml
+          cargo test -p msedge-tts --lib --manifest-path src-tauri/Cargo.toml
+
+      - name: svelte-check
+        run: npm run check
