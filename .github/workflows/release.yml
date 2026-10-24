@@ -46,7 +46,11 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+          # libasound2-dev is not Clip2Pod's: the vendored msedge-tts declares
+          # rodio as a dev-dependency for its doctests, which pulls alsa-sys,
+          # whose build script needs alsa.pc present before `cargo test` on
+          # that crate will even compile.
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils libasound2-dev
 
       - name: install frontend dependencies
         run: npm ci
