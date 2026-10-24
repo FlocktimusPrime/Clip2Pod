@@ -60,6 +60,30 @@ impl<T: Read + Write> MSEdgeTTSClient<T> {
     }
 }
 
+impl MSEdgeTTSClient<std::net::TcpStream> {
+    /// Apply a read timeout to the underlying socket.
+    ///
+    /// `synthesize` reads in a blocking loop until the service sends
+    /// `turn.end`. When the link dies without the peer managing a FIN or RST
+    /// — a dropped wifi connection, a sleeping laptop, a yanked cable — no
+    /// error ever arrives and that read blocks until TCP keepalive gives up,
+    /// which is two hours on Windows by default. A timeout converts that
+    /// silence into `WouldBlock`/`TimedOut` so the caller can retry or give up.
+    ///
+    /// Clears any existing timeout when passed `None`.
+    pub fn set_read_timeout(&mut self, timeout: Option<std::time::Duration>) -> std::io::Result<()> {
+        match self.0.get_mut() {
+            tungstenite::stream::MaybeTlsStream::Plain(tcp) => tcp.set_read_timeout(timeout),
+            tungstenite::stream::MaybeTlsStream::NativeTls(tls) => {
+                tls.get_mut().set_read_timeout(timeout)
+            }
+            // MaybeTlsStream is #[non_exhaustive]; an unreachable variant under
+            // our feature set shouldn't be an error, just an un-timed socket.
+            _ => Ok(()),
+        }
+    }
+}
+
 /// Async Client
 pub struct MSEdgeTTSClientAsync<T>(WebSocketStreamAsync<T>);
 
@@ -174,4 +198,62 @@ pub async fn connect_proxy_async(
     Ok(MSEdgeTTSClientAsync(
         websocket_connect_proxy_async(proxy, username, password).await?,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A socket that is open but silent is the shape a dropped wifi link
+    /// leaves behind: no FIN, no RST, nothing to read, and `read` blocking on
+    /// TCP keepalive. Assert the timeout reaches the real socket and turns
+    /// that silence into an error.
+    #[test]
+    fn read_timeout_applies_to_a_live_but_silent_socket() {
+        use std::net::{TcpListener, TcpStream};
+        use std::time::{Duration, Instant};
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        // Accept and then hold the connection open without writing. Dropping
+        // it here would send a FIN and `read` would return cleanly, testing
+        // nothing.
+        let server = std::thread::spawn(move || {
+            let held = listener.accept().unwrap();
+            std::thread::sleep(Duration::from_secs(2));
+            drop(held);
+        });
+
+        let tcp = TcpStream::connect(addr).unwrap();
+        let mut client = MSEdgeTTSClient(tungstenite::WebSocket::from_raw_socket(
+            tungstenite::stream::MaybeTlsStream::Plain(tcp),
+            tungstenite::protocol::Role::Client,
+            None,
+        ));
+        client
+            .set_read_timeout(Some(Duration::from_millis(150)))
+            .unwrap();
+
+        let started = Instant::now();
+        let err = client.0.read().unwrap_err();
+        let waited = started.elapsed();
+
+        match err {
+            tungstenite::Error::Io(e) => assert!(
+                // Unix reports WouldBlock, Windows TimedOut.
+                matches!(
+                    e.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ),
+                "expected a timeout, got {e:?}"
+            ),
+            other => panic!("expected an io timeout, got {other:?}"),
+        }
+        assert!(
+            waited < Duration::from_secs(1),
+            "read should give up on the timeout, not keep waiting ({waited:?})"
+        );
+
+        server.join().unwrap();
+    }
 }
