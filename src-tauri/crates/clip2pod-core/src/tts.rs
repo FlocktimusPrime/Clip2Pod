@@ -119,12 +119,19 @@ fn chunk_text(text: &str) -> Vec<String> {
 /// Split on terminal punctuation and newlines, keeping the delimiter with
 /// its sentence. Blank spans are dropped. Each segment reports whether it
 /// ended because of `. ! ?` (true) or a bare newline (false).
+///
+/// `. ! ?` only end a sentence when followed by whitespace or end of text,
+/// so "3.14", "example.com" and "page?id=3" stay whole for the TTS engine
+/// to pronounce instead of being re-joined as "3. 14".
 fn split_sentences(text: &str) -> Vec<(String, bool)> {
     let mut out = Vec::new();
     let mut cur = String::new();
-    for c in text.chars() {
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
         cur.push(c);
-        if matches!(c, '.' | '!' | '?' | '\n') {
+        let ends_sentence = matches!(c, '.' | '!' | '?')
+            && chars.peek().is_none_or(|n| n.is_whitespace());
+        if ends_sentence || c == '\n' {
             let trimmed = cur.trim();
             if !trimmed.is_empty() {
                 out.push((trimmed.to_string(), c != '\n'));
@@ -457,6 +464,44 @@ mod tests {
     fn punctuated_line_break_is_not_double_punctuated() {
         let chunks = chunk_text("Sentence one.\nSentence two.");
         assert_eq!(chunks, vec!["Sentence one. Sentence two.".to_string()]);
+    }
+
+    #[test]
+    fn mid_word_punctuation_is_not_a_sentence_break() {
+        // Splitting here re-joined as "3. 14" / "example. com", which Edge
+        // reads with a sentence pause instead of "point" / "dot".
+        for text in [
+            "Pi is 3.14 roughly.",
+            "Version 1.2.3 shipped.",
+            "Visit example.com today.",
+            "See example.com/page?id=3 for more.",
+            "Try Yahoo!Mail now.",
+            "Made in the U.S.A in 1990.",
+            "Wait...what happened?",
+        ] {
+            assert_eq!(split_sentences(text), vec![(text.to_string(), true)], "split {text:?}");
+            assert_eq!(chunk_text(text), vec![text.to_string()]);
+        }
+    }
+
+    #[test]
+    fn punctuation_before_whitespace_still_ends_a_sentence() {
+        assert_eq!(
+            split_sentences("One. Two! Three? Four."),
+            vec![
+                ("One.".to_string(), true),
+                ("Two!".to_string(), true),
+                ("Three?".to_string(), true),
+                ("Four.".to_string(), true),
+            ]
+        );
+    }
+
+    #[test]
+    fn punctuation_before_a_closing_quote_does_not_split() {
+        // Strict rule: only whitespace or end-of-text after the mark counts.
+        let text = "He said \"stop.\" Then he left.";
+        assert_eq!(split_sentences(text), vec![(text.to_string(), true)]);
     }
 
     #[test]
