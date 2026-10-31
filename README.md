@@ -291,10 +291,11 @@ so a full article narrates as one file. Ripping shells out to the system `yt-dlp
 - The browser extension talks only to `127.0.0.1` and only when you click it —
   plus, on a Reddit thread, one request for that thread's `.json` to the Reddit
   site you're already on, made from your tab.
-- On Rip, for sites you've allowed (right-click Rip asks once per site), the
-  extension also sends that site's cookies to `127.0.0.1`: only those your browser
-  would send to that page. They're used for that one download, then deleted.
-  Revoke a site in your browser's extension settings.
+- For sites you've allowed (right-click Rip asks once per site), the extension
+  also sends that site's cookies to `127.0.0.1`: only those your browser would
+  send to that page. A rip uses them for that one download, then deletes them. A
+  toolbar click on such a site sends them too, and they're discarded if the page
+  is narrated. Revoke a site in your browser's extension settings.
 - The podcast feeds bind to your LAN (`0.0.0.0:4738`) so your phone can reach
   them; they serve only your episodes and cover art.
 - No telemetry, no accounts, no data collection.

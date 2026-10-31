@@ -88,8 +88,10 @@ For a rip, the extension can send the site's cookies so yt-dlp runs as you:
 - **Sent:** `cookies.getAll` for the tab's URL and cookie store, so only the
   cookies the browser would send to that page. Hosts with no registrable domain
   (IP addresses, `localhost`, single-label names) never prompt and send none.
-- **Toolbar click:** never prompts. It sends cookies only for a site you already
-  allowed. Narrate and Reddit-thread captures never send cookies.
+- **Toolbar click:** never prompts. On a site you already allowed, it sends the
+  cookies along in case the page is ripped; if Clip2Pod narrates the page instead,
+  the cookies are discarded unused. Right-click **Narrate** and Reddit-thread
+  captures never send cookies.
 - **Used:** the app writes them to a temp Netscape cookie file for that one
   yt-dlp run, in place of any `--cookies` or `--cookies-from-browser` flag in your
   Rip arguments (saved arguments unchanged), then deletes it, even on failure.
