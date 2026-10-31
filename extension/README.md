@@ -77,13 +77,31 @@ are never read.
   quarantined subreddit, rate limit) or doesn't return JSON, or Clip2Pod isn't
   running.
 
+### Rip cookies
+
+For a rip, the extension can send the site's cookies so yt-dlp runs as you:
+
+- **Permission:** right-click **Rip** asks once per site (Brave: "Allow … to read
+  and change your data on reddit.com?"). Nothing is granted at install. Declined
+  or failed: the rip runs without cookies. Revoke a site in the browser's
+  extension settings.
+- **Sent:** `cookies.getAll` for the tab's URL and cookie store, so only the
+  cookies the browser would send to that page. Hosts with no registrable domain
+  (IP addresses, `localhost`, single-label names) never prompt and send none.
+- **Toolbar click:** never prompts. It sends cookies only for a site you already
+  allowed. Narrate and Reddit-thread captures never send cookies.
+- **Used:** the app writes them to a temp Netscape cookie file for that one
+  yt-dlp run, in place of any `--cookies` or `--cookies-from-browser` flag in your
+  Rip arguments (saved arguments unchanged), then deletes it, even on failure.
+
 ## Layout
 
-`chrome/` and `firefox/` share the icons, `reddit.js` and the options page.
-`reddit.js`, `options.html` and `options.js` are byte-identical in both builds;
-`node --test extension/test/*.test.mjs` checks that and the extractor's
-behaviour. `background.js` differs only in how it loads `reddit.js` and in the
-toolbar icon's light/dark switching. Chrome runs MV3 service workers, Firefox runs MV3
+`chrome/` and `firefox/` share the icons, `reddit.js`, `cookies.js` and the
+options page. `reddit.js`, `cookies.js`, `options.html` and `options.js` are
+byte-identical in both builds; `node --test extension/test/*.test.mjs` checks
+that and the extractor's and cookie helpers' behaviour. `background.js` differs
+only in how it loads `reddit.js` and `cookies.js` and in the toolbar icon's
+light/dark switching. Chrome runs MV3 service workers, Firefox runs MV3
 event pages and requires a gecko id.
 
 The toolbar icon has no tile, so it needs a lighter variant (`icon{16,32}-light.png`)

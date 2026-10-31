@@ -195,7 +195,10 @@ everything else to Narrate. **Right-click the page** for "Narrate this page" /
 
 The extension only acts when you click, only on the active tab, and only talks to
 `127.0.0.1:4737` — plus, on a Reddit thread, one request for that thread's
-`.json` to the Reddit site you're already on, made from your tab. See [`extension/README.md`](extension/README.md).
+`.json` to the Reddit site you're already on, made from your tab. Right-click
+**Rip** asks once per site for permission to read its cookies; a rip then sends
+the cookies your browser would send to that page, and they override any cookie
+flag in your Rip arguments for that run only. See [`extension/README.md`](extension/README.md).
 
 ## Usage
 
@@ -288,6 +291,10 @@ so a full article narrates as one file. Ripping shells out to the system `yt-dlp
 - The browser extension talks only to `127.0.0.1` and only when you click it —
   plus, on a Reddit thread, one request for that thread's `.json` to the Reddit
   site you're already on, made from your tab.
+- On Rip, for sites you've allowed (right-click Rip asks once per site), the
+  extension also sends that site's cookies to `127.0.0.1`: only those your browser
+  would send to that page. They're used for that one download, then deleted.
+  Revoke a site in your browser's extension settings.
 - The podcast feeds bind to your LAN (`0.0.0.0:4738`) so your phone can reach
   them; they serve only your episodes and cover art.
 - No telemetry, no accounts, no data collection.
