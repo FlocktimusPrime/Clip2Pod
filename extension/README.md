@@ -42,7 +42,9 @@ contents to build the XPI.
    (details in the extension's background/service-worker console).
 
 The extension only acts when you click, only on the active tab, and only talks
-to `127.0.0.1:4737` (the Clip2Pod app on your own machine).
+to `127.0.0.1:4737` (the Clip2Pod app on your own machine) — plus, on a Reddit
+thread, one request for that thread's `.json` to the Reddit site you're already
+on, made from your tab.
 
 ### Reddit threads
 

@@ -3,7 +3,8 @@
 // chrome/reddit.js and firefox/reddit.js byte-identical.
 
 // True for a Reddit thread tab: reddit.com (or a subdomain) with a
-// /comments/<id> path, optionally under /r/<sub>. Runs in the background.
+// /comments/<id> path, optionally under /r/<sub> or a /u(ser)/<name> profile.
+// Runs in the background.
 function isRedditThread(url) {
   let u;
   try {
@@ -13,7 +14,9 @@ function isRedditThread(url) {
   }
   const host = u.hostname.toLowerCase();
   if (host !== "reddit.com" && !host.endsWith(".reddit.com")) return false;
-  return /^(?:\/r\/[^/]+)?\/comments\/[a-z0-9]+(?:\/|$)/i.test(u.pathname);
+  return /^(?:\/(?:r|u|user)\/[^/]+)?\/comments\/[a-z0-9]+(?:\/|$)/i.test(
+    u.pathname,
+  );
 }
 
 // Injected into the thread tab with chrome.scripting.executeScript, which
@@ -46,7 +49,8 @@ async function extractRedditThread(cap) {
       .join("\n")
       .replace(/\|/g, " ");
     s = s
-      // 6. quote markers and headings
+      // 6. spoilers (>!text!< keeps the words), quote markers, headings
+      .replace(/>!([\s\S]*?)!</g, "$1")
       .replace(/^[ \t]*(?:>[ \t]*)+/gm, "")
       .replace(/^[ \t]*#{1,6}[ \t]+/gm, "")
       // 7. emphasis, only where it wraps text at word boundaries
@@ -72,7 +76,7 @@ async function extractRedditThread(cap) {
   const countWords = (s) => s.split(/\s+/).filter(Boolean).length;
 
   try {
-    const id = /^(?:\/r\/[^/]+)?\/comments\/([a-z0-9]+)(?:\/|$)/i.exec(
+    const id = /^(?:\/(?:r|u|user)\/[^/]+)?\/comments\/([a-z0-9]+)(?:\/|$)/i.exec(
       location.pathname,
     )?.[1];
     if (!id) return { error: "not a Reddit thread" };
@@ -118,7 +122,10 @@ async function extractRedditThread(cap) {
     }
 
     const bodyPart = post.is_self
-      ? stripMarkdown(post.selftext)
+      ? post.selftext?.trim() === "[removed]" ||
+        post.selftext?.trim() === "[deleted]"
+        ? ""
+        : stripMarkdown(post.selftext)
       : `Linked article on ${post.domain}.`;
     const commentsPart = entries.length
       ? `Top comments.\n\n${entries.join("\n\n")}`

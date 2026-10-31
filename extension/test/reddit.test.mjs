@@ -105,6 +105,8 @@ test("isRedditThread", () => {
     "https://old.reddit.com/comments/abc123",
     "https://np.reddit.com/r/x/comments/abc123/slug/def456/",
     "https://www.reddit.com/r/x/comments/abc123/?utm_source=share#c",
+    "https://www.reddit.com/user/bob/comments/abc123/slug/",
+    "https://www.reddit.com/u/bob/comments/abc123/",
   ]) {
     assert.equal(f(u), true, u);
   }
@@ -127,6 +129,20 @@ test("fetch URL is built from the tab origin and thread id", async () => {
     "https://old.reddit.com/comments/abc123.json?sort=top&depth=1&limit=500&raw_json=1",
   ]);
   assert.equal(r.url, tab);
+});
+
+test("user-profile thread paths fetch by id", async () => {
+  for (const tab of [
+    "https://www.reddit.com/user/bob/comments/abc123/slug/",
+    "https://www.reddit.com/u/bob/comments/abc123/",
+  ]) {
+    const { ctx, requested } = load(tab, { body: listing({}, []) });
+    const r = clone(await ctx.extractRedditThread(25));
+    assert.deepEqual(requested, [
+      "https://www.reddit.com/comments/abc123.json?sort=top&depth=1&limit=500&raw_json=1",
+    ]);
+    assert.equal(r.url, tab);
+  }
 });
 
 test("prepared title and author", async () => {
@@ -159,7 +175,7 @@ test("link post uses the linked-article line", async () => {
 });
 
 test("empty self body leaves no leading gap", async () => {
-  for (const selftext of ["", "![img](https://preview.redd.it/x.png)"]) {
+  for (const selftext of ["", "![img](https://preview.redd.it/x.png)", "[removed]", "[deleted]"]) {
     const r = await run({ selftext }, [{}]);
     assert.ok(r.prepared.text.startsWith("Top comments.\n\n"), JSON.stringify(selftext));
   }
@@ -242,6 +258,8 @@ test("markdown stripping", async () => {
     ["ping u/some_user about my_var_name today ok", "ping u/some_user about my_var_name today ok"],
     ["para one words here\n\n\n\npara two words here", "para one words here\n\npara two words here"],
     ["see [wiki](https://x.org/a_(b)) for more details", "see wiki for more details"],
+    ["careful >!the butler did it!< ok then", "careful the butler did it ok then"],
+    [">!the butler did it!< is the twist", "the butler did it is the twist"],
   ];
   for (const [input, expected] of cases) {
     assert.equal(await commentText(input), expected, input);
@@ -272,4 +290,24 @@ test("errors", async () => {
   assert.deepEqual(clone(await notThread.ctx.extractRedditThread(25)), {
     error: "not a Reddit thread",
   });
+});
+
+test("extractRedditThread is self-contained when serialized", async () => {
+  const { ctx } = load();
+  const src = ctx.extractRedditThread.toString();
+  const requested = [];
+  const fresh = vm.createContext({
+    location: new URL("https://www.reddit.com/r/news/comments/abc123/slug/"),
+    fetch: async (url) => {
+      requested.push(url);
+      return { ok: true, status: 200, text: async () => listing({}, [{}]) };
+    },
+  });
+  const fn = vm.runInContext("(" + src + ")", fresh);
+  const r = clone(await fn(25));
+  assert.deepEqual(requested, [
+    "https://www.reddit.com/comments/abc123.json?sort=top&depth=1&limit=500&raw_json=1",
+  ]);
+  assert.equal(r.url, "https://www.reddit.com/r/news/comments/abc123/slug/");
+  assert.ok(r.prepared?.text.includes("Comment 1, from u/alice"), JSON.stringify(r));
 });

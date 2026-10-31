@@ -14,6 +14,13 @@ async function load() {
   input.value = clampCap(redditCommentCap);
 }
 
+// Persist mid-typing so closing the dialog without blurring keeps the value.
+// Only a valid number is stored, and the field is left alone while typing.
+input.addEventListener("input", async () => {
+  if (Number.isNaN(Number.parseInt(input.value, 10))) return;
+  await chrome.storage.sync.set({ redditCommentCap: clampCap(input.value) });
+});
+
 input.addEventListener("change", async () => {
   const cap = clampCap(input.value);
   input.value = cap;
