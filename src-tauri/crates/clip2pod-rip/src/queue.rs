@@ -1,5 +1,5 @@
-use chrono::{DateTime, Utc};
 use crate::cookies::CookieJar;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,7 +76,10 @@ impl Queue {
 
     /// Oldest queued job, flipped to Processing; None when idle.
     pub fn start_next(&mut self) -> Option<Job> {
-        let job = self.jobs.iter_mut().find(|j| j.status == JobStatus::Queued)?;
+        let job = self
+            .jobs
+            .iter_mut()
+            .find(|j| j.status == JobStatus::Queued)?;
         job.status = JobStatus::Processing;
         job.started = Some(Utc::now());
         let cookies = job.cookies.take();
@@ -160,7 +163,11 @@ impl Queue {
     /// (is_processing, queued_count) for the status lamp.
     pub fn lamp(&self) -> (bool, usize) {
         let processing = self.jobs.iter().any(|j| j.status == JobStatus::Processing);
-        let queued = self.jobs.iter().filter(|j| j.status == JobStatus::Queued).count();
+        let queued = self
+            .jobs
+            .iter()
+            .filter(|j| j.status == JobStatus::Queued)
+            .count();
         (processing, queued)
     }
 
@@ -241,7 +248,14 @@ mod tests {
         let mut q = Queue::default();
         setup_three(&mut q);
         let j = q.start_next().unwrap();
-        q.set_progress(&j.id, JobProgress { percent: Some(50.0), stage: None, speed: None });
+        q.set_progress(
+            &j.id,
+            JobProgress {
+                percent: Some(50.0),
+                stage: None,
+                speed: None,
+            },
+        );
         q.finish(&j.id, Err("network down".into()));
         let job = q.jobs().iter().find(|x| x.id == j.id).unwrap();
         assert_eq!(job.status, JobStatus::Failed);

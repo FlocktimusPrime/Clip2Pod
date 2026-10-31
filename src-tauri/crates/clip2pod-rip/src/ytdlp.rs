@@ -179,7 +179,14 @@ mod tests {
     #[test]
     fn build_args_rejects_bad_urls() {
         let dir = PathBuf::from("/tmp");
-        for url in ["", "ftp://x", "-U", "file:///etc/passwd", "https://a b", "https://"] {
+        for url in [
+            "",
+            "ftp://x",
+            "-U",
+            "file:///etc/passwd",
+            "https://a b",
+            "https://",
+        ] {
             assert!(build_args(DEFAULT_ARGS, &dir, url, None).is_err(), "{url}");
         }
     }
@@ -214,7 +221,13 @@ mod tests {
 
     #[test]
     fn build_args_rejects_unbalanced_quotes() {
-        assert!(build_args("--foo \"bar", &PathBuf::from("/tmp"), "https://y.be/x", None).is_err());
+        assert!(build_args(
+            "--foo \"bar",
+            &PathBuf::from("/tmp"),
+            "https://y.be/x",
+            None
+        )
+        .is_err());
     }
 
     #[test]
@@ -222,16 +235,31 @@ mod tests {
         let e = parse_line("[download]  42.3% of ~  12.34MiB at    1.23MiB/s ETA 00:12").unwrap();
         assert_eq!(
             e,
-            ProgressEvent::Percent { percent: 42.3, speed: Some("1.23MiB/s".into()) }
+            ProgressEvent::Percent {
+                percent: 42.3,
+                speed: Some("1.23MiB/s".into())
+            }
         );
         let e = parse_line("[download] 100% of 12.34MiB in 00:00:10 at 1.2MiB/s").unwrap();
-        assert_eq!(e, ProgressEvent::Percent { percent: 100.0, speed: Some("1.2MiB/s".into()) });
+        assert_eq!(
+            e,
+            ProgressEvent::Percent {
+                percent: 100.0,
+                speed: Some("1.2MiB/s".into())
+            }
+        );
     }
 
     #[test]
     fn unknown_speed_reads_as_none() {
         let e = parse_line("[download]   0.0% of ~ 10MiB at Unknown B/s ETA Unknown").unwrap();
-        assert_eq!(e, ProgressEvent::Percent { percent: 0.0, speed: None });
+        assert_eq!(
+            e,
+            ProgressEvent::Percent {
+                percent: 0.0,
+                speed: None
+            }
+        );
     }
 
     #[test]
@@ -244,9 +272,18 @@ mod tests {
 
     #[test]
     fn parses_postprocessor_stages() {
-        assert_eq!(parse_line("[EmbedThumbnail] ffmpeg: Adding thumbnail to \"x.mp3\"").unwrap(), ProgressEvent::Stage("EmbedThumbnail".into()));
-        assert_eq!(parse_line("[Metadata] Adding metadata to \"x.mp3\"").unwrap(), ProgressEvent::Stage("Metadata".into()));
-        assert_eq!(parse_line("[SponsorBlock] Found 2 segments in the SponsorBlock database").unwrap(), ProgressEvent::Stage("SponsorBlock".into()));
+        assert_eq!(
+            parse_line("[EmbedThumbnail] ffmpeg: Adding thumbnail to \"x.mp3\"").unwrap(),
+            ProgressEvent::Stage("EmbedThumbnail".into())
+        );
+        assert_eq!(
+            parse_line("[Metadata] Adding metadata to \"x.mp3\"").unwrap(),
+            ProgressEvent::Stage("Metadata".into())
+        );
+        assert_eq!(
+            parse_line("[SponsorBlock] Found 2 segments in the SponsorBlock database").unwrap(),
+            ProgressEvent::Stage("SponsorBlock".into())
+        );
     }
 
     #[test]

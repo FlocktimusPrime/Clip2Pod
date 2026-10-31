@@ -4,14 +4,14 @@
 // side, which owns them app-wide.
 
 use crate::rip_worker::{emit_lamp, emit_queue, log_and_emit};
-use serde::Serialize;
-use std::collections::HashSet;
-use std::path::PathBuf;
-use tauri::{AppHandle, Manager, State};
 use clip2pod_rip::config::{self, LogEntry, LogStatus};
 use clip2pod_rip::cookies::CookieJar;
 use clip2pod_rip::queue::Job;
 use clip2pod_rip::ytdlp;
+use serde::Serialize;
+use std::collections::HashSet;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager, State};
 
 use crate::state::AppState;
 
@@ -178,7 +178,13 @@ pub fn rip_set_args_template(state: State<AppState>, template: String) -> CmdRes
 
 fn shell_words_check(template: &str) -> CmdResult<()> {
     // build_args validates the same way; a dummy URL exercises the split.
-    ytdlp::build_args(template, std::path::Path::new("/"), "https://example.com/x", None).map(|_| ())
+    ytdlp::build_args(
+        template,
+        std::path::Path::new("/"),
+        "https://example.com/x",
+        None,
+    )
+    .map(|_| ())
 }
 
 /// Set the yt-dlp executable path (e.g. a nightly build). Empty string resets to
@@ -186,8 +192,11 @@ fn shell_words_check(template: &str) -> CmdResult<()> {
 #[tauri::command]
 pub fn rip_set_ytdlp_path(state: State<AppState>, path: String) {
     let trimmed = path.trim().to_string();
-    state.rip_config.lock().unwrap().ytdlp_path =
-        if trimmed.is_empty() { None } else { Some(trimmed) };
+    state.rip_config.lock().unwrap().ytdlp_path = if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed)
+    };
     state.save_rip_config();
 }
 
@@ -301,7 +310,10 @@ pub fn rip_doctor(state: State<AppState>) -> DoctorReport {
 }
 
 fn probe_version(bin: &str, flag: &str) -> Option<String> {
-    let out = crate::rip_worker::ytdlp_command(bin).arg(flag).output().ok()?;
+    let out = crate::rip_worker::ytdlp_command(bin)
+        .arg(flag)
+        .output()
+        .ok()?;
     out.status
         .success()
         .then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())

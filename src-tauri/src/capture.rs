@@ -72,7 +72,9 @@ fn origin_of(request: &tiny_http::Request) -> Option<String> {
         .map(|h| h.value.to_string())
 }
 
-fn with_cors(mut response: Response<std::io::Cursor<Vec<u8>>>) -> Response<std::io::Cursor<Vec<u8>>> {
+fn with_cors(
+    mut response: Response<std::io::Cursor<Vec<u8>>>,
+) -> Response<std::io::Cursor<Vec<u8>>> {
     for (name, value) in [
         ("Access-Control-Allow-Origin", "*"),
         ("Access-Control-Allow-Methods", "POST, OPTIONS"),
@@ -95,8 +97,13 @@ fn handle(app: &AppHandle, body: &str) -> (u16, String) {
         crate::rip_commands::do_enqueue(
             app,
             payload.url.clone(),
-            payload.cookies.clone().filter(|c| !c.is_empty()).map(CookieJar),
-        ).map(|_| ("rip", "queued"))
+            payload
+                .cookies
+                .clone()
+                .filter(|c| !c.is_empty())
+                .map(CookieJar),
+        )
+        .map(|_| ("rip", "queued"))
     } else {
         route_article(app, &payload).map(|_| ("narrate", "captured"))
     };
@@ -166,20 +173,22 @@ pub fn serve(app: AppHandle) {
                 continue;
             }
             if request.method() != &Method::Post || request.url() != "/capture" {
-                let _ = request
-                    .respond(with_cors(Response::from_string("not found").with_status_code(404)));
+                let _ = request.respond(with_cors(
+                    Response::from_string("not found").with_status_code(404),
+                ));
                 continue;
             }
             let mut body = String::new();
             if request.as_reader().read_to_string(&mut body).is_err() {
-                let _ = request.respond(
-                    with_cors(Response::from_string("unreadable body").with_status_code(400)),
-                );
+                let _ = request.respond(with_cors(
+                    Response::from_string("unreadable body").with_status_code(400),
+                ));
                 continue;
             }
             let (status, message) = handle(&app, &body);
-            let _ =
-                request.respond(with_cors(Response::from_string(message).with_status_code(status)));
+            let _ = request.respond(with_cors(
+                Response::from_string(message).with_status_code(status),
+            ));
         }
     });
 }

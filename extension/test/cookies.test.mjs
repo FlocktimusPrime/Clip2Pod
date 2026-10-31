@@ -142,6 +142,19 @@ test("collectCookies finds the Chrome store by tab id and maps exactly 7 keys", 
   ]);
 });
 
+test("collectCookies returns undefined when the tab's store is unknown", async () => {
+  let called = 0;
+  const { ctx } = load({
+    cookies: {
+      getAll: async () => (called++, [RAW]),
+      getAllCookieStores: async () => [{ id: "0", tabIds: [1] }],
+    },
+  });
+  const out = await ctx.collectCookies({ id: 7, url: "https://www.reddit.com/" }, Promise.resolve(true));
+  assert.equal(out, undefined);
+  assert.equal(called, 0);
+});
+
 test("collectCookies degrades to undefined on error or empty (RF4)", async () => {
   const tab = { id: 1, url: "https://www.reddit.com/", cookieStoreId: "0" };
   const boom = load({

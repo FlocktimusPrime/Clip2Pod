@@ -4,15 +4,15 @@
 // yt-dlp binary is whatever the user configured (defaults to `yt-dlp` on PATH).
 
 use crate::state::AppState;
+use clip2pod_rip::config::{append_log, LogEntry, LogStatus};
+use clip2pod_rip::cookies::CookieFile;
+use clip2pod_rip::queue::{Job, JobProgress};
+use clip2pod_rip::ytdlp::{build_args, parse_line, ProgressEvent};
 use serde::Serialize;
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::UnboundedReceiver;
-use clip2pod_rip::config::{append_log, LogEntry, LogStatus};
-use clip2pod_rip::cookies::CookieFile;
-use clip2pod_rip::queue::{Job, JobProgress};
-use clip2pod_rip::ytdlp::{build_args, parse_line, ProgressEvent};
 
 #[derive(Serialize, Clone)]
 #[serde(tag = "state", content = "queued")]
@@ -196,6 +196,11 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
     }
     let stderr_tail = stderr_thread.join().unwrap_or_default();
     if !status.success() {
+        // yt-dlp can echo cookie-file lines (values included) on a parse error.
+        let stderr_tail = match job.cookies.as_ref() {
+            Some(j) => clip2pod_rip::cookies::redact_lines(&stderr_tail, &j.0),
+            None => stderr_tail,
+        };
         let detail = if stderr_tail.is_empty() {
             format!("yt-dlp exited with {status}")
         } else {
@@ -210,7 +215,10 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
     let name = {
         let state = app.state::<AppState>();
         let q = state.rip_queue.lock().unwrap();
-        q.jobs().iter().find(|j| j.id == job.id).and_then(|j| j.filename.clone())
+        q.jobs()
+            .iter()
+            .find(|j| j.id == job.id)
+            .and_then(|j| j.filename.clone())
     };
     if let Some(stem) = name.as_deref().and_then(|n| n.strip_suffix(".mp3")) {
         let safe = clip2pod_core::naming::rss_safe_stem(stem);
@@ -219,7 +227,11 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
             std::fs::rename(dir.join(format!("{stem}.mp3")), dir.join(&fixed))
                 .map_err(|e| format!("cannot rename to {fixed}: {e}"))?;
             let state = app.state::<AppState>();
-            state.rip_queue.lock().unwrap().set_filename(&job.id, &fixed);
+            state
+                .rip_queue
+                .lock()
+                .unwrap()
+                .set_filename(&job.id, &fixed);
             emit_queue(app);
         }
     }
@@ -250,11 +262,10 @@ pub fn spawn(app: AppHandle, mut wake: UnboundedReceiver<()>) {
 
                 let run_app = app.clone();
                 let run_job_ref = job.clone();
-                let result = tauri::async_runtime::spawn_blocking(move || {
-                    run_job(&run_app, &run_job_ref)
-                })
-                .await
-                .unwrap_or_else(|e| Err(e.to_string()));
+                let result =
+                    tauri::async_runtime::spawn_blocking(move || run_job(&run_app, &run_job_ref))
+                        .await
+                        .unwrap_or_else(|e| Err(e.to_string()));
 
                 let (title, note) = {
                     let state = app.state::<AppState>();
@@ -262,7 +273,8 @@ pub fn spawn(app: AppHandle, mut wake: UnboundedReceiver<()>) {
                     q.finish(&job.id, result.clone());
                     let j = q.jobs().iter().find(|j| j.id == job.id).cloned();
                     (
-                        j.and_then(|j| j.filename).unwrap_or_else(|| job.url.clone()),
+                        j.and_then(|j| j.filename)
+                            .unwrap_or_else(|| job.url.clone()),
                         result,
                     )
                 };

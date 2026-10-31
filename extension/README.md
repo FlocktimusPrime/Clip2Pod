@@ -94,7 +94,8 @@ For a rip, the extension can send the site's cookies so yt-dlp runs as you:
   captures never send cookies.
 - **Used:** the app writes them to a temp Netscape cookie file for that one
   yt-dlp run, in place of any `--cookies` or `--cookies-from-browser` flag in your
-  Rip arguments (saved arguments unchanged), then deletes it, even on failure.
+  Rip arguments (saved arguments unchanged). The file is deleted when the
+  download ends; any leftover (e.g. from quitting mid-rip) is removed at next launch.
 
 ## Layout
 

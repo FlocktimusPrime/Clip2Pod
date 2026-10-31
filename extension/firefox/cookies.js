@@ -62,6 +62,8 @@ async function collectCookies(tab, access) {
     const storeId =
       tab.cookieStoreId ??
       (await chrome.cookies.getAllCookieStores()).find((s) => s.tabIds.includes(tab.id))?.id;
+    // Unknown store: never fall back to the default store (wrong profile/container).
+    if (storeId === undefined) return undefined;
     const cookies = await chrome.cookies.getAll({ url: tab.url, storeId });
     if (!cookies.length) return undefined;
     return cookies.map((c) => ({

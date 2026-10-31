@@ -293,9 +293,13 @@ so a full article narrates as one file. Ripping shells out to the system `yt-dlp
   site you're already on, made from your tab.
 - For sites you've allowed (right-click Rip asks once per site), the extension
   also sends that site's cookies to `127.0.0.1`: only those your browser would
-  send to that page. A rip uses them for that one download, then deletes them. A
-  toolbar click on such a site sends them too, and they're discarded if the page
-  is narrated. Revoke a site in your browser's extension settings.
+  send to that page. A rip uses them for that one download; the temp file is
+  deleted when the download ends, and any leftover (say, from quitting mid-rip)
+  is removed at the next launch. A toolbar click on such a site sends them too
+  (except on a Reddit thread, which is narrated), and they're discarded if the
+  page is narrated. Revoke a site in your browser's extension settings. The
+  cookies travel to `127.0.0.1:4737`, so they reach whatever program listens
+  there, normally Clip2Pod; only rip when it's running.
 - The podcast feeds bind to your LAN (`0.0.0.0:4738`) so your phone can reach
   them; they serve only your episodes and cover art.
 - No telemetry, no accounts, no data collection.

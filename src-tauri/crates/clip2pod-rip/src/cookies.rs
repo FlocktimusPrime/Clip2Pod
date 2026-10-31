@@ -51,18 +51,36 @@ fn bool_field(b: bool) -> &'static str {
 
 /// Render cookies as a Netscape cookie file. Cookies whose fields contain tab,
 /// CR or LF would corrupt the format and are skipped.
+///
+/// yt-dlp's loader (Python MozillaCookieJar) rejects a line unless
+/// `includeSubdomains == domain.startswith('.')` and the expiry is all digits,
+/// and it echoes rejected lines (value included) to stderr. So the flag always
+/// follows the dot: a domain cookie gets a leading `.` added, a host-only one
+/// has it stripped. Already-expired cookies (negative expiry) are skipped.
 pub fn netscape(cookies: &[Cookie]) -> String {
     let mut out = String::from("# Netscape HTTP Cookie File\n");
     for c in cookies {
         let bad = |s: &str| s.contains(['\t', '\n', '\r']);
-        if [&c.domain, &c.path, &c.name, &c.value].into_iter().any(|s| bad(s)) {
+        if [&c.domain, &c.path, &c.name, &c.value]
+            .into_iter()
+            .any(|s| bad(s))
+        {
             continue;
         }
         let expiry = c.expiration_date.map_or(0, |e| e as i64);
+        if expiry < 0 {
+            continue;
+        }
+        let bare = c.domain.trim_start_matches('.');
+        let domain = if c.host_only {
+            bare.to_string()
+        } else {
+            format!(".{bare}")
+        };
         let _ = writeln!(
             out,
             "{}\t{}\t{}\t{}\t{}\t{}\t{}",
-            c.domain,
+            domain,
             bool_field(!c.host_only),
             c.path,
             bool_field(c.secure),
@@ -72,6 +90,38 @@ pub fn netscape(cookies: &[Cookie]) -> String {
         );
     }
     out
+}
+
+/// Defence in depth for yt-dlp's stderr tail: drop lines that echo a cookie
+/// value (length >= 8) or come from the cookie-file loader's rejection path.
+pub fn redact_lines(lines: &[String], cookies: &[Cookie]) -> Vec<String> {
+    lines
+        .iter()
+        .filter(|l| {
+            !(l.contains("skipping cookie file entry")
+                || l.contains("Netscape format cookies file")
+                || cookies
+                    .iter()
+                    .any(|c| c.value.len() >= 8 && l.contains(&c.value)))
+        })
+        .cloned()
+        .collect()
+}
+
+/// Delete leftover `clip2pod-cookies-*.txt` files in `dir` (e.g. from quitting
+/// mid-rip). Returns how many were removed; errors are ignored.
+pub fn sweep_stale(dir: &Path) -> usize {
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return 0;
+    };
+    rd.flatten()
+        .filter(|e| {
+            let n = e.file_name();
+            let n = n.to_string_lossy();
+            n.starts_with("clip2pod-cookies-") && n.ends_with(".txt")
+        })
+        .filter(|e| std::fs::remove_file(e.path()).is_ok())
+        .count()
 }
 
 /// Drop every yt-dlp cookie flag (and the value of the value-taking ones).
@@ -98,7 +148,8 @@ pub struct CookieFile {
 
 impl CookieFile {
     pub fn write(cookies: &[Cookie]) -> std::io::Result<CookieFile> {
-        let path = std::env::temp_dir().join(format!("clip2pod-cookies-{}.txt", uuid::Uuid::new_v4()));
+        let path =
+            std::env::temp_dir().join(format!("clip2pod-cookies-{}.txt", uuid::Uuid::new_v4()));
         let mut opts = std::fs::OpenOptions::new();
         opts.write(true).create_new(true);
         #[cfg(unix)]
@@ -183,7 +234,10 @@ mod tests {
             "-o",
             "%(title)s.%(ext)s",
         ]);
-        assert_eq!(strip_cookie_flags(input), v(&["-x", "-o", "%(title)s.%(ext)s"]));
+        assert_eq!(
+            strip_cookie_flags(input),
+            v(&["-x", "-o", "%(title)s.%(ext)s"])
+        );
         assert!(strip_cookie_flags(v(&["--cookies"])).is_empty());
     }
 
@@ -204,5 +258,68 @@ mod tests {
         let s = format!("{c:?}");
         assert!(!s.contains("SECRET123"));
         assert!(s.contains("a.com") && s.contains("sid"));
+    }
+
+    #[test]
+    fn netscape_flag_follows_written_domain_dot() {
+        let out = netscape(&[
+            cookie("reddit.com", false, None, "a", "1"),
+            cookie(".www.reddit.com", true, None, "b", "2"),
+        ]);
+        assert!(out.contains("\n.reddit.com\tTRUE\t/\tTRUE\t0\ta\t1\n"));
+        assert!(out.contains("\nwww.reddit.com\tFALSE\t/\tTRUE\t0\tb\t2\n"));
+    }
+
+    #[test]
+    fn netscape_skips_negative_expiry_and_lines_are_loader_safe() {
+        let out = netscape(&[
+            cookie("a.com", true, Some(-5.0), "neg", "x"),
+            cookie("a.com", false, Some(10.9), "p", "y"),
+            cookie(".b.com", true, None, "q", "z"),
+        ]);
+        assert!(!out.contains("neg"));
+        for line in out.lines().filter(|l| !l.starts_with('#')) {
+            let f: Vec<&str> = line.split('\t').collect();
+            assert_eq!((f[1] == "TRUE"), f[0].starts_with('.'), "{line}");
+            assert!(
+                !f[4].is_empty() && f[4].bytes().all(|b| b.is_ascii_digit()),
+                "{line}"
+            );
+        }
+        assert_eq!(out.lines().count(), 3);
+    }
+
+    #[test]
+    fn redact_lines_drops_value_and_loader_echo_lines() {
+        let cookies = [
+            cookie("a.com", true, None, "sid", "SECRETVALUE1"),
+            cookie("a.com", true, None, "short", "abc"),
+        ];
+        let lines = v(&[
+            "ERROR: boom",
+            "bad line a.com TRUE SECRETVALUE1 end",
+            "contains abc but value too short to redact",
+            "WARNING: skipping cookie file entry due to ...",
+            "http.cookiejar.LoadError: does not look like a Netscape format cookies file",
+        ]);
+        assert_eq!(
+            redact_lines(&lines, &cookies),
+            v(&["ERROR: boom", "contains abc but value too short to redact"])
+        );
+    }
+
+    #[test]
+    fn sweep_stale_removes_only_cookie_files() {
+        let dir = std::env::temp_dir().join(format!("c2p-sweep-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let hit = dir.join("clip2pod-cookies-abc.txt");
+        let miss1 = dir.join("clip2pod-cookies-abc.log");
+        let miss2 = dir.join("other.txt");
+        for p in [&hit, &miss1, &miss2] {
+            std::fs::write(p, "x").unwrap();
+        }
+        assert_eq!(sweep_stale(&dir), 1);
+        assert!(!hit.exists() && miss1.exists() && miss2.exists());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

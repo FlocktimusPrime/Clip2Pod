@@ -89,6 +89,8 @@ pub fn run() {
             rip_running: Mutex::new(None),
         })
         .setup(move |app| {
+            // A quit mid-rip leaves the temp cookie file behind; remove it.
+            clip2pod_rip::cookies::sweep_stale(&std::env::temp_dir());
             // Registration can fail (hotkey taken by another app, Wayland, …) —
             // the tray menu is the fallback, so never let this kill startup.
             {
