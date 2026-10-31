@@ -15,6 +15,7 @@
 // send no Origin at all and are allowed (anything that can run them already
 // runs as the user).
 
+use clip2pod_rip::cookies::{Cookie, CookieJar};
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter};
 use tiny_http::{Header, Method, Response, Server};
@@ -41,6 +42,9 @@ struct CapturePayload {
     /// plain toolbar click (auto-route).
     #[serde(default)]
     override_hint: Option<String>,
+    /// Site cookies for a rip; ignored by the narrate path.
+    #[serde(default)]
+    cookies: Option<Vec<Cookie>>,
 }
 
 #[derive(serde::Serialize, Clone)]
@@ -88,7 +92,11 @@ fn handle(app: &AppHandle, body: &str) -> (u16, String) {
     };
 
     let result = if wants_rip(&payload) {
-        crate::rip_commands::do_enqueue(app, payload.url.clone()).map(|_| ("rip", "queued"))
+        crate::rip_commands::do_enqueue(
+            app,
+            payload.url.clone(),
+            payload.cookies.clone().filter(|c| !c.is_empty()).map(CookieJar),
+        ).map(|_| ("rip", "queued"))
     } else {
         route_article(app, &payload).map(|_| ("narrate", "captured"))
     };
@@ -204,6 +212,25 @@ mod tests {
     }
 
     #[test]
+    fn payload_with_cookies_deserializes() {
+        let p: CapturePayload = serde_json::from_str(
+            r#"{"url":"https://www.reddit.com/r/x/comments/a/b/","html":"","override_hint":"video","cookies":[{"domain":".reddit.com","hostOnly":false,"path":"/","secure":true,"expirationDate":1767225600.5,"name":"reddit_session","value":"v"},{"domain":"www.reddit.com","hostOnly":true,"path":"/","secure":false,"name":"s","value":"w"}]}"#,
+        )
+        .unwrap();
+        let c = p.cookies.as_ref().unwrap();
+        assert_eq!(c.len(), 2);
+        assert_eq!(c[1].expiration_date, None);
+        assert!(wants_rip(&p));
+    }
+
+    #[test]
+    fn legacy_payload_has_no_cookies() {
+        let p: CapturePayload =
+            serde_json::from_str(r#"{"url":"https://e.com/a","html":"<html></html>"}"#).unwrap();
+        assert!(p.cookies.is_none());
+    }
+
+    #[test]
     fn prepared_beats_rippable_host() {
         let p: CapturePayload = serde_json::from_str(
             r#"{"url":"https://www.youtube.com/watch?v=x","prepared":{"title":"t","author":"a","text":"b"}}"#,
@@ -231,6 +258,7 @@ mod tests {
             html,
             override_hint: None,
             prepared: None,
+            cookies: None,
         };
         let a = article_for(&p).unwrap();
         assert!(!a.reset_gender);

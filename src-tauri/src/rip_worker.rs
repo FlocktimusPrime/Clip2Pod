@@ -10,6 +10,7 @@ use std::process::{Command, Stdio};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::UnboundedReceiver;
 use clip2pod_rip::config::{append_log, LogEntry, LogStatus};
+use clip2pod_rip::cookies::CookieFile;
 use clip2pod_rip::queue::{Job, JobProgress};
 use clip2pod_rip::ytdlp::{build_args, parse_line, ProgressEvent};
 
@@ -104,7 +105,19 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
         )
     };
     std::fs::create_dir_all(&dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
-    let args = build_args(&template, &dir, &job.url, None)?;
+    // Held for the whole function so Drop deletes the file on every return path.
+    let cookie_file = job
+        .cookies
+        .as_ref()
+        .map(|j| CookieFile::write(&j.0))
+        .transpose()
+        .map_err(|e| format!("cannot write cookies file: {e}"))?;
+    let args = build_args(
+        &template,
+        &dir,
+        &job.url,
+        cookie_file.as_ref().map(|f| f.path()),
+    )?;
 
     let mut child = ytdlp_command(&bin)
         .args(&args)

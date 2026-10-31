@@ -9,6 +9,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, State};
 use clip2pod_rip::config::{self, LogEntry, LogStatus};
+use clip2pod_rip::cookies::CookieJar;
 use clip2pod_rip::queue::Job;
 use clip2pod_rip::ytdlp;
 
@@ -18,13 +19,13 @@ type CmdResult<T> = Result<T, String>;
 
 /// Validate the URL, queue it, wake the worker. Shared by the IPC command
 /// and the capture listener.
-pub fn do_enqueue(app: &AppHandle, url: String) -> CmdResult<String> {
+pub fn do_enqueue(app: &AppHandle, url: String, cookies: Option<CookieJar>) -> CmdResult<String> {
     let url = url.trim().to_string();
     if !ytdlp::valid_url(&url) {
         return Err("not an http(s) URL".into());
     }
     let state = app.state::<AppState>();
-    let id = state.rip_queue.lock().unwrap().enqueue(&url, None)?;
+    let id = state.rip_queue.lock().unwrap().enqueue(&url, cookies)?;
     log_and_emit(
         app,
         LogEntry {
@@ -42,7 +43,7 @@ pub fn do_enqueue(app: &AppHandle, url: String) -> CmdResult<String> {
 
 #[tauri::command]
 pub fn rip_enqueue(app: AppHandle, url: String) -> CmdResult<String> {
-    do_enqueue(&app, url)
+    do_enqueue(&app, url, None)
 }
 
 #[tauri::command]
