@@ -1,11 +1,13 @@
 // Loopback listener for the browser extension. One endpoint for both modes: the
-// extension always sends the page URL plus its rendered HTML (the user's
-// logged-in session, so paywalled article text is included) and, optionally, an
-// override telling us which mode the user picked from the context menu.
+// extension sends the page URL plus either its rendered HTML (the user's
+// logged-in session, so paywalled article text is included) or, for pages it
+// can extract itself (Reddit threads), a finished `prepared` title/author/text
+// that skips Readability. It may also send an override telling us which mode
+// the user picked from the context menu.
 //
-// Routing: an explicit override wins; otherwise a known video host goes to RIP
-// and everything else is treated as an article. The extension always includes
-// the HTML, so the article path always has what it needs.
+// Routing: an explicit override wins; a prepared payload is an article;
+// otherwise a known video host goes to RIP and everything else is treated as an
+// article extracted from the HTML.
 //
 // Origin gate: browsers attach `Origin` to cross-origin fetches, so a web page
 // trying to POST here arrives with its own origin and is refused. Extensions
@@ -20,9 +22,21 @@ use tiny_http::{Header, Method, Response, Server};
 pub const CAPTURE_ADDR: &str = "127.0.0.1:4737";
 
 #[derive(Deserialize)]
+struct Prepared {
+    title: String,
+    author: String,
+    text: String,
+}
+
+#[derive(Deserialize)]
 struct CapturePayload {
     url: String,
+    /// Absent when the extension sends `prepared` text instead.
+    #[serde(default)]
     html: String,
+    /// Finished article text from an extension-side extractor; skips Readability.
+    #[serde(default)]
+    prepared: Option<Prepared>,
     /// "article" or "video" from the extension's context menu; absent for a
     /// plain toolbar click (auto-route).
     #[serde(default)]
@@ -35,6 +49,8 @@ struct CapturedArticle {
     author: String,
     text: String,
     url: String,
+    /// True when the text was prepared by the extension rather than extracted here.
+    reset_gender: bool,
 }
 
 fn origin_allowed(origin: Option<&str>) -> bool {
@@ -71,13 +87,7 @@ fn handle(app: &AppHandle, body: &str) -> (u16, String) {
         Err(e) => return (400, format!("bad request: {e}")),
     };
 
-    let to_rip = match payload.override_hint.as_deref() {
-        Some("video") => true,
-        Some("article") => false,
-        _ => clip2pod_rip::ytdlp::rippable_host(&payload.url),
-    };
-
-    let result = if to_rip {
+    let result = if wants_rip(&payload) {
         crate::rip_commands::do_enqueue(app, payload.url.clone()).map(|_| ("rip", "queued"))
     } else {
         route_article(app, &payload).map(|_| ("narrate", "captured"))
@@ -93,18 +103,39 @@ fn handle(app: &AppHandle, body: &str) -> (u16, String) {
     }
 }
 
+fn wants_rip(p: &CapturePayload) -> bool {
+    match p.override_hint.as_deref() {
+        Some("video") => true,
+        Some("article") => false,
+        _ if p.prepared.is_some() => false,
+        _ => clip2pod_rip::ytdlp::rippable_host(&p.url),
+    }
+}
+
+fn article_for(p: &CapturePayload) -> Result<CapturedArticle, String> {
+    if let Some(prep) = &p.prepared {
+        return Ok(CapturedArticle {
+            title: prep.title.clone(),
+            author: prep.author.clone(),
+            text: prep.text.clone(),
+            url: p.url.clone(),
+            reset_gender: true,
+        });
+    }
+    let extracted =
+        clip2pod_core::extract::extract_from_html(&p.html, &p.url).map_err(|e| e.to_string())?;
+    Ok(CapturedArticle {
+        title: extracted.title,
+        author: extracted.author,
+        text: extracted.text,
+        url: p.url.clone(),
+        reset_gender: false,
+    })
+}
+
 fn route_article(app: &AppHandle, payload: &CapturePayload) -> Result<(), String> {
-    let extracted = clip2pod_core::extract::extract_from_html(&payload.html, &payload.url)
-        .map_err(|e| e.to_string())?;
-    let _ = app.emit(
-        "article-captured",
-        &CapturedArticle {
-            title: extracted.title,
-            author: extracted.author,
-            text: extracted.text,
-            url: payload.url.clone(),
-        },
-    );
+    let article = article_for(payload)?;
+    let _ = app.emit("article-captured", &article);
     Ok(())
 }
 
@@ -147,7 +178,63 @@ pub fn serve(app: AppHandle) {
 
 #[cfg(test)]
 mod tests {
-    use super::origin_allowed;
+    use super::{article_for, origin_allowed, wants_rip, CapturePayload};
+
+    #[test]
+    fn prepared_payload_needs_no_html() {
+        let p: CapturePayload = serde_json::from_str(
+            r#"{"url":"https://www.reddit.com/comments/abc","prepared":{"title":"T from r/x","author":"u/op","text":"body"}}"#,
+        )
+        .unwrap();
+        assert_eq!(p.html, "");
+        let a = article_for(&p).unwrap();
+        assert_eq!(
+            (a.title.as_str(), a.author.as_str(), a.text.as_str()),
+            ("T from r/x", "u/op", "body")
+        );
+        assert!(a.reset_gender);
+    }
+
+    #[test]
+    fn legacy_payload_still_parses() {
+        let p: CapturePayload =
+            serde_json::from_str(r#"{"url":"https://e.com/a","html":"<html></html>"}"#).unwrap();
+        assert!(p.prepared.is_none());
+        assert!(!wants_rip(&p));
+    }
+
+    #[test]
+    fn prepared_beats_rippable_host() {
+        let p: CapturePayload = serde_json::from_str(
+            r#"{"url":"https://www.youtube.com/watch?v=x","prepared":{"title":"t","author":"a","text":"b"}}"#,
+        )
+        .unwrap();
+        assert!(!wants_rip(&p));
+        let forced: CapturePayload = serde_json::from_str(
+            r#"{"url":"https://e.com/a","override_hint":"video","prepared":{"title":"t","author":"a","text":"b"}}"#,
+        )
+        .unwrap();
+        assert!(wants_rip(&forced));
+    }
+
+    #[test]
+    fn html_path_keeps_reader_gender() {
+        let para = "The committee met on Tuesday to discuss the new budget proposal. \
+            Members argued for several hours about spending priorities and timelines. \
+            In the end they agreed to revisit the question next month after more data arrives. \
+            Observers noted that the tone of the debate was calmer than in previous sessions. ";
+        let html = format!(
+            "<html><head><title>Budget talks</title></head><body><article><h1>Budget talks</h1><p>{para}</p><p>{para}</p></article></body></html>"
+        );
+        let p = CapturePayload {
+            url: "https://e.com/a".into(),
+            html,
+            override_hint: None,
+            prepared: None,
+        };
+        let a = article_for(&p).unwrap();
+        assert!(!a.reset_gender);
+    }
 
     #[test]
     fn only_extensions_and_originless_callers_get_in() {
