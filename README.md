@@ -48,7 +48,8 @@ you narrate.
 **Four ways in:** paste from the clipboard (`Ctrl+Shift+V`), fetch an article by
 URL, press the global hotkey (`Ctrl+Alt+G`) from anywhere, or click the browser
 extension to send the page you're reading (paywalled content included — it
-captures your logged-in session).
+captures your logged-in session). On a Reddit thread it sends the post and its
+top comments instead of the page.
 
 - **Readability extraction** strips nav, ads, and boilerplate down to title,
   author, and article text.
