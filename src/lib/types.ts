@@ -102,6 +102,8 @@ export interface FirewallHelp {
 
 export interface CapturedArticle extends Extracted {
   url: string;
+  /** Set for Reddit-thread captures: reset the gender picker to Unknown first. */
+  reset_gender?: boolean;
 }
 
 export type Lamp =

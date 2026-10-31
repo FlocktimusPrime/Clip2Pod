@@ -43,9 +43,10 @@
   onMount(() => {
     view = createEditor(editorHost);
     // Browser extension posts a page to the capture listener.
-    const unCapture = listen<CapturedArticle>("article-captured", (e) =>
-      applyArticle(e.payload, e.payload.url),
-    );
+    const unCapture = listen<CapturedArticle>("article-captured", async (e) => {
+      if (e.payload.reset_gender) await setGender("Unknown");
+      applyArticle(e.payload, e.payload.url);
+    });
     // Global hotkey / tray: window is shown by Rust, then we paste.
     const unIntake = listen("intake-clipboard", () => pasteClipboard());
     return () => {
