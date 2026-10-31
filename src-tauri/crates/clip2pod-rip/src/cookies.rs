@@ -31,6 +31,16 @@ impl std::fmt::Debug for Cookie {
     }
 }
 
+/// Cookies attached to a queued job. Debug shows only the count.
+#[derive(Clone, Default)]
+pub struct CookieJar(pub Vec<Cookie>);
+
+impl std::fmt::Debug for CookieJar {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "CookieJar({} cookies)", self.0.len())
+    }
+}
+
 fn bool_field(b: bool) -> &'static str {
     if b {
         "TRUE"

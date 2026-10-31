@@ -24,7 +24,7 @@ pub fn do_enqueue(app: &AppHandle, url: String) -> CmdResult<String> {
         return Err("not an http(s) URL".into());
     }
     let state = app.state::<AppState>();
-    let id = state.rip_queue.lock().unwrap().enqueue(&url)?;
+    let id = state.rip_queue.lock().unwrap().enqueue(&url, None)?;
     log_and_emit(
         app,
         LogEntry {

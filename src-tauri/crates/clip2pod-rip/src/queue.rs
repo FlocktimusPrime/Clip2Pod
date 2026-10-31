@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use crate::cookies::CookieJar;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,6 +35,10 @@ pub struct Job {
     pub finished: Option<DateTime<Utc>>,
     /// Failure detail (stderr tail) or completion note ("already downloaded").
     pub detail: String,
+    /// Extension-supplied cookies for this run. Never serialized; handed to
+    /// the runner once by `start_next`.
+    #[serde(skip)]
+    pub cookies: Option<CookieJar>,
 }
 
 /// In-memory job list. The Tauri layer wraps this in a mutex and drives a
@@ -45,7 +50,7 @@ pub struct Queue {
 
 impl Queue {
     /// Enqueue a URL; rejects a duplicate that is still pending or running.
-    pub fn enqueue(&mut self, url: &str) -> Result<String, String> {
+    pub fn enqueue(&mut self, url: &str, cookies: Option<CookieJar>) -> Result<String, String> {
         let pending = self
             .jobs
             .iter()
@@ -64,6 +69,7 @@ impl Queue {
             started: None,
             finished: None,
             detail: String::new(),
+            cookies,
         });
         Ok(id)
     }
@@ -73,7 +79,10 @@ impl Queue {
         let job = self.jobs.iter_mut().find(|j| j.status == JobStatus::Queued)?;
         job.status = JobStatus::Processing;
         job.started = Some(Utc::now());
-        Some(job.clone())
+        let cookies = job.cookies.take();
+        let mut handed = job.clone();
+        handed.cookies = cookies;
+        Some(handed)
     }
 
     pub fn set_progress(&mut self, id: &str, progress: JobProgress) {
@@ -165,8 +174,40 @@ mod tests {
 
     fn setup_three(q: &mut Queue) -> Vec<String> {
         (0..3)
-            .map(|i| q.enqueue(&format!("https://youtu.be/v{i}")).unwrap())
+            .map(|i| q.enqueue(&format!("https://youtu.be/v{i}"), None).unwrap())
             .collect()
+    }
+
+    fn jar() -> crate::cookies::CookieJar {
+        crate::cookies::CookieJar(vec![crate::cookies::Cookie {
+            domain: ".example.com".into(),
+            host_only: false,
+            path: "/".into(),
+            secure: true,
+            expiration_date: None,
+            name: "sid".into(),
+            value: "SECRET".into(),
+        }])
+    }
+
+    #[test]
+    fn cookies_are_not_serialized_or_debug_printed() {
+        let mut q = Queue::default();
+        q.enqueue("https://youtu.be/a", Some(jar())).unwrap();
+        let json = serde_json::to_string(&q.jobs()[0]).unwrap();
+        let dbg = format!("{:?}", q.jobs()[0]);
+        assert!(!json.contains("SECRET"));
+        assert!(!dbg.contains("SECRET"));
+        assert!(dbg.contains("1 cookies"));
+    }
+
+    #[test]
+    fn start_next_hands_cookies_to_the_runner_once() {
+        let mut q = Queue::default();
+        q.enqueue("https://youtu.be/a", Some(jar())).unwrap();
+        let job = q.start_next().unwrap();
+        assert_eq!(job.cookies.unwrap().0.len(), 1);
+        assert!(q.jobs()[0].cookies.is_none());
     }
 
     #[test]
@@ -184,12 +225,12 @@ mod tests {
     #[test]
     fn duplicate_pending_url_rejected_but_finished_url_reenqueues() {
         let mut q = Queue::default();
-        let id = q.enqueue("https://youtu.be/a").unwrap();
-        assert!(q.enqueue("https://youtu.be/a").is_err());
+        let id = q.enqueue("https://youtu.be/a", None).unwrap();
+        assert!(q.enqueue("https://youtu.be/a", None).is_err());
         let j = q.start_next().unwrap();
-        assert!(q.enqueue("https://youtu.be/a").is_err()); // processing
+        assert!(q.enqueue("https://youtu.be/a", None).is_err()); // processing
         q.finish(&j.id, Ok(String::new()));
-        assert!(q.enqueue("https://youtu.be/a").is_ok());
+        assert!(q.enqueue("https://youtu.be/a", None).is_ok());
         assert_ne!(q.jobs().last().unwrap().id, id);
     }
 
