@@ -87,6 +87,16 @@ test("chrome and firefox reddit.js are identical", () => {
   assert.equal(chromeSrc, firefoxSrc);
 });
 
+test("chrome and firefox options page files are identical", () => {
+  for (const f of ["options.html", "options.js"]) {
+    assert.equal(
+      fs.readFileSync(path.join(here, "../chrome", f), "utf8"),
+      fs.readFileSync(path.join(here, "../firefox", f), "utf8"),
+      f,
+    );
+  }
+});
+
 test("isRedditThread", () => {
   const { ctx } = load();
   const f = (u) => ctx.isRedditThread(u);
