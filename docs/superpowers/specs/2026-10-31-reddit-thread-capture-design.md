@@ -102,7 +102,9 @@ afterwards, as for any article.
 
 ```
 {post body}                          ← self post
-Linked article on {domain}.          ← link/image/video post, in place of a body
+Linked article on {domain}.          ← link post, in place of a body
+                                       (i.redd.it → "Image post.", v.redd.it →
+                                       "Video post.", gallery → "Gallery post.")
 
 Top comments.
 

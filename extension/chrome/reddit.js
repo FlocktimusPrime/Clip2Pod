@@ -126,7 +126,13 @@ async function extractRedditThread(cap) {
         post.selftext?.trim() === "[deleted]"
         ? ""
         : stripMarkdown(post.selftext)
-      : `Linked article on ${post.domain}.`;
+      : post.is_gallery
+        ? "Gallery post."
+        : post.domain === "i.redd.it"
+          ? "Image post."
+          : post.domain === "v.redd.it"
+            ? "Video post."
+            : `Linked article on ${post.domain}.`;
     const commentsPart = entries.length
       ? `Top comments.\n\n${entries.join("\n\n")}`
       : "No comments.";

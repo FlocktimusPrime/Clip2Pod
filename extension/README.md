@@ -58,8 +58,9 @@ are never read.
 | Right-click **Narrate** | Reddit mode | `!` badge, nothing sent | unchanged |
 | Right-click **Rip** | unchanged: still rips the video | unchanged | unchanged |
 
-- **Read:** the post title, the body (self posts) or "Linked article on
-  {domain}." (link, image and video posts), then the first N top-level comments
+- **Read:** the post title, the body (self posts), "Image post." / "Video
+  post." / "Gallery post." (Reddit-hosted media) or "Linked article on
+  {domain}." (other links), then the first N top-level comments
   in Reddit's Top order. Markdown becomes plain text.
 - **Skipped:** deleted or removed comments, AutoModerator, stickied or
   moderator-distinguished comments, comments that are only a link, image or GIF,

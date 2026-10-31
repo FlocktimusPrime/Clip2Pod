@@ -174,6 +174,17 @@ test("link post uses the linked-article line", async () => {
   );
 });
 
+test("Reddit-hosted media posts name the media, not a domain", async () => {
+  for (const [post, line] of [
+    [{ is_self: false, domain: "i.redd.it" }, "Image post."],
+    [{ is_self: false, domain: "v.redd.it" }, "Video post."],
+    [{ is_self: false, domain: "reddit.com", is_gallery: true }, "Gallery post."],
+  ]) {
+    const r = await run(post, [{}]);
+    assert.ok(r.prepared.text.startsWith(`${line}\n\nTop comments.`), r.prepared.text);
+  }
+});
+
 test("empty self body leaves no leading gap", async () => {
   for (const selftext of ["", "![img](https://preview.redd.it/x.png)", "[removed]", "[deleted]"]) {
     const r = await run({ selftext }, [{}]);
