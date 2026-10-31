@@ -42,11 +42,47 @@ contents to build the XPI.
    (details in the extension's background/service-worker console).
 
 The extension only acts when you click, only on the active tab, and only talks
-to `127.0.0.1:4737` (the Clip2Pod app on your own machine).
+to `127.0.0.1:4737` (the Clip2Pod app on your own machine) — plus, on a Reddit
+thread, one request for that thread's `.json` to the Reddit site you're already
+on, made from your tab.
+
+### Reddit threads
+
+On a Reddit thread (`reddit.com` or any subdomain, path `/comments/<id>`),
+Narrate sends the post and its top comments instead of the page HTML. Replies
+are never read.
+
+| Trigger | Reddit thread | Other reddit.com page | Other page |
+|---|---|---|---|
+| Toolbar click | Reddit mode | `!` badge, nothing sent | unchanged |
+| Right-click **Narrate** | Reddit mode | `!` badge, nothing sent | unchanged |
+| Right-click **Rip** | unchanged: still rips the video | unchanged | unchanged |
+
+- **Read:** the post title, the body (self posts), "Image post." / "Video
+  post." / "Gallery post." (Reddit-hosted media) or "Linked article on
+  {domain}." (other links), then the first N top-level comments
+  in Reddit's Top order. Markdown becomes plain text.
+- **Skipped:** deleted or removed comments, AutoModerator, stickied or
+  moderator-distinguished comments, comments that are only a link, image or GIF,
+  and comments under 5 words. N is applied after these are dropped.
+- **Options:** open the extension's **Options** entry to set **Top-level
+  comments per Reddit thread**: default 25, range 1–500, stored in
+  `chrome.storage.sync`.
+- **Permissions:** no `reddit.com` host permission. The fetch runs in your tab
+  with your logged-in session.
+- **Gender:** each Reddit capture resets the narrator's gender to Unknown, then
+  pre-fills it from Recognized authors if the OP's `u/name` is remembered.
+- **Errors:** the `!` badge and a `console.error` in the background console when
+  the page is a non-thread Reddit page, the `.json` fetch fails (private or
+  quarantined subreddit, rate limit) or doesn't return JSON, or Clip2Pod isn't
+  running.
 
 ## Layout
 
-`chrome/` and `firefox/` share `background.js` and the icons, apart from the
+`chrome/` and `firefox/` share the icons, `reddit.js` and the options page.
+`reddit.js`, `options.html` and `options.js` are byte-identical in both builds;
+`node --test extension/test/*.test.mjs` checks that and the extractor's
+behaviour. `background.js` differs only in how it loads `reddit.js` and in the
 toolbar icon's light/dark switching. Chrome runs MV3 service workers, Firefox runs MV3
 event pages and requires a gecko id.
 

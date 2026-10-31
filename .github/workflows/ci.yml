@@ -63,5 +63,13 @@ jobs:
           cargo test -p clip2pod-core -p clip2pod-rip --manifest-path src-tauri/Cargo.toml
           cargo test -p msedge-tts --lib --manifest-path src-tauri/Cargo.toml
 
+      # Beyond release.yml's set: the Tauri shell's own unit tests (capture
+      # routing) and the browser extension's Node tests (Reddit extractor).
+      - name: cargo test (shell)
+        run: cargo test -p clip2pod --lib --manifest-path src-tauri/Cargo.toml
+
+      - name: extension tests
+        run: node --test extension/test/*.test.mjs
+
       - name: svelte-check
         run: npm run check

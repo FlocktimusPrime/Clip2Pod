@@ -48,7 +48,8 @@ you narrate.
 **Four ways in:** paste from the clipboard (`Ctrl+Shift+V`), fetch an article by
 URL, press the global hotkey (`Ctrl+Alt+G`) from anywhere, or click the browser
 extension to send the page you're reading (paywalled content included — it
-captures your logged-in session).
+captures your logged-in session). On a Reddit thread it sends the post and its
+top comments instead of the page.
 
 - **Readability extraction** strips nav, ads, and boilerplate down to title,
   author, and article text.
@@ -193,7 +194,8 @@ everything else to Narrate. **Right-click the page** for "Narrate this page" /
 (its transcript) instead of ripped.
 
 The extension only acts when you click, only on the active tab, and only talks to
-`127.0.0.1:4737`. See [`extension/README.md`](extension/README.md).
+`127.0.0.1:4737` — plus, on a Reddit thread, one request for that thread's
+`.json` to the Reddit site you're already on, made from your tab. See [`extension/README.md`](extension/README.md).
 
 ## Usage
 
@@ -283,7 +285,9 @@ so a full article narrates as one file. Ripping shells out to the system `yt-dlp
   service.
 - Ripping talks to whatever site `yt-dlp` fetches from; nothing else leaves your
   machine.
-- The browser extension talks only to `127.0.0.1` and only when you click it.
+- The browser extension talks only to `127.0.0.1` and only when you click it —
+  plus, on a Reddit thread, one request for that thread's `.json` to the Reddit
+  site you're already on, made from your tab.
 - The podcast feeds bind to your LAN (`0.0.0.0:4738`) so your phone can reach
   them; they serve only your episodes and cover art.
 - No telemetry, no accounts, no data collection.
