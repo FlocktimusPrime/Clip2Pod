@@ -104,7 +104,7 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
         )
     };
     std::fs::create_dir_all(&dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
-    let args = build_args(&template, &dir, &job.url)?;
+    let args = build_args(&template, &dir, &job.url, None)?;
 
     let mut child = ytdlp_command(&bin)
         .args(&args)

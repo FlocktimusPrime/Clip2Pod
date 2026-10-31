@@ -177,7 +177,7 @@ pub fn rip_set_args_template(state: State<AppState>, template: String) -> CmdRes
 
 fn shell_words_check(template: &str) -> CmdResult<()> {
     // build_args validates the same way; a dummy URL exercises the split.
-    ytdlp::build_args(template, std::path::Path::new("/"), "https://example.com/x").map(|_| ())
+    ytdlp::build_args(template, std::path::Path::new("/"), "https://example.com/x", None).map(|_| ())
 }
 
 /// Set the yt-dlp executable path (e.g. a nightly build). Empty string resets to

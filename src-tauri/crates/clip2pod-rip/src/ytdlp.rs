@@ -61,13 +61,24 @@ pub fn valid_url(url: &str) -> bool {
 }
 
 /// Split the template shell-style and append the app-owned parts:
-/// `--newline` (line-buffered progress), `-P <dir>`, `-- <url>`.
-pub fn build_args(template: &str, output_dir: &Path, url: &str) -> Result<Vec<String>, String> {
+/// `--newline` (line-buffered progress), `-P <dir>`, `-- <url>`. With a cookie
+/// file, the template's own cookie flags are dropped and `--cookies <file>` wins.
+pub fn build_args(
+    template: &str,
+    output_dir: &Path,
+    url: &str,
+    cookie_file: Option<&Path>,
+) -> Result<Vec<String>, String> {
     if !valid_url(url) {
         return Err(format!("not an http(s) URL: {url}"));
     }
     let mut args = shell_words::split(template)
         .map_err(|e| format!("args template has unbalanced quotes: {e}"))?;
+    if let Some(file) = cookie_file {
+        args = crate::cookies::strip_cookie_flags(args);
+        args.push("--cookies".into());
+        args.push(file.display().to_string());
+    }
     args.push("--newline".into());
     args.push("-P".into());
     args.push(output_dir.display().to_string());
@@ -134,7 +145,7 @@ mod tests {
     #[test]
     fn default_args_parse_and_keep_quoted_postprocessor_arg() {
         let dir = PathBuf::from("/tmp/out dir");
-        let args = build_args(DEFAULT_ARGS, &dir, "https://youtu.be/x").unwrap();
+        let args = build_args(DEFAULT_ARGS, &dir, "https://youtu.be/x", None).unwrap();
         assert!(args.contains(&"ExtractAudio:-af volume=1.5".to_string()));
         assert!(args.contains(&"%(title)s.%(ext)s".to_string()));
         assert!(args.contains(&"--newline".to_string()));
@@ -169,13 +180,41 @@ mod tests {
     fn build_args_rejects_bad_urls() {
         let dir = PathBuf::from("/tmp");
         for url in ["", "ftp://x", "-U", "file:///etc/passwd", "https://a b", "https://"] {
-            assert!(build_args(DEFAULT_ARGS, &dir, url).is_err(), "{url}");
+            assert!(build_args(DEFAULT_ARGS, &dir, url, None).is_err(), "{url}");
         }
     }
 
     #[test]
+    fn build_args_with_cookie_file_replaces_saved_cookie_flags() {
+        let dir = PathBuf::from("/tmp");
+        let url = "https://youtu.be/x";
+        let tmpl = "--extract-audio --cookies-from-browser brave";
+        let args = build_args(tmpl, &dir, url, Some(Path::new("/t/c.txt"))).unwrap();
+        let p = args.iter().position(|a| a == "--cookies").unwrap();
+        assert_eq!(args[p + 1], "/t/c.txt");
+        assert_eq!(args.iter().filter(|a| *a == "--cookies").count(), 1);
+        assert!(!args.contains(&"--cookies-from-browser".to_string()));
+        assert!(!args.contains(&"brave".to_string()));
+        assert!(p < args.iter().position(|a| a == "--newline").unwrap());
+        assert_eq!(&args[args.len() - 2..], ["--", url]);
+    }
+
+    #[test]
+    fn build_args_without_cookie_file_keeps_saved_cookie_flags() {
+        let args = build_args(
+            "--cookies-from-browser brave",
+            &PathBuf::from("/tmp"),
+            "https://youtu.be/x",
+            None,
+        )
+        .unwrap();
+        assert!(args.contains(&"--cookies-from-browser".to_string()));
+        assert!(args.contains(&"brave".to_string()));
+    }
+
+    #[test]
     fn build_args_rejects_unbalanced_quotes() {
-        assert!(build_args("--foo \"bar", &PathBuf::from("/tmp"), "https://y.be/x").is_err());
+        assert!(build_args("--foo \"bar", &PathBuf::from("/tmp"), "https://y.be/x", None).is_err());
     }
 
     #[test]
