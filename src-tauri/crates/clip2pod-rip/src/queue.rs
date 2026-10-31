@@ -127,6 +127,7 @@ impl Queue {
             if job.status == JobStatus::Queued {
                 job.status = JobStatus::Cancelled;
                 job.finished = Some(Utc::now());
+                job.cookies = None;
                 cancelled.push(job.clone());
             }
         }
@@ -171,6 +172,7 @@ impl Queue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cookies::Cookie;
 
     fn setup_three(q: &mut Queue) -> Vec<String> {
         (0..3)
@@ -178,8 +180,8 @@ mod tests {
             .collect()
     }
 
-    fn jar() -> crate::cookies::CookieJar {
-        crate::cookies::CookieJar(vec![crate::cookies::Cookie {
+    fn jar() -> CookieJar {
+        CookieJar(vec![Cookie {
             domain: ".example.com".into(),
             host_only: false,
             path: "/".into(),
@@ -246,6 +248,16 @@ mod tests {
         assert_eq!(job.detail, "network down");
         assert!(job.finished.is_some());
         assert!(job.progress.percent.is_none());
+    }
+
+    #[test]
+    fn clear_pending_drops_cookies() {
+        let mut q = Queue::default();
+        q.enqueue("https://youtu.be/a", Some(jar())).unwrap();
+        let cancelled = q.clear_pending();
+        assert_eq!(cancelled.len(), 1);
+        assert!(cancelled[0].cookies.is_none());
+        assert!(q.jobs()[0].cookies.is_none());
     }
 
     #[test]
