@@ -3,7 +3,7 @@
 // capture listener. A plain toolbar click lets the app decide the mode
 // (article vs video); the right-click menu forces one.
 
-importScripts("reddit.js"); // isRedditThread, extractRedditThread
+importScripts("reddit.js", "cookies.js"); // isRedditThread, extractRedditThread
 
 const CAPTURE_ENDPOINT = "http://127.0.0.1:4737/capture";
 
@@ -71,7 +71,9 @@ async function sendRedditThread(tab) {
 }
 
 // overrideHint: "article" | "video" | undefined (undefined = let the app route)
-async function send(tab, overrideHint) {
+// access: promise<boolean> from requestCookieAccess/hasCookieAccess; when true,
+// the site's cookies ride along (the app only uses them for rips).
+async function send(tab, overrideHint, access) {
   if (overrideHint !== "video" && tab.url && isRedditHost(tab.url)) {
     if (isRedditThread(tab.url)) {
       await sendRedditThread(tab);
@@ -90,14 +92,18 @@ async function send(tab, overrideHint) {
         html: document.documentElement.outerHTML,
       }),
     });
-    await post(tab, { ...result, override_hint: overrideHint });
+    const cookies = access ? await collectCookies(tab, access) : undefined;
+    await post(tab, { ...result, override_hint: overrideHint, ...(cookies && { cookies }) });
   } catch (e) {
     console.error("Clip2Pod capture:", e);
     badge(tab.id, "!", "#e4483c");
   }
 }
 
-chrome.action.onClicked.addListener((tab) => send(tab, undefined));
+// A toolbar click never prompts: cookies only if access was already granted.
+chrome.action.onClicked.addListener((tab) =>
+  send(tab, undefined, tab.url ? hasCookieAccess(tab.url) : undefined),
+);
 
 // Chrome has no manifest equivalent of Firefox's theme_icons, so swap the
 // toolbar icon at runtime: the default (dark lavender) reads on light
@@ -154,6 +160,9 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+  // First statement: permissions.request needs the click's user gesture.
+  const isVideo = info.menuItemId === "c2p-video";
+  const access = isVideo && tab?.url ? requestCookieAccess(tab.url) : undefined;
   if (!tab) return;
-  send(tab, info.menuItemId === "c2p-video" ? "video" : "article");
+  send(tab, isVideo ? "video" : "article", access);
 });

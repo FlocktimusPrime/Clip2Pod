@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Send to Clip2Pod",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Send the page you are reading to Clip2Pod — narrated as an article, or its audio ripped.",
-  "permissions": ["activeTab", "scripting", "contextMenus", "storage"],
+  "permissions": ["activeTab", "scripting", "contextMenus", "cookies", "storage"],
   "host_permissions": ["http://127.0.0.1:4737/*"],
+  "optional_permissions": ["*://*/*"],
   "options_ui": { "page": "options.html" },
-  "background": { "scripts": ["reddit.js", "background.js"] },
+  "background": { "scripts": ["reddit.js", "cookies.js", "background.js"] },
   "browser_specific_settings": {
     "gecko": {
       "id": "clip2pod@flocktimusprime",

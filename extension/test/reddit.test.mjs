@@ -87,6 +87,13 @@ test("chrome and firefox reddit.js are identical", () => {
   assert.equal(chromeSrc, firefoxSrc);
 });
 
+test("chrome and firefox cookies.js are identical", () => {
+  assert.equal(
+    fs.readFileSync(path.join(here, "../chrome/cookies.js"), "utf8"),
+    fs.readFileSync(path.join(here, "../firefox/cookies.js"), "utf8"),
+  );
+});
+
 test("chrome and firefox options page files are identical", () => {
   for (const f of ["options.html", "options.js"]) {
     assert.equal(
