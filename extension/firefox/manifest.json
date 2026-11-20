@@ -7,7 +7,7 @@
   "host_permissions": ["http://127.0.0.1:4737/*"],
   "optional_permissions": ["*://*/*"],
   "options_ui": { "page": "options.html" },
-  "background": { "scripts": ["reddit.js", "cookies.js", "background.js"] },
+  "background": { "scripts": ["reddit.js", "cookies.js", "pairing.js", "background.js"] },
   "browser_specific_settings": {
     "gecko": {
       "id": "clip2pod@flocktimusprime",

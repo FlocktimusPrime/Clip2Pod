@@ -8,6 +8,10 @@ use std::path::Path;
 pub fn new_token() -> String {
     let mut bytes = [0u8; 16];
     getrandom::fill(&mut bytes).expect("OS random source unavailable");
+    to_hex(&bytes)
+}
+
+pub fn to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 

@@ -190,8 +190,10 @@ session — to whichever mode fits.
 - **Pair it:** copy the code from Clip2Pod's **Settings → Browser extension** and
   paste it into the extension's options (right-click its toolbar icon →
   **Options**). Clip2Pod ignores captures without it, so other extensions and
-  local programs can't push pages into it. The first unpaired click opens the
-  options page for you.
+  local programs can't push pages into it. The code itself is never sent: before
+  each capture the app proves it knows the code, so if another program is
+  listening on port 4737 the extension sends it nothing. The first unpaired click
+  opens the options page for you.
 
 **Click** the toolbar button and the app decides: a known video host goes to Rip,
 everything else to Narrate. **Right-click the page** for "Narrate this page" /
@@ -304,8 +306,9 @@ so a full article narrates as one file. Ripping shells out to the system `yt-dlp
   is removed at the next launch. A toolbar click on such a site sends them too
   (except on a Reddit thread, which is narrated), and they're discarded if the
   page is narrated. Revoke a site in your browser's extension settings. The
-  cookies travel to `127.0.0.1:4737`, so they reach whatever program listens
-  there, normally Clip2Pod; only rip when it's running.
+  extension sends the page and cookies to `127.0.0.1:4737` only after the
+  program listening there proves it knows your pairing code, so another program
+  holding that port while Clip2Pod is closed gets nothing.
 - While **Share feeds on this network** is on, the podcast feeds bind to your
   LAN (`0.0.0.0:4738`) so your phone can reach them; they serve only your
   episodes and cover art. They're plain HTTP, so anyone who can watch traffic on
