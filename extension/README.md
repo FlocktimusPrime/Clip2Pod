@@ -27,6 +27,26 @@ Permanent installs need the add-on signed (or Firefox ESR/Developer Edition
 with `xpinstall.signatures.required=false`); zip the `firefox/` folder
 contents to build the XPI.
 
+## Pair with the app
+
+Clip2Pod ignores captures from an unpaired extension, so other extensions and
+local programs can't push pages or rips into it.
+
+1. In Clip2Pod, open **Settings → Browser extension** and **Copy** the pairing
+   code.
+2. Open the extension's **Options** (right-click its toolbar icon → Options) and
+   paste it. It's stored in `storage.local`. The first click without a code opens
+   this page for you.
+
+The code is never sent. Before each capture the extension POSTs a random nonce to
+`http://127.0.0.1:4737/hello`; the app answers with
+`HMAC-SHA256(code, "clip2pod-server:" + nonce)` and a single-use challenge (60 s
+TTL). The extension sends nothing unless that proof matches, then sends the
+capture with `HMAC-SHA256(code, "clip2pod-client:" + challenge)` in
+`X-Clip2Pod-Auth`. A program squatting on port 4737 while Clip2Pod is closed gets
+neither the page, the cookies nor the code. **New pairing code** in Settings
+unpairs every extension until you paste the new one.
+
 ## Use
 
 1. Have Clip2Pod running (window or tray — closing the window keeps it in the tray).
@@ -39,7 +59,10 @@ contents to build the XPI.
      ripped, or a rippable site the auto-router doesn't know.
 3. Badge shows **✓** — Clip2Pod pops up on the matching tab. Badge **!** means
    Clip2Pod is not running, or (Narrate) the page had no readable article
-   (details in the extension's background/service-worker console).
+   (details in the extension's background/service-worker console). Badge
+   **key** means the extension isn't paired, the code is wrong, or whatever
+   answered on port 4737 couldn't prove it knows the code; nothing was sent and
+   the options page opens.
 
 The extension only acts when you click, only on the active tab, and only talks
 to `127.0.0.1:4737` (the Clip2Pod app on your own machine) — plus, on a Reddit
@@ -99,12 +122,13 @@ For a rip, the extension can send the site's cookies so yt-dlp runs as you:
 
 ## Layout
 
-`chrome/` and `firefox/` share the icons, `reddit.js`, `cookies.js` and the
-options page. `reddit.js`, `cookies.js`, `options.html` and `options.js` are
-byte-identical in both builds; `node --test extension/test/*.test.mjs` checks
-that and the extractor's and cookie helpers' behaviour. `background.js` differs
-only in how it loads `reddit.js` and `cookies.js` and in the toolbar icon's
-light/dark switching. Chrome runs MV3 service workers, Firefox runs MV3
+`chrome/` and `firefox/` share the icons, `reddit.js`, `cookies.js`,
+`pairing.js` and the options page. `reddit.js`, `cookies.js`, `pairing.js`,
+`options.html` and `options.js` are byte-identical in both builds;
+`node --test extension/test/*.test.mjs` checks that, the extractor's and cookie
+helpers' behaviour, and the pairing HMAC against the same cross-language vector
+the Rust tests use. `background.js` differs only in how it loads those scripts
+and in the toolbar icon's light/dark switching. Chrome runs MV3 service workers, Firefox runs MV3
 event pages and requires a gecko id.
 
 The toolbar icon has no tile, so it needs a lighter variant (`icon{16,32}-light.png`)

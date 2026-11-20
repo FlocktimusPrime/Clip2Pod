@@ -16,6 +16,11 @@ The shell (`src-tauri/src/`) wires both: one capture listener (`:4737`, routes b
 server (`:4738`, `/tts/*` + `/video/*`), two independent workers/queues. Rip config
 and log live in `<config dir>/Clip2Pod/rip/`, separate from the narrate ones.
 
+Captures require the paired extension: `/hello` HMAC challenge-response, then
+`X-Clip2Pod-Auth` on `/capture` (`extension/*/pairing.js` mirrors the Rust side;
+both test suites share one vector). The feed port is open only while LAN sharing
+is on.
+
 **Licensing:** the combined binary links a GPL-3.0 crate into an AGPL-3.0 program.
 AGPLv3 §13 permits this; the effective licence of the whole is AGPL-3.0. Keep
 `clip2pod-rip` marked GPL-3.0-only.

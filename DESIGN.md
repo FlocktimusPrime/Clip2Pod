@@ -298,7 +298,7 @@ Three bands filling the content area, no whole-surface scroll:
 
 1. **Meta bar** (`padding: 12px 16px`, panel, bottom `line-soft`): a CSS grid, `grid-template-columns: 2fr 1.2fr 1.2fr auto` — Title, Author, Filename title, and the author-gender segmented control. Collapses to `1fr 1fr` below 900px.
 2. **Deck** (`flex: 1`, `min-height: 0`): a flexible `main` (the CodeMirror editor, `min-width: 0`, its own `.cm-scroller`) beside a fixed **280px** sidebar (`border-left: 1px line`, its own `overflow-y: auto`). The coach bar floats absolutely centred 14px above the deck's bottom edge.
-3. **Queue bar** (`padding: 8px 16px`, panel, top `line`): status label, a wrapping status strip (`max-height: 92px`, scrolls), right-aligned actions. A 2px render rail rides its top edge.
+3. **Queue bar** (`padding: 8px 16px`, panel, top `line`): status label, a wrapping status strip (`max-height: 92px`, scrolls), right-aligned actions. A 2px render rail rides its top edge. A failed narrate row ends with an inline **Retry** button (`1px solid currentColor`, 3px radius, `padding: 1px 6px`, no fill, inheriting the row's red; hover tints it with 18% `--danger`), so each wrapped failure keeps its own action instead of stacking them in the actions group.
 
 ### The RIP desk
 
@@ -452,7 +452,9 @@ second light, tells you which worker is live.
 - **Panel:** `panel` fill, 1px `line`, 8px radius, modal-lift shadow, `width: min(720px, 92vw)`, `max-height: 84vh`, `padding: 0`. Flex column: header / scrolling `.body` / optional footer, each `12px 16px` and divided by `line-soft`. Rises 6px + fades over 160ms; reduced-motion fades only.
 - **Header:** an `<h2 class="label">` title linked by `aria-labelledby` + a `Close` button showing `Esc`. Settings subsections are `<h3 class="label">` (muted mono — never the accent).
 - **Open focus is on the panel**, not the first control: `showModal()` then `dialogEl.focus()` on a `tabindex="-1"` dialog.
-- **In-dialog feedback is inline, not a toast** — a `<dialog>` sits above the toast stack. Confirm on the control itself (the feed dialog's Copy → `Copied`; the log's disable-voice item → `Removed from rotation`).
+- **In-dialog feedback is inline, not a toast** — a `<dialog>` sits above the toast stack. Confirm on the control itself (the feed dialog's Copy → `Copied`; Settings' pairing-code Copy → `Copied`; the log's disable-voice item → `Removed from rotation`).
+- **Feed dialog:** a `.check` row, **Share feeds on this network**, opens the dialog, followed by a `.hint` warning that the feeds are plain HTTP. The Narrate | Rip tabs, URL, QR code, Reset and firewall help render only while it's on.
+- **Settings → Browser extension:** the fourth subsection: a `Pairing code` label, the code in a `.path.mono` line beside a Copy `.btn`, a `.hint` saying where to paste it, then a **New pairing code** `.btn`.
 
 **The Native-Dialog Rule.** Overlays that need protected focus use `<dialog>` +
 `showModal()`, never a hand-rolled backdrop `<div>` with a JS focus trap — that
