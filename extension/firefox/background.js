@@ -26,16 +26,21 @@ function isRedditHost(url) {
 }
 
 // POST a capture body to the app and show the result on the toolbar badge.
+// Unpaired (401): open the options page so the user can paste the code.
 async function post(tab, body) {
   try {
+    const { pairingCode } = await chrome.storage.local.get({ pairingCode: "" });
     const response = await fetch(CAPTURE_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Clip2Pod-Token": pairingCode },
       body: JSON.stringify(body),
     });
 
     if (response.ok) {
       badge(tab.id, "✓", "#7bae6c");
+    } else if (response.status === 401) {
+      badge(tab.id, "key", "#e4483c");
+      chrome.runtime.openOptionsPage();
     } else {
       console.error("Clip2Pod rejected the page:", await response.text());
       badge(tab.id, "!", "#e4483c");

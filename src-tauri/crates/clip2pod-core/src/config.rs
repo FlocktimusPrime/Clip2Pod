@@ -31,6 +31,9 @@ pub struct Config {
     pub start_minimized: bool,
     /// None = user hasn't answered the first-run prompt yet.
     pub launch_at_startup: Option<bool>,
+    /// Serve the podcast feeds on the LAN. None = config from before this
+    /// setting existed; the shell decides (on for existing installs).
+    pub feed_lan: Option<bool>,
 }
 
 impl Default for Config {
@@ -46,6 +49,7 @@ impl Default for Config {
             cached_voices: Vec::new(),
             start_minimized: false,
             launch_at_startup: None,
+            feed_lan: None,
         }
     }
 }

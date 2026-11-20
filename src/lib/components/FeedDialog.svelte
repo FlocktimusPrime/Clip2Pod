@@ -19,6 +19,29 @@
   let urls = $state<Record<TabName, string>>({ narrate: "", rip: "" });
   let qrs = $state<Record<TabName, string>>({ narrate: "", rip: "" });
 
+  // null until loaded. Off: the port is closed and nothing below is reachable.
+  let sharing = $state<boolean | null>(null);
+  let switching = $state(false);
+  api.feedSharing().then(
+    (on) => (sharing = on),
+    (e) => toast(`Feed status failed: ${e}`, "error"),
+  );
+
+  async function toggleSharing(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const on = input.checked;
+    switching = true;
+    try {
+      await api.setFeedSharing(on);
+      sharing = on;
+    } catch (err) {
+      input.checked = !on;
+      toast(`${err}`, "error");
+    } finally {
+      switching = false;
+    }
+  }
+
   function loadUrls() {
     for (const f of feeds) {
       f.load().then(
@@ -127,6 +150,20 @@
 </script>
 
 <Modal title="Podcast feeds" onclose={() => (app.dialog = null)}>
+  <label class="check">
+    <input
+      type="checkbox"
+      checked={sharing ?? false}
+      disabled={sharing === null || switching}
+      onchange={toggleSharing}
+    />
+    <span>Share feeds on this network</span>
+  </label>
+  <p class="hint">
+    Feeds are plain HTTP: anyone who sees the URL on the network can listen. Only turn this on
+    on a network you trust, like your home Wi-Fi.
+  </p>
+  {#if sharing}
   <p class="hint">
     Two separate feeds — subscribe to the ones you want. Same Wi-Fi, and Clip2Pod
     must be running (the tray keeps it alive).
@@ -192,6 +229,7 @@
         </ul>
       {/if}
     </div>
+  {/if}
   {/if}
 </Modal>
 

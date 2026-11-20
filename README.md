@@ -187,6 +187,11 @@ session — to whichever mode fits.
   **Load unpacked** → pick [`extension/chrome/`](extension/chrome/).
 - **Firefox** (temporary): `about:debugging#/runtime/this-firefox` → **Load
   Temporary Add-on…** → pick [`extension/firefox/manifest.json`](extension/firefox/manifest.json).
+- **Pair it:** copy the code from Clip2Pod's **Settings → Browser extension** and
+  paste it into the extension's options (right-click its toolbar icon →
+  **Options**). Clip2Pod ignores captures without it, so other extensions and
+  local programs can't push pages into it. The first unpaired click opens the
+  options page for you.
 
 **Click** the toolbar button and the app decides: a known video host goes to Rip,
 everything else to Narrate. **Right-click the page** for "Narrate this page" /
@@ -219,8 +224,9 @@ flag in your Rip arguments for that run only. See [`extension/README.md`](extens
 
 ### Subscribe on your phone
 
-1. Click **Feed**. The dialog has a tab for each feed, and opens on the mode
-   you're in.
+1. Click **Feed** and turn on **Share feeds on this network** (off by default on
+   new installs; while it's off, port 4738 is closed). The dialog has a tab for each feed, and
+   opens on the mode you're in.
 2. Scan the QR code, or enter the shown `http://<your-ip>:4738/tts/<token>/feed.xml`
    (or `/video/<token>/feed.xml`) in any podcast app on the same network. The
    token keeps others on your Wi-Fi out; **Reset feed URL** issues a new one if the
@@ -300,8 +306,10 @@ so a full article narrates as one file. Ripping shells out to the system `yt-dlp
   page is narrated. Revoke a site in your browser's extension settings. The
   cookies travel to `127.0.0.1:4737`, so they reach whatever program listens
   there, normally Clip2Pod; only rip when it's running.
-- The podcast feeds bind to your LAN (`0.0.0.0:4738`) so your phone can reach
-  them; they serve only your episodes and cover art.
+- While **Share feeds on this network** is on, the podcast feeds bind to your
+  LAN (`0.0.0.0:4738`) so your phone can reach them; they serve only your
+  episodes and cover art. They're plain HTTP, so anyone who can watch traffic on
+  that network can read the feed URL. Use it on a network you trust.
 - No telemetry, no accounts, no data collection.
 
 ## Development

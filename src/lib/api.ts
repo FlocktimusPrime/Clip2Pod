@@ -101,6 +101,17 @@ export const feedUrl = () => invoke<string>("feed_url");
 /** Rotates the token shared by both feeds; every subscribed device must re-subscribe. */
 export const resetFeedUrl = () => invoke<void>("reset_feed_url");
 
+/** Whether the LAN feed server is running. */
+export const feedSharing = () => invoke<boolean>("feed_sharing");
+
+export const setFeedSharing = (on: boolean) => invoke<void>("set_feed_sharing", { on });
+
+/** Pairing code the browser extension must send with every capture. */
+export const captureToken = () => invoke<string>("capture_token");
+
+/** Issues a new pairing code; installed extensions must be re-paired. */
+export const resetCaptureToken = () => invoke<string>("reset_capture_token");
+
 export const episodeCount = () => invoke<number>("episode_count");
 
 export const deleteAllEpisodes = () => invoke<number>("delete_all_episodes");

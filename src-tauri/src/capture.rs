@@ -9,18 +9,29 @@
 // otherwise a known video host goes to RIP and everything else is treated as an
 // article extracted from the HTML.
 //
-// Origin gate: browsers attach `Origin` to cross-origin fetches, so a web page
-// trying to POST here arrives with its own origin and is refused. Extensions
-// arrive as `chrome-extension://` / `moz-extension://`; curl and local scripts
-// send no Origin at all and are allowed (anything that can run them already
-// runs as the user).
+// Two gates. Origin: browsers attach `Origin` to cross-origin fetches, so a web
+// page trying to POST here arrives with its own origin and is refused before
+// anything else. Pairing code: the origin check alone lets in every installed
+// extension and every local process, so each capture must also carry the
+// random code shown in Settings (`X-Clip2Pod-Token`), which the user pastes
+// into the extension's options once.
 
+use crate::state::AppState;
 use clip2pod_rip::cookies::{Cookie, CookieJar};
 use serde::Deserialize;
-use tauri::{AppHandle, Emitter};
-use tiny_http::{Header, Method, Response, Server};
+use std::io::Read;
+use std::sync::Arc;
+use tauri::{AppHandle, Emitter, Manager};
+use tiny_http::{Header, Method, Request, Response, Server};
 
 pub const CAPTURE_ADDR: &str = "127.0.0.1:4737";
+pub const TOKEN_FILE: &str = "capture_token";
+const TOKEN_HEADER: &str = "X-Clip2Pod-Token";
+/// Rendered HTML of a long article is a few MB; anything far past that is abuse.
+const MAX_BODY: usize = 32 * 1024 * 1024;
+/// Request handlers. A slow upload ties one up, so more than one keeps the
+/// listener responsive.
+const WORKERS: usize = 2;
 
 #[derive(Deserialize)]
 struct Prepared {
@@ -64,12 +75,33 @@ fn origin_allowed(origin: Option<&str>) -> bool {
     }
 }
 
-fn origin_of(request: &tiny_http::Request) -> Option<String> {
+fn header_of(request: &Request, name: &'static str) -> Option<String> {
     request
         .headers()
         .iter()
-        .find(|h| h.field.equiv("Origin"))
+        .find(|h| h.field.equiv(name))
         .map(|h| h.value.to_string())
+}
+
+fn paired(given: Option<&str>, token: &str) -> bool {
+    given.is_some_and(|g| crate::secret::same_token(g.trim(), token))
+}
+
+/// Read at most `MAX_BODY` bytes; `Err` carries the status and message to send.
+fn read_capped(reader: impl Read, declared: Option<usize>) -> Result<String, (u16, &'static str)> {
+    const TOO_BIG: (u16, &str) = (413, "page too large");
+    if declared.is_some_and(|n| n > MAX_BODY) {
+        return Err(TOO_BIG);
+    }
+    let mut body = String::new();
+    reader
+        .take(MAX_BODY as u64 + 1)
+        .read_to_string(&mut body)
+        .map_err(|_| (400, "unreadable body"))?;
+    if body.len() > MAX_BODY {
+        return Err(TOO_BIG);
+    }
+    Ok(body)
 }
 
 fn with_cors(
@@ -78,7 +110,7 @@ fn with_cors(
     for (name, value) in [
         ("Access-Control-Allow-Origin", "*"),
         ("Access-Control-Allow-Methods", "POST, OPTIONS"),
-        ("Access-Control-Allow-Headers", "Content-Type"),
+        ("Access-Control-Allow-Headers", "Content-Type, X-Clip2Pod-Token"),
     ] {
         if let Ok(h) = Header::from_bytes(name.as_bytes(), value.as_bytes()) {
             response.add_header(h);
@@ -154,48 +186,85 @@ fn route_article(app: &AppHandle, payload: &CapturePayload) -> Result<(), String
     Ok(())
 }
 
-pub fn serve(app: AppHandle) {
-    std::thread::spawn(move || {
-        let server = match Server::http(CAPTURE_ADDR) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("capture listener failed to bind {CAPTURE_ADDR}: {e}");
-                return;
-            }
-        };
-        for mut request in server.incoming_requests() {
-            if !origin_allowed(origin_of(&request).as_deref()) {
-                let _ = request.respond(Response::from_string("forbidden").with_status_code(403));
-                continue;
-            }
-            if request.method() == &Method::Options {
-                let _ = request.respond(with_cors(Response::from_data(Vec::new())));
-                continue;
-            }
-            if request.method() != &Method::Post || request.url() != "/capture" {
-                let _ = request.respond(with_cors(
-                    Response::from_string("not found").with_status_code(404),
-                ));
-                continue;
-            }
-            let mut body = String::new();
-            if request.as_reader().read_to_string(&mut body).is_err() {
-                let _ = request.respond(with_cors(
-                    Response::from_string("unreadable body").with_status_code(400),
-                ));
-                continue;
-            }
-            let (status, message) = handle(&app, &body);
-            let _ = request.respond(with_cors(
-                Response::from_string(message).with_status_code(status),
-            ));
+fn reply(request: Request, status: u16, message: &str) {
+    let _ = request.respond(with_cors(
+        Response::from_string(message).with_status_code(status),
+    ));
+}
+
+fn handle_request(app: &AppHandle, mut request: Request) {
+    if !origin_allowed(header_of(&request, "Origin").as_deref()) {
+        let _ = request.respond(Response::from_string("forbidden").with_status_code(403));
+        return;
+    }
+    if request.method() == &Method::Options {
+        let _ = request.respond(with_cors(Response::from_data(Vec::new())));
+        return;
+    }
+    if request.method() != &Method::Post || request.url() != "/capture" {
+        return reply(request, 404, "not found");
+    }
+    // Checked before the body is read, so an unpaired caller can't hold a
+    // worker with a slow upload.
+    let token = app.state::<AppState>().capture_token.lock().unwrap().clone();
+    if !paired(header_of(&request, TOKEN_HEADER).as_deref(), &token) {
+        return reply(
+            request,
+            401,
+            "not paired: paste the pairing code from Clip2Pod Settings into the extension's options",
+        );
+    }
+    let declared = request.body_length();
+    match read_capped(request.as_reader(), declared) {
+        Ok(body) => {
+            let (status, message) = handle(app, &body);
+            reply(request, status, &message);
         }
-    });
+        Err((status, message)) => reply(request, status, message),
+    }
+}
+
+pub fn serve(app: AppHandle) {
+    let server = match Server::http(CAPTURE_ADDR) {
+        Ok(s) => Arc::new(s),
+        Err(e) => {
+            eprintln!("capture listener failed to bind {CAPTURE_ADDR}: {e}");
+            return;
+        }
+    };
+    for _ in 0..WORKERS {
+        let (server, app) = (server.clone(), app.clone());
+        std::thread::spawn(move || {
+            for request in server.incoming_requests() {
+                handle_request(&app, request);
+            }
+        });
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{article_for, origin_allowed, wants_rip, CapturePayload};
+    use super::{article_for, origin_allowed, paired, read_capped, wants_rip, CapturePayload, MAX_BODY};
+
+    #[test]
+    fn capture_needs_the_exact_pairing_code() {
+        let t = "0123456789abcdef0123456789abcdef";
+        assert!(paired(Some(t), t));
+        assert!(paired(Some(&format!(" {t} ")), t));
+        assert!(!paired(None, t));
+        assert!(!paired(Some(""), t));
+        assert!(!paired(Some("0123456789abcdef0123456789abcdee"), t));
+    }
+
+    #[test]
+    fn body_is_capped() {
+        assert_eq!(read_capped(&b"{}"[..], Some(2)).unwrap(), "{}");
+        // Declared too big: refused without reading.
+        assert_eq!(read_capped(&b""[..], Some(MAX_BODY + 1)).unwrap_err().0, 413);
+        // Undeclared (chunked) and too big: refused after MAX_BODY + 1 bytes.
+        let big = vec![b'a'; MAX_BODY + 10];
+        assert_eq!(read_capped(&big[..], None).unwrap_err().0, 413);
+    }
 
     #[test]
     fn prepared_payload_needs_no_html() {

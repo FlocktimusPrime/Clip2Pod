@@ -26,6 +26,10 @@ pub struct AppState {
     pub cancel_flag: Arc<AtomicBool>,
     /// Secret path segment shared by both LAN feeds (see feed.rs).
     pub feed_token: Mutex<String>,
+    /// The LAN feed server while sharing is on (see feed::start / feed::stop).
+    pub feed_server: Mutex<Option<Arc<crate::feed::FeedServer>>>,
+    /// Pairing code the browser extension must send with every capture.
+    pub capture_token: Mutex<String>,
 
     // --- RIP mode (yt-dlp) ---
     /// `config_dir/rip/` — keeps the rip config.json and log.json out of the
