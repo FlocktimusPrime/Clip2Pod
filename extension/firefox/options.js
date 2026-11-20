@@ -28,3 +28,15 @@ input.addEventListener("change", async () => {
 });
 
 load();
+
+// Pairing code: storage.local, not sync — it's a secret for this computer's
+// Clip2Pod, so it shouldn't be uploaded to the browser account.
+const token = document.getElementById("token");
+
+chrome.storage.local.get({ pairingCode: "" }).then(({ pairingCode }) => {
+  token.value = pairingCode;
+});
+
+token.addEventListener("input", async () => {
+  await chrome.storage.local.set({ pairingCode: token.value.trim() });
+});

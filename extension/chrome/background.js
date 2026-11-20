@@ -3,9 +3,10 @@
 // capture listener. A plain toolbar click lets the app decide the mode
 // (article vs video); the right-click menu forces one.
 
-importScripts("reddit.js", "cookies.js"); // isRedditThread, extractRedditThread
+importScripts("reddit.js", "cookies.js", "pairing.js"); // isRedditThread, extractRedditThread, pairingAuth
 
 const CAPTURE_ENDPOINT = "http://127.0.0.1:4737/capture";
+const HELLO_ENDPOINT = "http://127.0.0.1:4737/hello";
 
 function badge(tabId, text, color) {
   chrome.action.setBadgeText({ tabId, text });
@@ -25,24 +26,41 @@ function isRedditHost(url) {
 }
 
 // POST a capture body to the app and show the result on the toolbar badge.
+// Nothing is sent until the app proves it knows the pairing code (pairing.js).
+// No code, a wrong one, or a refused capture: open the options page.
 async function post(tab, body) {
+  const needsCode = () => {
+    badge(tab.id, "key", "#e4483c");
+    chrome.runtime.openOptionsPage();
+  };
+  const { pairingCode } = await chrome.storage.local.get({ pairingCode: "" });
+  if (!pairingCode) return needsCode();
   try {
+    const auth = await pairingAuth(HELLO_ENDPOINT, pairingCode);
     const response = await fetch(CAPTURE_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Clip2Pod-Auth": auth },
       body: JSON.stringify(body),
     });
 
     if (response.ok) {
       badge(tab.id, "✓", "#7bae6c");
+    } else if (response.status === 401) {
+      needsCode();
     } else {
       console.error("Clip2Pod rejected the page:", await response.text());
       badge(tab.id, "!", "#e4483c");
     }
   } catch (e) {
-    // Most common cause: Clip2Pod is not running (connection refused).
-    console.error("Could not reach Clip2Pod:", e);
-    badge(tab.id, "!", "#e4483c");
+    if (e.message === "impostor") {
+      // Wrong code, or something other than Clip2Pod on its port. Nothing sent.
+      console.error("Clip2Pod didn't prove it knows the pairing code; nothing was sent.");
+      needsCode();
+    } else {
+      // Most common cause: Clip2Pod is not running (connection refused).
+      console.error("Could not reach Clip2Pod:", e);
+      badge(tab.id, "!", "#e4483c");
+    }
   }
 }
 

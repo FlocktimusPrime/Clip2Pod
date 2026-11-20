@@ -190,14 +190,18 @@ fn shell_words_check(template: &str) -> CmdResult<()> {
 /// Set the yt-dlp executable path (e.g. a nightly build). Empty string resets to
 /// "yt-dlp from PATH".
 #[tauri::command]
-pub fn rip_set_ytdlp_path(state: State<AppState>, path: String) {
+pub fn rip_set_ytdlp_path(state: State<AppState>, path: String) -> CmdResult<()> {
     let trimmed = path.trim().to_string();
+    if !trimmed.is_empty() && !ytdlp::valid_ytdlp_path(&trimmed) {
+        return Err("the yt-dlp binary's file name must start with \"yt-dlp\"".into());
+    }
     state.rip_config.lock().unwrap().ytdlp_path = if trimmed.is_empty() {
         None
     } else {
         Some(trimmed)
     };
     state.save_rip_config();
+    Ok(())
 }
 
 /// Episode list for the UI (delete buttons live here).

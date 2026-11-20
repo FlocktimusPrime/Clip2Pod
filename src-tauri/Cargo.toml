@@ -41,6 +41,8 @@ tokio = { version = "1", features = ["rt-multi-thread", "sync", "macros"] }
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "6"
 getrandom = "0.3"
+# HMAC for extension pairing. Already in the build via reqwest → rustls.
+ring = "0.17"
 tiny_http = "0.12"
 
 [dev-dependencies]

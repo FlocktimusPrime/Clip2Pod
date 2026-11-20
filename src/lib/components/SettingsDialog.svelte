@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getVersion } from "@tauri-apps/api/app";
+  import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { open } from "@tauri-apps/plugin-dialog";
   import * as api from "$lib/api";
   import * as rip from "$lib/rip_api";
@@ -52,6 +53,34 @@
   let ripArgs = $state(app.ripConfig?.args_template ?? "");
   let ripBin = $state(app.ripConfig?.ytdlp_path ?? "");
   let ripArgsError = $state("");
+  let ripBinError = $state("");
+
+  // --- Browser extension ---
+  let pairingCode = $state("");
+  let pairingCopied = $state(false);
+  api.captureToken().then(
+    (t) => (pairingCode = t),
+    (e) => toast(`Pairing code failed: ${e}`, "error"),
+  );
+
+  async function copyPairingCode() {
+    try {
+      await writeText(pairingCode);
+      // Inline, not a toast: a toast would render behind the open dialog.
+      pairingCopied = true;
+      setTimeout(() => (pairingCopied = false), 1600);
+    } catch (e) {
+      toast(`Copy failed: ${e}`, "error");
+    }
+  }
+
+  async function newPairingCode() {
+    try {
+      pairingCode = await api.resetCaptureToken();
+    } catch (e) {
+      toast(`Reset failed: ${e}`, "error");
+    }
+  }
 
   const ripDirty = $derived(
     app.ripConfig !== null &&
@@ -73,13 +102,19 @@
   async function saveRip() {
     if (!app.ripConfig) return;
     ripArgsError = "";
+    ripBinError = "";
     try {
       await rip.setArgsTemplate(ripArgs);
     } catch (e) {
       ripArgsError = String(e);
       return;
     }
-    await rip.setYtdlpPath(ripBin);
+    try {
+      await rip.setYtdlpPath(ripBin);
+    } catch (e) {
+      ripBinError = String(e);
+      return;
+    }
     app.ripConfig = await rip.getConfig();
     ripArgs = app.ripConfig.args_template;
     ripBin = app.ripConfig.ytdlp_path;
@@ -177,8 +212,12 @@
       bind:value={ripBin}
       spellcheck="false"
       placeholder="yt-dlp (from PATH)"
-      aria-describedby="rip-bin-hint"
+      aria-invalid={ripBinError ? "true" : undefined}
+      aria-describedby={ripBinError ? "rip-bin-error rip-bin-hint" : "rip-bin-hint"}
     />
+    {#if ripBinError}
+      <p class="error" id="rip-bin-error">{ripBinError}</p>
+    {/if}
     <p class="hint" id="rip-bin-hint">
       Leave blank to use <code>yt-dlp</code> from your PATH, or point at a specific build (e.g. a
       nightly) if rips start failing.
@@ -192,6 +231,22 @@
     {/if}
 
     <button class="btn primary" onclick={saveRip} disabled={!ripDirty}>Save rip settings</button>
+  </div>
+
+  <h3 class="section-head label">Browser extension</h3>
+  <div class="section">
+    <span class="label">Pairing code</span>
+    <div class="row">
+      <p class="path mono">{pairingCode || "…"}</p>
+      <button class="btn" onclick={copyPairingCode} disabled={!pairingCode}>
+        {pairingCopied ? "Copied" : "Copy"}
+      </button>
+    </div>
+    <p class="hint">
+      Paste this into the extension's options (right-click its toolbar icon → Options). Clip2Pod
+      ignores captures without it, so other extensions and programs can't send it pages.
+    </p>
+    <button class="btn" onclick={newPairingCode}>New pairing code</button>
   </div>
 
   {#if version}

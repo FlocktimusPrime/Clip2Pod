@@ -4,6 +4,7 @@ mod feed;
 mod firewall;
 mod rip_commands;
 mod rip_worker;
+mod secret;
 mod state;
 mod tray;
 mod worker;
@@ -28,12 +29,19 @@ pub fn run() {
     const HOTKEY: &str = "Ctrl+Alt+G";
     let config_dir = clip2pod_core::config::default_config_dir();
     install_panic_hook(config_dir.clone());
-    let config = clip2pod_core::config::load_config(&config_dir);
+    let mut config = clip2pod_core::config::load_config(&config_dir);
     let authors = clip2pod_core::authors::load_authors(&config_dir);
     let cached_voices = config.cached_voices.clone();
     let start_minimized = config.start_minimized;
     let launch_at_startup = config.launch_at_startup;
-    let feed_token = feed::load_or_create_token(&config_dir);
+    let (feed_token, had_feed_token) = secret::load_or_create(&config_dir, feed::TOKEN_FILE);
+    // LAN sharing predates its toggle: an install that already had a feed
+    // token keeps serving (its phone stays subscribed); a new one starts off.
+    let feed_lan = *config.feed_lan.get_or_insert(had_feed_token);
+    if let Err(e) = clip2pod_core::config::save_config(&config_dir, &config) {
+        eprintln!("failed to save config: {e}");
+    }
+    let (capture_token, _) = secret::load_or_create(&config_dir, capture::TOKEN_FILE);
     let (wake_tx, wake_rx) = tokio::sync::mpsc::unbounded_channel();
 
     // RIP mode: its own config/log subdir.
@@ -82,6 +90,8 @@ pub fn run() {
             wake_worker: wake_tx,
             cancel_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             feed_token: Mutex::new(feed_token),
+            feed_server: Mutex::new(None),
+            capture_token: Mutex::new(capture_token),
             rip_config_dir,
             rip_config: Mutex::new(rip_config),
             rip_queue: Mutex::new(Default::default()),
@@ -118,7 +128,11 @@ pub fn run() {
             rip_worker::spawn(app.handle().clone(), rip_wake_rx);
             tray::setup(app.handle())?;
             capture::serve(app.handle().clone());
-            feed::serve(app.handle().clone());
+            if feed_lan {
+                if let Err(e) = feed::start(app.handle()) {
+                    eprintln!("feed server: {e}");
+                }
+            }
             // Window is created hidden (visible:false in tauri.conf.json);
             // only surface it when the user hasn't opted into tray-only start.
             if !start_minimized {
@@ -174,6 +188,10 @@ pub fn run() {
             commands::delete_all_episodes,
             commands::feed_url,
             commands::reset_feed_url,
+            commands::feed_sharing,
+            commands::set_feed_sharing,
+            commands::capture_token,
+            commands::reset_capture_token,
             commands::firewall_help,
             rip_commands::rip_enqueue,
             rip_commands::rip_get_queue,

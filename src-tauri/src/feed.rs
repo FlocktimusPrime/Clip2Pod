@@ -6,11 +6,13 @@
 //
 // Anyone on the same Wi-Fi can reach the port, so the URL itself is the
 // secret: a random token, shared by both feeds and persisted in the config
-// dir. Resetting it unsubscribes every device.
+// dir. Resetting it unsubscribes every device. Plain HTTP, so the token is only
+// as private as the network: the server runs only while "Share feeds on this
+// network" is on (off by default for new installs).
 
 use crate::state::AppState;
-use std::io::Cursor;
 use std::path::Path;
+use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 use tiny_http::{Header, Method, Request, Response, Server};
 
@@ -21,38 +23,10 @@ const COVER_TTS: &[u8] = include_bytes!("../assets/cover.png");
 /// the user can swap artwork without a rebuild.
 const COVER_VIDEO: &[u8] = include_bytes!("../assets/cover.jpg");
 
-const TOKEN_FILE: &str = "feed_token";
-
-/// 128 random bits as lowercase hex.
-pub fn new_token() -> String {
-    let mut bytes = [0u8; 16];
-    getrandom::fill(&mut bytes).expect("OS random source unavailable");
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
-}
-
-fn is_valid_token(s: &str) -> bool {
-    s.len() == 32 && s.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
-}
-
-/// The saved token, or a fresh one (saved) on first run or if the file is
-/// missing or mangled.
-pub fn load_or_create_token(config_dir: &Path) -> String {
-    if let Ok(saved) = std::fs::read_to_string(config_dir.join(TOKEN_FILE)) {
-        if is_valid_token(saved.trim()) {
-            return saved.trim().to_string();
-        }
-    }
-    let token = new_token();
-    if let Err(e) = save_token(config_dir, &token) {
-        eprintln!("failed to save feed token: {e}");
-    }
-    token
-}
-
-pub fn save_token(config_dir: &Path, token: &str) -> std::io::Result<()> {
-    std::fs::create_dir_all(config_dir)?;
-    std::fs::write(config_dir.join(TOKEN_FILE), token)
-}
+pub const TOKEN_FILE: &str = "feed_token";
+/// Fixed handler pool: requests beyond this wait in tiny_http's queue instead
+/// of each getting a thread, so a flood can't exhaust threads or memory.
+const WORKERS: usize = 4;
 
 /// Subscribe URL shown in the Feed dialog; `feed` is `tts` or `video`.
 pub fn subscribe_url(feed: &str, token: &str) -> String {
@@ -64,17 +38,8 @@ pub fn subscribe_url(feed: &str, token: &str) -> String {
 fn split_feed_path<'a>(url: &'a str, token: &str) -> Option<(&'a str, &'a str)> {
     let (feed, path) = url.strip_prefix('/')?.split_once('/')?;
     let (given, rest) = path.split_once('/')?;
-    (matches!(feed, "tts" | "video") && same_token(given, token)).then_some((feed, rest))
-}
-
-/// Constant-time compare, so response timing doesn't leak how much of a
-/// guessed token was right.
-fn same_token(a: &str, b: &str) -> bool {
-    a.len() == b.len()
-        && a.bytes()
-            .zip(b.bytes())
-            .fold(0, |acc, (x, y)| acc | (x ^ y))
-            == 0
+    (matches!(feed, "tts" | "video") && crate::secret::same_token(given, token))
+        .then_some((feed, rest))
 }
 
 /// Best-effort LAN address: a connected UDP socket picks the outbound
@@ -108,7 +73,7 @@ fn base_url(request: &Request, suffix: &str) -> String {
     format!("http://{host}{suffix}")
 }
 
-fn respond(request: Request, response: Response<Cursor<Vec<u8>>>, content_type: &str) {
+fn respond<R: std::io::Read>(request: Request, response: Response<R>, content_type: &str) {
     let with_type = match Header::from_bytes(b"Content-Type", content_type.as_bytes()) {
         Ok(h) => response.with_header(h),
         Err(_) => response,
@@ -126,8 +91,9 @@ fn serve_audio(request: Request, dir: &Path, name: &str, listed: &[String]) {
     if !listed.iter().any(|f| f == name) {
         return status(request, 404, "not found");
     }
-    match std::fs::read(dir.join(name)) {
-        Ok(bytes) => respond(request, Response::from_data(bytes), "audio/mpeg"),
+    // Streamed from disk, not read into memory: episodes run to hundreds of MB.
+    match std::fs::File::open(dir.join(name)) {
+        Ok(file) => respond(request, Response::from_file(file), "audio/mpeg"),
         Err(_) => status(request, 404, "not found"),
     }
 }
@@ -202,20 +168,59 @@ fn handle(app: &AppHandle, request: Request) {
     }
 }
 
-pub fn serve(app: AppHandle) {
-    std::thread::spawn(move || {
-        let server = match Server::http(FEED_ADDR) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("feed server failed to bind {FEED_ADDR}: {e}");
-                return;
+/// The running server. tiny_http's own Drop wakes its accept thread by
+/// connecting to the bound address, which fails for 0.0.0.0 on Windows and
+/// leaves the port open until some client connects; so after dropping it,
+/// connect to loopback ourselves.
+pub struct FeedServer(Option<Server>);
+
+impl FeedServer {
+    fn get(&self) -> &Server {
+        self.0.as_ref().expect("taken only in drop")
+    }
+}
+
+impl Drop for FeedServer {
+    fn drop(&mut self) {
+        drop(self.0.take());
+        let addr = (std::net::Ipv4Addr::LOCALHOST, FEED_PORT).into();
+        let _ = std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(500));
+    }
+}
+
+/// Bind the LAN port and start the handler pool. No-op if already running.
+pub fn start(app: &AppHandle) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    let mut running = state.feed_server.lock().unwrap();
+    if running.is_some() {
+        return Ok(());
+    }
+    let server = Arc::new(FeedServer(Some(Server::http(FEED_ADDR).map_err(|e| {
+        format!("could not open port {FEED_PORT} ({e}) — if you just turned sharing off, try again in a moment")
+    })?)));
+    for _ in 0..WORKERS {
+        let (server, app) = (server.clone(), app.clone());
+        std::thread::spawn(move || {
+            for request in server.get().incoming_requests() {
+                handle(&app, request);
             }
-        };
-        for request in server.incoming_requests() {
-            let app = app.clone();
-            std::thread::spawn(move || handle(&app, request));
+        });
+    }
+    *running = Some(server);
+    Ok(())
+}
+
+/// Stop accepting. Each worker exits after its current response; the port is
+/// released when the last one drops its handle.
+pub fn stop(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let server = state.feed_server.lock().unwrap().take();
+    if let Some(server) = server {
+        // One unblock wakes one worker.
+        for _ in 0..WORKERS {
+            server.get().unblock();
         }
-    });
+    }
 }
 
 #[cfg(test)]
@@ -242,18 +247,5 @@ mod tests {
             split_feed_path("/tts/00000000000000000000000000000000/feed.xml", T),
             None
         );
-    }
-
-    #[test]
-    fn token_round_trips_and_bad_file_is_replaced() {
-        let dir = tempfile::tempdir().unwrap();
-        let first = load_or_create_token(dir.path());
-        assert!(is_valid_token(&first));
-        assert_eq!(load_or_create_token(dir.path()), first);
-
-        std::fs::write(dir.path().join(TOKEN_FILE), "garbage").unwrap();
-        let replaced = load_or_create_token(dir.path());
-        assert!(is_valid_token(&replaced));
-        assert_ne!(replaced, first);
     }
 }

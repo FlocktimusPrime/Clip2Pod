@@ -9,18 +9,50 @@
 // otherwise a known video host goes to RIP and everything else is treated as an
 // article extracted from the HTML.
 //
-// Origin gate: browsers attach `Origin` to cross-origin fetches, so a web page
-// trying to POST here arrives with its own origin and is refused. Extensions
-// arrive as `chrome-extension://` / `moz-extension://`; curl and local scripts
-// send no Origin at all and are allowed (anything that can run them already
-// runs as the user).
+// Two gates. Origin: browsers attach `Origin` to cross-origin fetches, so a web
+// page trying to POST here arrives with its own origin and is refused before
+// anything else. Pairing: the origin check alone lets in every installed
+// extension and every local process, so captures must prove knowledge of the
+// random code shown in Settings, which the user pastes into the extension once.
+//
+// The code itself never travels, both ways, because when Clip2Pod isn't running
+// any local program can listen on this port and would receive whatever the
+// extension sends (page HTML, site cookies, the code):
+//   1. POST /hello {"nonce": n}  →  {"proof": HMAC(code, SERVER+n), "challenge": c}
+//      The extension checks the proof and sends nothing if it's wrong.
+//   2. POST /capture with `X-Clip2Pod-Auth: c.HMAC(code, CLIENT+c)`.
+//      `c` is single-use and expires, so a captured header can't be replayed.
 
+use crate::secret::{new_token, same_token, to_hex};
+use crate::state::AppState;
 use clip2pod_rip::cookies::{Cookie, CookieJar};
+use ring::hmac;
 use serde::Deserialize;
-use tauri::{AppHandle, Emitter};
-use tiny_http::{Header, Method, Response, Server};
+use std::collections::VecDeque;
+use std::io::Read;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+use tauri::{AppHandle, Emitter, Manager};
+use tiny_http::{Header, Method, Request, Response, Server};
 
 pub const CAPTURE_ADDR: &str = "127.0.0.1:4737";
+pub const TOKEN_FILE: &str = "capture_token";
+const AUTH_HEADER: &str = "X-Clip2Pod-Auth";
+/// Domain separation: a server proof can never be replayed as a client one.
+const SERVER_LABEL: &str = "clip2pod-server:";
+const CLIENT_LABEL: &str = "clip2pod-client:";
+const CHALLENGE_TTL: Duration = Duration::from_secs(60);
+/// Outstanding challenges. Anyone past the origin gate can call /hello, so the
+/// list is capped (oldest dropped): flooding it can only make a real capture
+/// retry, never grow memory.
+const MAX_PENDING: usize = 16;
+static PENDING: Mutex<VecDeque<(String, Instant)>> = Mutex::new(VecDeque::new());
+/// Rendered HTML of a long article is a few MB; anything far past that is abuse.
+const MAX_BODY: usize = 32 * 1024 * 1024;
+const MAX_HELLO: usize = 1024;
+/// Request handlers. A slow upload ties one up, so more than one keeps the
+/// listener responsive.
+const WORKERS: usize = 2;
 
 #[derive(Deserialize)]
 struct Prepared {
@@ -64,12 +96,95 @@ fn origin_allowed(origin: Option<&str>) -> bool {
     }
 }
 
-fn origin_of(request: &tiny_http::Request) -> Option<String> {
+fn header_of(request: &Request, name: &'static str) -> Option<String> {
     request
         .headers()
         .iter()
-        .find(|h| h.field.equiv("Origin"))
+        .find(|h| h.field.equiv(name))
         .map(|h| h.value.to_string())
+}
+
+/// Lowercase hex HMAC-SHA256 of `label + data`, keyed by the pairing code.
+/// extension/chrome/pairing.js computes the same thing.
+fn mac(code: &str, label: &str, data: &str) -> String {
+    let key = hmac::Key::new(hmac::HMAC_SHA256, code.as_bytes());
+    to_hex(hmac::sign(&key, format!("{label}{data}").as_bytes()).as_ref())
+}
+
+fn prune(pending: &mut VecDeque<(String, Instant)>, now: Instant) {
+    pending.retain(|(_, t)| now.duration_since(*t) < CHALLENGE_TTL);
+}
+
+fn issue(pending: &mut VecDeque<(String, Instant)>, challenge: String, now: Instant) {
+    prune(pending, now);
+    if pending.len() >= MAX_PENDING {
+        pending.pop_front();
+    }
+    pending.push_back((challenge, now));
+}
+
+/// Step 1: prove we know the code, and hand out a fresh challenge.
+fn hello(code: &str, body: &str, pending: &mut VecDeque<(String, Instant)>, now: Instant) -> (u16, String) {
+    #[derive(Deserialize)]
+    struct Hello {
+        nonce: String,
+    }
+    let nonce = match serde_json::from_str::<Hello>(body) {
+        Ok(h) if crate::secret::is_valid_token(&h.nonce) => h.nonce,
+        _ => return (400, "bad hello".into()),
+    };
+    let challenge = new_token();
+    issue(pending, challenge.clone(), now);
+    let reply = serde_json::json!({
+        "proof": mac(code, SERVER_LABEL, &nonce),
+        "challenge": challenge,
+    });
+    (200, reply.to_string())
+}
+
+/// Step 2: `header` is `challenge.signature`. The signature is checked before
+/// the challenge is consumed, so a forged header can't burn a real one.
+fn authorized(
+    header: Option<&str>,
+    code: &str,
+    pending: &mut VecDeque<(String, Instant)>,
+    now: Instant,
+) -> bool {
+    let Some((challenge, sig)) = header.and_then(|h| h.trim().split_once('.')) else {
+        return false;
+    };
+    if !same_token(&mac(code, CLIENT_LABEL, challenge), sig) {
+        return false;
+    }
+    prune(pending, now);
+    match pending.iter().position(|(c, _)| same_token(c, challenge)) {
+        Some(i) => {
+            pending.remove(i);
+            true
+        }
+        None => false,
+    }
+}
+
+/// Read at most `limit` bytes; `Err` carries the status and message to send.
+fn read_capped(
+    reader: impl Read,
+    declared: Option<usize>,
+    limit: usize,
+) -> Result<String, (u16, &'static str)> {
+    const TOO_BIG: (u16, &str) = (413, "page too large");
+    if declared.is_some_and(|n| n > limit) {
+        return Err(TOO_BIG);
+    }
+    let mut body = String::new();
+    reader
+        .take(limit as u64 + 1)
+        .read_to_string(&mut body)
+        .map_err(|_| (400, "unreadable body"))?;
+    if body.len() > limit {
+        return Err(TOO_BIG);
+    }
+    Ok(body)
 }
 
 fn with_cors(
@@ -78,7 +193,7 @@ fn with_cors(
     for (name, value) in [
         ("Access-Control-Allow-Origin", "*"),
         ("Access-Control-Allow-Methods", "POST, OPTIONS"),
-        ("Access-Control-Allow-Headers", "Content-Type"),
+        ("Access-Control-Allow-Headers", "Content-Type, X-Clip2Pod-Auth"),
     ] {
         if let Ok(h) = Header::from_bytes(name.as_bytes(), value.as_bytes()) {
             response.add_header(h);
@@ -154,48 +269,161 @@ fn route_article(app: &AppHandle, payload: &CapturePayload) -> Result<(), String
     Ok(())
 }
 
-pub fn serve(app: AppHandle) {
-    std::thread::spawn(move || {
-        let server = match Server::http(CAPTURE_ADDR) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("capture listener failed to bind {CAPTURE_ADDR}: {e}");
-                return;
-            }
+fn reply(request: Request, status: u16, message: &str) {
+    let _ = request.respond(with_cors(
+        Response::from_string(message).with_status_code(status),
+    ));
+}
+
+fn handle_request(app: &AppHandle, mut request: Request) {
+    if !origin_allowed(header_of(&request, "Origin").as_deref()) {
+        let _ = request.respond(Response::from_string("forbidden").with_status_code(403));
+        return;
+    }
+    if request.method() == &Method::Options {
+        let _ = request.respond(with_cors(Response::from_data(Vec::new())));
+        return;
+    }
+    let is_hello = match (request.method(), request.url()) {
+        (Method::Post, "/hello") => true,
+        (Method::Post, "/capture") => false,
+        _ => return reply(request, 404, "not found"),
+    };
+    let code = app.state::<AppState>().capture_token.lock().unwrap().clone();
+    let declared = request.body_length();
+    if is_hello {
+        let (status, message) = match read_capped(request.as_reader(), declared, MAX_HELLO) {
+            Ok(body) => hello(&code, &body, &mut PENDING.lock().unwrap(), Instant::now()),
+            Err((status, message)) => (status, message.to_string()),
         };
-        for mut request in server.incoming_requests() {
-            if !origin_allowed(origin_of(&request).as_deref()) {
-                let _ = request.respond(Response::from_string("forbidden").with_status_code(403));
-                continue;
-            }
-            if request.method() == &Method::Options {
-                let _ = request.respond(with_cors(Response::from_data(Vec::new())));
-                continue;
-            }
-            if request.method() != &Method::Post || request.url() != "/capture" {
-                let _ = request.respond(with_cors(
-                    Response::from_string("not found").with_status_code(404),
-                ));
-                continue;
-            }
-            let mut body = String::new();
-            if request.as_reader().read_to_string(&mut body).is_err() {
-                let _ = request.respond(with_cors(
-                    Response::from_string("unreadable body").with_status_code(400),
-                ));
-                continue;
-            }
-            let (status, message) = handle(&app, &body);
-            let _ = request.respond(with_cors(
-                Response::from_string(message).with_status_code(status),
-            ));
+        return reply(request, status, &message);
+    }
+    // Checked before the body is read, so an unpaired caller can't hold a
+    // worker with a slow upload.
+    let auth = header_of(&request, AUTH_HEADER);
+    if !authorized(auth.as_deref(), &code, &mut PENDING.lock().unwrap(), Instant::now()) {
+        return reply(
+            request,
+            401,
+            "not paired: paste the pairing code from Clip2Pod Settings into the extension's options",
+        );
+    }
+    match read_capped(request.as_reader(), declared, MAX_BODY) {
+        Ok(body) => {
+            let (status, message) = handle(app, &body);
+            reply(request, status, &message);
         }
-    });
+        Err((status, message)) => reply(request, status, message),
+    }
+}
+
+pub fn serve(app: AppHandle) {
+    let server = match Server::http(CAPTURE_ADDR) {
+        Ok(s) => Arc::new(s),
+        Err(e) => {
+            eprintln!("capture listener failed to bind {CAPTURE_ADDR}: {e}");
+            return;
+        }
+    };
+    for _ in 0..WORKERS {
+        let (server, app) = (server.clone(), app.clone());
+        std::thread::spawn(move || {
+            for request in server.incoming_requests() {
+                handle_request(&app, request);
+            }
+        });
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{article_for, origin_allowed, wants_rip, CapturePayload};
+    use super::*;
+    use std::collections::VecDeque;
+    use std::time::{Duration, Instant};
+
+    const CODE: &str = "0123456789abcdef0123456789abcdef";
+    const NONCE: &str = "fedcba9876543210fedcba9876543210";
+
+    #[test]
+    fn mac_is_standard_hmac_sha256_and_matches_the_extension() {
+        // RFC 4231 test case 2.
+        assert_eq!(
+            mac("Jefe", "", "what do ya want for nothing?"),
+            "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
+        );
+        // Same vector as extension/test/pairing.test.mjs.
+        assert_eq!(
+            mac(CODE, CLIENT_LABEL, NONCE),
+            "0779ba6aa5d75bc7771501b5a2327ec77726a163b08002249db8a42f9bcc7749"
+        );
+    }
+
+    /// Run /hello, check its proof, return the challenge.
+    fn handshake(pending: &mut VecDeque<(String, Instant)>, now: Instant) -> String {
+        let (status, body) = hello(CODE, &format!(r#"{{"nonce":"{NONCE}"}}"#), pending, now);
+        assert_eq!(status, 200);
+        let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(v["proof"], mac(CODE, SERVER_LABEL, NONCE));
+        v["challenge"].as_str().unwrap().to_string()
+    }
+
+    fn header(code: &str, challenge: &str) -> String {
+        format!("{challenge}.{}", mac(code, CLIENT_LABEL, challenge))
+    }
+
+    #[test]
+    fn signed_challenge_is_accepted_once() {
+        let (mut p, now) = (VecDeque::new(), Instant::now());
+        let c = handshake(&mut p, now);
+        let h = header(CODE, &c);
+        assert!(authorized(Some(&h), CODE, &mut p, now));
+        assert!(!authorized(Some(&h), CODE, &mut p, now), "replay");
+    }
+
+    #[test]
+    fn wrong_code_is_refused_without_burning_the_challenge() {
+        let (mut p, now) = (VecDeque::new(), Instant::now());
+        let c = handshake(&mut p, now);
+        let other = "ffffffffffffffffffffffffffffffff";
+        assert!(!authorized(Some(&header(other, &c)), CODE, &mut p, now));
+        assert!(authorized(Some(&header(CODE, &c)), CODE, &mut p, now));
+    }
+
+    #[test]
+    fn missing_unknown_or_expired_challenges_are_refused() {
+        let (mut p, now) = (VecDeque::new(), Instant::now());
+        assert!(!authorized(None, CODE, &mut p, now));
+        assert!(!authorized(Some("garbage"), CODE, &mut p, now));
+        // Correctly signed, but never issued.
+        assert!(!authorized(Some(&header(CODE, NONCE)), CODE, &mut p, now));
+        let c = handshake(&mut p, now);
+        let later = now + CHALLENGE_TTL + Duration::from_secs(1);
+        assert!(!authorized(Some(&header(CODE, &c)), CODE, &mut p, later));
+    }
+
+    #[test]
+    fn hello_rejects_bad_nonces_and_caps_pending() {
+        let (mut p, now) = (VecDeque::new(), Instant::now());
+        for body in ["", "{}", r#"{"nonce":"short"}"#, r#"{"nonce":"FEDCBA9876543210FEDCBA9876543210"}"#] {
+            assert_eq!(hello(CODE, body, &mut p, now).0, 400, "{body}");
+        }
+        let first = handshake(&mut p, now);
+        for _ in 0..MAX_PENDING {
+            handshake(&mut p, now);
+        }
+        assert_eq!(p.len(), MAX_PENDING);
+        assert!(!authorized(Some(&header(CODE, &first)), CODE, &mut p, now), "evicted");
+    }
+
+    #[test]
+    fn body_is_capped() {
+        assert_eq!(read_capped(&b"{}"[..], Some(2), MAX_BODY).unwrap(), "{}");
+        // Declared too big: refused without reading.
+        assert_eq!(read_capped(&b""[..], Some(MAX_BODY + 1), MAX_BODY).unwrap_err().0, 413);
+        // Undeclared (chunked) and too big: refused after limit + 1 bytes.
+        let big = vec![b'a'; MAX_HELLO + 10];
+        assert_eq!(read_capped(&big[..], None, MAX_HELLO).unwrap_err().0, 413);
+    }
 
     #[test]
     fn prepared_payload_needs_no_html() {

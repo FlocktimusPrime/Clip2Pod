@@ -493,11 +493,48 @@ pub fn feed_url(state: State<AppState>) -> String {
 /// device stops getting episodes until it re-subscribes with the new URL.
 #[tauri::command]
 pub fn reset_feed_url(state: State<AppState>) -> CmdResult<()> {
-    let token = crate::feed::new_token();
-    crate::feed::save_token(&state.config_dir, &token)
+    let token = crate::secret::new_token();
+    crate::secret::save(&state.config_dir, crate::feed::TOKEN_FILE, &token)
         .map_err(|e| format!("could not save feed token: {e}"))?;
     *state.feed_token.lock().unwrap() = token;
     Ok(())
+}
+
+/// Whether the feeds are served on the LAN right now.
+#[tauri::command]
+pub fn feed_sharing(state: State<AppState>) -> bool {
+    state.feed_server.lock().unwrap().is_some()
+}
+
+/// Start or stop the LAN feed server and remember the choice.
+#[tauri::command]
+pub fn set_feed_sharing(app: AppHandle, on: bool) -> CmdResult<()> {
+    if on {
+        crate::feed::start(&app)?;
+    } else {
+        crate::feed::stop(&app);
+    }
+    let state = app.state::<AppState>();
+    state.config.lock().unwrap().feed_lan = Some(on);
+    state.save_config();
+    Ok(())
+}
+
+/// Pairing code the browser extension sends with every capture.
+#[tauri::command]
+pub fn capture_token(state: State<AppState>) -> String {
+    state.capture_token.lock().unwrap().clone()
+}
+
+/// New pairing code: every installed extension stops working until the new
+/// code is pasted into its options.
+#[tauri::command]
+pub fn reset_capture_token(state: State<AppState>) -> CmdResult<String> {
+    let token = crate::secret::new_token();
+    crate::secret::save(&state.config_dir, crate::capture::TOKEN_FILE, &token)
+        .map_err(|e| format!("could not save pairing code: {e}"))?;
+    *state.capture_token.lock().unwrap() = token.clone();
+    Ok(token)
 }
 
 /// Per-OS instructions for opening the inbound firewall port the feed server

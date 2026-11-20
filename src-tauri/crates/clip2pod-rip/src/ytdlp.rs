@@ -60,6 +60,49 @@ pub fn valid_url(url: &str) -> bool {
         && url.len() > "https://".len()
 }
 
+/// yt-dlp options that run another program or load code/options from a file.
+/// The template is editable from the app window, so these are refused: a
+/// compromised webview must not turn "save rip settings" into code execution.
+/// yt-dlp accepts unambiguous abbreviations of long options (`--exe`), so a
+/// template arg is refused if it is any prefix of one of these.
+const FORBIDDEN_FLAGS: &[&str] = &[
+    "--exec",
+    "--exec-before-download",
+    "--alias",
+    "--use-postprocessor",
+    "--downloader",
+    "--external-downloader",
+    "--downloader-args",
+    "--external-downloader-args",
+    "--ffmpeg-location",
+    "--netrc-cmd",
+    "--plugin-dirs",
+    "--config-location",
+    "--config-locations",
+    "--print-to-file",
+];
+
+/// Real options that happen to be prefixes of forbidden ones.
+const SAFE_PREFIXES: &[&str] = &["--print", "--netrc"];
+
+fn forbidden_flag(arg: &str) -> Option<&'static str> {
+    let name = arg.split('=').next().unwrap_or(arg);
+    if name.len() <= 2 || !name.starts_with("--") || SAFE_PREFIXES.contains(&name) {
+        return None;
+    }
+    FORBIDDEN_FLAGS.iter().copied().find(|f| f.starts_with(name))
+}
+
+/// The configured yt-dlp binary must look like yt-dlp (`yt-dlp`,
+/// `yt-dlp.exe`, `yt-dlp_macos`, …), so the setting can't point at any
+/// program on disk.
+pub fn valid_ytdlp_path(path: &str) -> bool {
+    // Split on both separators so a Windows path checks the same on any OS.
+    path.rsplit(['/', '\\'])
+        .next()
+        .is_some_and(|n| n.to_ascii_lowercase().starts_with("yt-dlp"))
+}
+
 /// Split the template shell-style and append the app-owned parts:
 /// `--newline` (line-buffered progress), `-P <dir>`, `-- <url>`. With a cookie
 /// file, the template's own cookie flags are dropped and `--cookies <file>` wins.
@@ -74,6 +117,11 @@ pub fn build_args(
     }
     let mut args = shell_words::split(template)
         .map_err(|e| format!("args template has unbalanced quotes: {e}"))?;
+    if let Some(flag) = args.iter().find_map(|a| forbidden_flag(a)) {
+        return Err(format!(
+            "{flag} is not allowed in the args template (it can run other programs)"
+        ));
+    }
     if let Some(file) = cookie_file {
         args = crate::cookies::strip_cookie_flags(args);
         args.push("--cookies".into());
@@ -217,6 +265,46 @@ mod tests {
         .unwrap();
         assert!(args.contains(&"--cookies-from-browser".to_string()));
         assert!(args.contains(&"brave".to_string()));
+    }
+
+    #[test]
+    fn build_args_rejects_program_running_flags() {
+        let dir = PathBuf::from("/tmp");
+        for tmpl in [
+            "--exec calc",
+            "-x --exec=calc",
+            "--exe calc",
+            "--exec-before-download calc",
+            "--alias foo \"--exec {}\"",
+            "--use-postprocessor Exec:exec_cmd=calc",
+            "--downloader /bin/evil",
+            "--external-downloader evil",
+            "--ffmpeg-location /bin/evil",
+            "--netrc-cmd evil",
+            "--plugin-dirs /x",
+            "--config-location /x.conf",
+            "--print-to-file %(title)s /startup/x.bat",
+        ] {
+            assert!(build_args(tmpl, &dir, "https://y.be/x", None).is_err(), "{tmpl}");
+        }
+    }
+
+    #[test]
+    fn build_args_keeps_lookalike_safe_flags() {
+        let dir = PathBuf::from("/tmp");
+        for tmpl in [DEFAULT_ARGS, "--print title", "--netrc", "--no-exec", "--extract-audio"] {
+            assert!(build_args(tmpl, &dir, "https://y.be/x", None).is_ok(), "{tmpl}");
+        }
+    }
+
+    #[test]
+    fn ytdlp_path_must_name_ytdlp() {
+        for ok in ["yt-dlp", "C:\\tools\\yt-dlp.exe", "/usr/local/bin/yt-dlp_macos", "YT-DLP.EXE"] {
+            assert!(valid_ytdlp_path(ok), "{ok}");
+        }
+        for bad in ["C:\\Windows\\System32\\cmd.exe", "/bin/sh", "", "/opt/yt-dlp/python3"] {
+            assert!(!valid_ytdlp_path(bad), "{bad}");
+        }
     }
 
     #[test]
