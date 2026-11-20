@@ -35,7 +35,9 @@ phone, and new episodes just show up.
   the clipboard, in one keystroke.
 - **Browser extension** — click it (or right-click → "Narrate this page") to send
   the page as rendered in your logged-in session, so paywalled and
-  subscriber-only articles work.
+  subscriber-only articles work. On a Reddit thread it sends the post and its
+  top-level comments (25 by default, set in the extension's options) instead of
+  the page, and resets the author gender so it pre-fills from the OP.
 
 ### 2. Text cleaning for TTS
 
@@ -131,6 +133,18 @@ already starts that way.
 - On a name collision (on disk *or* in the queue), `(2)` / `(3)` is appended —
   never a silent overwrite.
 
+### 10. Rendering and retry
+
+- Long scripts are split on sentence boundaries (not on the `.` in "3.14") and
+  each chunk is synthesized separately; the MP3 frames are joined into one file,
+  written only once every chunk succeeds.
+- If Edge TTS resets the connection, the chunk is retried up to four times
+  (400 ms / 1.2 s / 3.6 s backoff) on a fresh connection. A link that goes silent
+  times out after 20 s, so a dropped network fails the job instead of hanging it.
+- A job that still fails gets a **Retry** button on its queue row, which renders
+  it again with the same text, voice and filename. The queue lives in memory, so
+  Retry is available until you quit; the log keeps the failure.
+
 ---
 
 ## RIP mode
@@ -148,7 +162,18 @@ already starts that way.
 `yt-dlp` runs with an editable args template (Settings → Rip). The default:
 extract audio to MP3, embed thumbnail / metadata / chapters, run SponsorBlock,
 apply a `volume=1.5` boost, restrict filenames. The app always appends the output
-folder and the URL itself — those can't drift.
+folder and the URL itself — those can't drift. Options that make `yt-dlp` run
+other programs (`--exec`, `--alias`, `--use-postprocessor`, downloader / ffmpeg /
+netrc-cmd / plugin / config options, `--print-to-file`, and their
+abbreviations) are refused when you save, and the binary path must name
+`yt-dlp`.
+
+- **Browser cookies** — right-click **Rip** in the extension asks once per site
+  for permission to read its cookies. With it, the rip sends the cookies your
+  browser would send to that page (members-only, age-gated, logged-in videos).
+  The app writes them to a temp cookie file for that one run, in place of any
+  `--cookies` / `--cookies-from-browser` flag in your arguments; the file is
+  deleted when the download ends, and leftovers are swept at next launch.
 
 - Live per-job progress (percent, speed, postprocessor stage) parsed from
   `yt-dlp --newline`.
@@ -190,6 +215,7 @@ confirmation dialog).
 - Each tab has its own Queue section: the job in progress with a progress bar,
   jobs waiting, failures with an expandable reason, the last success.
 - **Clear pending** cancels queued jobs without touching the in-flight one.
+- Failed narrate jobs have a **Retry** button (see Rendering and retry).
 
 ### Two podcast feeds
 
@@ -197,29 +223,51 @@ confirmation dialog).
   articles) and `/video/<token>/feed.xml` (ripped audio), each with cover art. There
   is no combined feed — subscribe to whichever you want.
 - The token is a random secret shared by both feeds, so other people on the same
-  Wi-Fi can't read them without the URL.
-- **Feed** in the header opens a dialog for the *active* tab's feed: the URL, a QR
-  code to scan from your phone, a Copy button, firewall help, and **Reset feed
-  URL**, which issues a new token (every subscribed device must re-subscribe).
+  Wi-Fi can't read them without the URL. The feeds are plain HTTP, so anyone
+  watching traffic on the network can see the URL — share on networks you trust.
+- **Share feeds on this network** (in the Feed dialog) opens the server on your
+  LAN (`0.0.0.0:4738`); while it's off the port is closed. It's off for new
+  installs and on for installs that already had a feed URL.
+- **Feed** in the header opens a dialog with a Narrate and a Rip tab, starting on
+  the mode you're in: the URL, a QR code to scan from your phone, a Copy button,
+  firewall help, and **Reset feed URL**, which issues a new token (every
+  subscribed device must re-subscribe).
 - Firewall help gives you the exact command to open the inbound port (per OS) plus
   the common gotchas — it does not try to change the firewall itself.
 
 ### Logs
 
 - Each mode keeps its own log (most recent 200 entries), searchable by title. The
-  header **LOG** button opens the active tab's.
+  header **LOG** button opens one dialog with a Narrate and a Rip tab, starting on
+  the active mode's.
 - Narrate's log records the voice used and lets you disable it by right-click.
 
 ### Settings
 
-One dialog, three sections:
+One dialog, four sections:
 
 - **General** — theme (dark/light), start minimized to tray, launch at sign-in.
 - **Narrate** — episode folder, C2P filename prefix, Manage voices, Manage
   Author Genders.
 - **Rip** — episode folder, yt-dlp arguments (+ reset), yt-dlp binary path.
+- **Browser extension** — the pairing code (with Copy) and **New pairing code**.
 
 All settings persist between sessions.
+
+### Browser extension pairing
+
+The capture listener (`127.0.0.1:4737`) only accepts pages from an extension
+paired with the code from Settings → Browser extension, so other extensions and
+local programs can't push pages or rips into the app. The code never leaves the
+extension: before each capture the extension sends a random nonce to `/hello`,
+the app answers with an HMAC of it keyed by the code plus a single-use challenge,
+and the extension sends the page only if that proof checks out, signing the
+challenge in return. If something other than Clip2Pod holds port 4737, it gets
+nothing. An unpaired click, a wrong code or a refused capture opens the
+extension's options page. **New pairing code** invalidates the old one.
+
+The listener also caps bodies at 32 MB, and the app window runs under a strict
+content security policy.
 
 ### Tray & window
 
@@ -259,7 +307,8 @@ the tagged file lands in the narrate folder and the `/tts` feed.
 tagged MP3 lands in the rip folder and the `/video` feed. (Or right-click the page
 in your browser → "Rip this page's audio".)
 
-**Listen:** open **Feed** on the tab you want → scan the QR in your phone's
+**Listen:** open **Feed**, turn on **Share feeds on this network**, pick the tab
+you want → scan the QR in your phone's
 podcast app → episodes appear as they finish → **Delete all** clears the folder
 once your podcatcher has them.
 

@@ -28,12 +28,14 @@ podcast feeds on the local network. It has two modes behind a header tab:
 
 - **Narrate** — text (clipboard paste, article-URL fetch with readability
   extraction, a global hotkey, or a browser extension that captures the current
-  page from the logged-in session so paywalled articles work) is cleaned for TTS,
+  page from the logged-in session so paywalled articles work, or a Reddit thread's
+  post and top comments) is cleaned for TTS,
   narrated with a Microsoft Edge neural voice, ID3-tagged, given a collision-safe
   filename, and listed in `/tts/<token>/feed.xml`.
 - **Rip** — a video URL (pasted, or sent from the extension) is handed to `yt-dlp`,
   which downloads the audio track as an MP3 (embed thumbnail/metadata/chapters,
-  SponsorBlock, volume boost), duration-tagged and listed in `/video/<token>/feed.xml`.
+  SponsorBlock, volume boost; optionally with the site's browser cookies),
+  duration-tagged and listed in `/video/<token>/feed.xml`.
 
 Both feeds are served from one LAN RSS server (port 4738); the browser extension
 posts to one capture listener (port 4737) that routes by video-host match or an
@@ -66,17 +68,25 @@ Mechanisms a generic "listen to articles" or TTS app doesn't combine:
 
 ## Operating Context
 
-- Desktop app for **Windows and Linux** (Tauri 2 shell). Runs in the system tray;
+- Desktop app for **Windows and Linux**, with untested macOS builds (Tauri 2
+  shell). Runs in the system tray;
   closing the window keeps it running; left-click the tray icon to show it. Global
   hotkey default `Ctrl+Alt+G` (narrate intake).
 - Local servers: capture endpoint on `127.0.0.1:4737` (the extension POSTs
-  `{ url, html, override_hint? }`; web-page origins are refused), RSS feed on
+  `{ url, html | prepared, override_hint?, cookies? }`, where `prepared` is
+  extension-extracted text such as a Reddit thread and `cookies` the site's
+  cookies for a rip; web-page origins are refused, and every capture must come
+  from an extension paired with the code in Settings, proved by an HMAC
+  challenge-response on `/hello` so the code itself is never sent), RSS feed on
   `0.0.0.0:4738` serving `/tts/<token>/feed.xml` + `/video/<token>/feed.xml` (the
-  phone reaches it over LAN; the token keeps the rest of the LAN out).
+  phone reaches it over LAN; the token keeps the rest of the LAN out). The feed
+  port is open only while **Share feeds on this network** is on (off for new
+  installs).
 - **Rip depends on `yt-dlp` and `ffmpeg` on the PATH** — not bundled. A startup
   probe surfaces an install notice on the Rip tab if either is missing; the
   `yt-dlp` binary path is configurable.
-- Listener loop: make episodes → open **Feed** on the tab you want → scan the QR
+- Listener loop: make episodes → open **Feed**, turn on sharing, pick the tab you
+  want → scan the QR
   or enter the URL in any podcast client on the same network → podcatcher
   downloads → **Delete all** clears that mode's folder (confirmation shows the
   count; never removes a file still being written).
