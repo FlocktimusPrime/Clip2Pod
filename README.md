@@ -49,7 +49,8 @@ you narrate.
 URL, press the global hotkey (`Ctrl+Alt+G`) from anywhere, or click the browser
 extension to send the page you're reading (paywalled content included — it
 captures your logged-in session). On a Reddit thread it sends the post and its
-top comments instead of the page.
+top comments instead of the page (25 top-level comments by default; set the
+count in the extension's options).
 
 - **Readability extraction** strips nav, ads, and boilerplate down to title,
   author, and article text.
@@ -70,6 +71,12 @@ top comments instead of the page.
   from the last article. **Manage Author Genders** (`Ctrl+G`) lists everyone
   remembered, with rename, edit, delete, and merge (for byline variants of the
   same person).
+- **Resilient rendering** — if Edge TTS drops the connection mid-article, the
+  chunk is retried (up to four attempts with backoff) instead of failing the
+  whole episode, and a link that goes silent times out after 20 s rather than
+  hanging. A job that still fails gets a **Retry** button in the queue, which
+  re-renders it with the same text, voice and filename (for the current
+  session; the queue isn't saved).
 
 ### Rip — video URL → yt-dlp → MP3
 
@@ -78,7 +85,12 @@ top comments instead of the page.
   automatically.
 - `yt-dlp` downloads and transcodes to MP3, embedding the thumbnail, metadata, and
   chapters, running SponsorBlock, and applying a small volume boost. The command
-  template is fully editable in Settings.
+  template is editable in Settings; options that make yt-dlp run other programs
+  (`--exec`, `--use-postprocessor`, `--netrc-cmd`, config and plugin options, …)
+  are refused, and the binary path must point at a `yt-dlp` executable.
+- **Rip with your browser cookies** — for members-only or age-gated videos,
+  right-click **Rip** in the extension to send the site's cookies along with the
+  link (see [Browser extension](#browser-extension-chrome--brave--edge--firefox)).
 - Live download progress per job; **Stop** kills the current one.
 - Requires **`yt-dlp` and `ffmpeg` on your PATH** — the app is not bundled with
   them. The Rip tab shows an install notice with the `winget` commands if either
@@ -94,8 +106,12 @@ top comments instead of the page.
   `Documents/Clip2Pod Feeds/Narrated` and `…/Ripped` unless you pick other
   folders in Settings.
 - **Two podcast feeds** — a local RSS server (port `4738`) serves a narrated
-  feed and a ripped feed, each behind a private URL. Open **Feed**, pick the
-  Narrate or Rip tab, scan the QR code, and subscribe.
+  feed and a ripped feed, each behind a private URL. Open **Feed**, turn on
+  **Share feeds on this network**, pick the Narrate or Rip tab, scan the QR code,
+  and subscribe. **Reset feed URL** issues a new token if a URL leaks.
+- **Paired browser extension** — the capture listener (`127.0.0.1:4737`) accepts
+  pages only from an extension paired with a code from Settings, verified by a
+  challenge-response handshake so the code never leaves the extension.
 - **One-click cleanup** — once your podcatcher has the episodes, **Delete all**
   clears every MP3 the feed lists from that mode's folder (with a count
   confirmation; never a file still being written).
@@ -217,6 +233,7 @@ flag in your Rip arguments for that run only. See [`extension/README.md`](extens
    or skip to **Clean for TTS** (`Ctrl+L`).
 4. Check the metadata bar (Title, Author, Author gender).
 5. **Generate MP3** (`Ctrl+Enter`). It queues; keep working while it renders.
+   If a render fails, click **Retry** on its row in the queue.
 
 ### Rip a video
 
@@ -322,6 +339,7 @@ npm run tauri dev              # run with hot reload
 npm run check                  # svelte-check (frontend types)
 cargo test --workspace         # Rust tests (run from src-tauri/)
 cargo clippy --workspace       # lints
+node --test extension/test/*.test.mjs   # extension tests (Reddit, cookies, pairing)
 ```
 
 The core crates have no Tauri dependency, so most behavior — cleaning, voice
