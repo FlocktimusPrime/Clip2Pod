@@ -1,3 +1,4 @@
+use crate::config::{LogEntry, LogStatus};
 use crate::cookies::CookieJar;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -39,6 +40,25 @@ pub struct Job {
     /// the runner once by `start_next`.
     #[serde(skip)]
     pub cookies: Option<CookieJar>,
+}
+
+impl Job {
+    /// The log row for a settled job: title is the output filename once known,
+    /// else the URL. None while the job is still Queued or Processing.
+    pub fn log_entry(&self) -> Option<LogEntry> {
+        let status = match self.status {
+            JobStatus::Done => LogStatus::Done,
+            JobStatus::Failed => LogStatus::Failed,
+            JobStatus::Cancelled => LogStatus::Cancelled,
+            JobStatus::Queued | JobStatus::Processing => return None,
+        };
+        Some(LogEntry {
+            timestamp: self.finished.unwrap_or_else(Utc::now),
+            status,
+            title: self.filename.clone().unwrap_or_else(|| self.url.clone()),
+            detail: self.detail.clone(),
+        })
+    }
 }
 
 /// In-memory job list. The Tauri layer wraps this in a mutex and drives a
@@ -100,26 +120,29 @@ impl Queue {
         }
     }
 
-    pub fn finish(&mut self, id: &str, result: Result<String, String>) {
-        if let Some(job) = self.jobs.iter_mut().find(|j| j.id == id) {
-            if job.status == JobStatus::Cancelled {
-                // Already finalized by cancel_processing (user-initiated stop);
-                // don't let a killed process's non-zero exit relabel it Failed.
-                return;
+    /// Settle a run's outcome and return the job as it now stands, which is
+    /// the only thing the caller should log. A failure after
+    /// `cancel_processing` stays Cancelled: the killed process's non-zero exit
+    /// is the stop, not a fault. A success still lands as Done, because the
+    /// stop arrived too late and the file is on disk.
+    pub fn finish(&mut self, id: &str, result: Result<String, String>) -> Option<Job> {
+        let job = self.jobs.iter_mut().find(|j| j.id == id)?;
+        match result {
+            Err(_) if job.status == JobStatus::Cancelled => {}
+            Ok(note) => {
+                job.status = JobStatus::Done;
+                job.detail = note;
+                job.finished = Some(Utc::now());
+                job.progress = JobProgress::default();
             }
-            job.finished = Some(Utc::now());
-            job.progress = JobProgress::default();
-            match result {
-                Ok(note) => {
-                    job.status = JobStatus::Done;
-                    job.detail = note;
-                }
-                Err(detail) => {
-                    job.status = JobStatus::Failed;
-                    job.detail = detail;
-                }
+            Err(detail) => {
+                job.status = JobStatus::Failed;
+                job.detail = detail;
+                job.finished = Some(Utc::now());
+                job.progress = JobProgress::default();
             }
         }
+        Some(job.clone())
     }
 
     /// Cancel every Queued job; the Processing one (if any) is untouched.
@@ -137,8 +160,9 @@ impl Queue {
         cancelled
     }
 
-    /// Cancel the currently Processing job if its id matches; the killed
-    /// subprocess's own non-zero exit is absorbed by finish()'s Cancelled guard.
+    /// Cancel the currently Processing job if its id matches. Call this before
+    /// killing the subprocess so `finish` always sees Cancelled and absorbs
+    /// the kill's non-zero exit. Logging is left to whoever calls `finish`.
     pub fn cancel_processing(&mut self, id: &str) -> Option<Job> {
         let job = self
             .jobs
@@ -315,10 +339,79 @@ mod tests {
         setup_three(&mut q);
         let processing = q.start_next().unwrap();
         q.cancel_processing(&processing.id);
-        q.finish(&processing.id, Err("yt-dlp exited with signal".into()));
+        let settled = q
+            .finish(&processing.id, Err("yt-dlp exited with signal".into()))
+            .unwrap();
+        assert_eq!(settled.status, JobStatus::Cancelled);
+        assert_eq!(settled.detail, "Stopped by user");
         let job = q.jobs().iter().find(|j| j.id == processing.id).unwrap();
         assert_eq!(job.status, JobStatus::Cancelled);
-        assert_eq!(job.detail, "Stopped by user");
+    }
+
+    #[test]
+    fn finish_ok_after_cancel_settles_done() {
+        // Stop clicked as yt-dlp finished: the file exists, so Done wins.
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let processing = q.start_next().unwrap();
+        q.cancel_processing(&processing.id);
+        let settled = q
+            .finish(&processing.id, Ok("already downloaded".into()))
+            .unwrap();
+        assert_eq!(settled.status, JobStatus::Done);
+        assert_eq!(settled.detail, "already downloaded");
+    }
+
+    #[test]
+    fn finish_unknown_id_returns_none() {
+        let mut q = Queue::default();
+        assert!(q.finish("no-such-id", Ok(String::new())).is_none());
+    }
+
+    #[test]
+    fn stopped_job_logs_one_cancelled_row() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let processing = q.start_next().unwrap();
+        q.cancel_processing(&processing.id);
+        let entry = q
+            .finish(&processing.id, Err("yt-dlp exited with signal".into()))
+            .and_then(|j| j.log_entry())
+            .unwrap();
+        assert!(matches!(entry.status, LogStatus::Cancelled));
+        assert_eq!(entry.detail, "Stopped by user");
+        assert_eq!(entry.title, processing.url); // no filename announced yet
+    }
+
+    #[test]
+    fn log_entry_maps_status_and_prefers_filename() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let j = q.start_next().unwrap();
+        assert!(
+            q.jobs()[0].log_entry().is_none(),
+            "Processing is not loggable"
+        );
+        assert!(q.jobs()[1].log_entry().is_none(), "Queued is not loggable");
+        q.set_filename(&j.id, "Talk.mp3");
+
+        let done = q
+            .finish(&j.id, Ok(String::new()))
+            .unwrap()
+            .log_entry()
+            .unwrap();
+        assert!(matches!(done.status, LogStatus::Done));
+        assert_eq!(done.title, "Talk.mp3");
+
+        let k = q.start_next().unwrap();
+        let failed = q
+            .finish(&k.id, Err("network down".into()))
+            .unwrap()
+            .log_entry()
+            .unwrap();
+        assert!(matches!(failed.status, LogStatus::Failed));
+        assert_eq!(failed.detail, "network down");
+        assert_eq!(failed.title, k.url);
     }
 
     #[test]

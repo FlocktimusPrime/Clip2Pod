@@ -4,7 +4,7 @@
 // yt-dlp binary is whatever the user configured (defaults to `yt-dlp` on PATH).
 
 use crate::state::AppState;
-use clip2pod_rip::config::{append_log, LogEntry, LogStatus};
+use clip2pod_rip::config::{append_log, LogEntry};
 use clip2pod_rip::cookies::CookieFile;
 use clip2pod_rip::queue::{Job, JobProgress};
 use clip2pod_rip::ytdlp::{build_args, parse_line, ProgressEvent};
@@ -267,30 +267,16 @@ pub fn spawn(app: AppHandle, mut wake: UnboundedReceiver<()>) {
                         .await
                         .unwrap_or_else(|e| Err(e.to_string()));
 
-                let (title, note) = {
+                // The queue decides the final status (a user stop stays
+                // Cancelled); log exactly what it settled on, once.
+                let settled = {
                     let state = app.state::<AppState>();
                     let mut q = state.rip_queue.lock().unwrap();
-                    q.finish(&job.id, result.clone());
-                    let j = q.jobs().iter().find(|j| j.id == job.id).cloned();
-                    (
-                        j.and_then(|j| j.filename)
-                            .unwrap_or_else(|| job.url.clone()),
-                        result,
-                    )
+                    q.finish(&job.id, result)
                 };
-                let (status, detail) = match note {
-                    Ok(n) => (LogStatus::Done, n),
-                    Err(e) => (LogStatus::Failed, e),
-                };
-                log_and_emit(
-                    &app,
-                    LogEntry {
-                        timestamp: chrono::Utc::now(),
-                        status,
-                        title,
-                        detail,
-                    },
-                );
+                if let Some(entry) = settled.as_ref().and_then(Job::log_entry) {
+                    log_and_emit(&app, entry);
+                }
                 emit_lamp(&app);
                 emit_queue(&app);
             }
