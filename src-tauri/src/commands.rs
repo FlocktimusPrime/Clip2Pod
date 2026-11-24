@@ -1,7 +1,7 @@
+use crate::mode::{Mode, Narrate};
 use crate::state::AppState;
-use crate::worker::{emit_lamp, emit_queue, log_and_emit};
 use clip2pod_core::authors::{self, AuthorEntry};
-use clip2pod_core::config::{self, Config, LogEntry, LogStatus, Theme};
+use clip2pod_core::config::{Config, LogEntry, Theme};
 use clip2pod_core::junk::{self, JunkMatch};
 use clip2pod_core::naming;
 use clip2pod_core::queue::Job;
@@ -208,8 +208,8 @@ pub fn enqueue_generate(
     do_enqueue(&app, text, title, author, filename_title, source_url)
 }
 
-/// Shared by the IPC command, the tray menu item, and the global hotkey.
-pub fn do_enqueue(
+/// Clean the text, pick a voice, reserve a filename and queue the job.
+fn do_enqueue(
     app: &AppHandle,
     text: String,
     title: String,
@@ -247,9 +247,7 @@ pub fn do_enqueue(
         q.enqueue(&title, &author, &narration, voice.clone(), &filename, source_url)
     };
 
-    emit_lamp(app);
-    emit_queue(app);
-    let _ = state.wake_worker.send(());
+    Narrate::enqueued(app);
     Ok(id)
 }
 
@@ -264,7 +262,7 @@ pub async fn extract_url(url: String) -> CmdResult<clip2pod_core::extract::Extra
 
 #[tauri::command]
 pub fn get_queue(state: State<AppState>) -> Vec<Job> {
-    state.queue.lock().unwrap().jobs().to_vec()
+    Narrate::jobs(&state)
 }
 
 /// Ask the worker to abort the in-flight render. Takes effect at the next
@@ -285,52 +283,23 @@ pub fn retry_job(app: AppHandle, id: String) -> CmdResult<()> {
     if !state.queue.lock().unwrap().requeue(&id) {
         return Err("that job is no longer retryable".into());
     }
-    emit_lamp(&app);
-    emit_queue(&app);
-    let _ = state.wake_worker.send(());
+    Narrate::enqueued(&app);
     Ok(())
 }
 
 #[tauri::command]
 pub fn clear_pending(app: AppHandle) {
-    let cancelled = {
-        let state = app.state::<AppState>();
-        let mut q = state.queue.lock().unwrap();
-        q.clear_pending()
-    };
-    for job in cancelled {
-        log_and_emit(
-            &app,
-            LogEntry {
-                timestamp: chrono::Utc::now(),
-                status: LogStatus::Cancelled,
-                title: job.title,
-                voice: job.voice.short_name,
-                filename: job.filename,
-                detail: "Cancelled".into(),
-            },
-        );
-    }
-    emit_lamp(&app);
-    emit_queue(&app);
+    Narrate::clear_pending(&app);
 }
 
 #[tauri::command]
 pub fn get_log(state: State<AppState>, query: String) -> Vec<LogEntry> {
-    let log = config::load_log(&state.config_dir);
-    if query.trim().is_empty() {
-        log
-    } else {
-        let q = query.to_lowercase();
-        log.into_iter()
-            .filter(|e| e.title.to_lowercase().contains(&q))
-            .collect()
-    }
+    Narrate::query_log(&state, &query)
 }
 
 #[tauri::command]
 pub fn clear_log(state: State<AppState>) -> CmdResult<()> {
-    config::clear_log(&state.config_dir).map_err(|e| e.to_string())
+    Narrate::clear_log(&state)
 }
 
 #[derive(Serialize)]
