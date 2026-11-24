@@ -73,9 +73,10 @@ pub fn rip_clear_pending(app: AppHandle) {
     emit_queue(&app);
 }
 
-/// Kill the yt-dlp subprocess for the given job if it's the one currently
-/// Processing, and mark it Cancelled. No-op if the job already finished on its
-/// own (lost the race with the click).
+/// Mark the given job Cancelled if it's the one currently Processing, then
+/// kill its yt-dlp subprocess. Marking first means the worker's `finish`
+/// always sees Cancelled; the worker writes the single log row. No-op if the
+/// job already finished on its own (lost the race with the click).
 #[tauri::command]
 pub fn rip_stop_job(app: AppHandle, job_id: String) {
     let child = {
@@ -87,24 +88,16 @@ pub fn rip_stop_job(app: AppHandle, job_id: String) {
             .map(|(_, c)| c.clone())
     };
     let Some(child) = child else { return };
-    let _ = child.lock().unwrap().kill();
 
     let cancelled = {
         let state = app.state::<AppState>();
         let mut q = state.rip_queue.lock().unwrap();
         q.cancel_processing(&job_id)
     };
-    if let Some(job) = cancelled {
-        log_and_emit(
-            &app,
-            LogEntry {
-                timestamp: chrono::Utc::now(),
-                status: LogStatus::Cancelled,
-                title: job.url,
-                detail: "Stopped by user".into(),
-            },
-        );
+    if cancelled.is_none() {
+        return;
     }
+    let _ = child.lock().unwrap().kill();
     emit_lamp(&app);
     emit_queue(&app);
 }
