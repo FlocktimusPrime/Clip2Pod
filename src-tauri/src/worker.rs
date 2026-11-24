@@ -1,19 +1,11 @@
+use crate::mode::{Mode, Narrate};
 use crate::state::AppState;
-use clip2pod_core::config::{append_log, LogEntry, LogStatus};
 use clip2pod_core::queue::{Job, JobStatus};
 use clip2pod_core::tts::TtsError;
 use serde::Serialize;
 use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::UnboundedReceiver;
-
-#[derive(Serialize, Clone)]
-#[serde(tag = "state", content = "queued")]
-pub enum Lamp {
-    Idle,
-    Queued(usize),
-    OnAir,
-}
 
 /// Per-chunk render progress, pushed to the footer while a job encodes.
 #[derive(Serialize, Clone)]
@@ -27,33 +19,6 @@ enum RenderErr {
     /// User hit Cancel — the job lands as Cancelled, not Failed.
     Cancelled,
     Failed(String),
-}
-
-pub fn emit_lamp(app: &AppHandle) {
-    let state = app.state::<AppState>();
-    let (processing, queued) = state.queue.lock().unwrap().lamp();
-    let lamp = if processing {
-        Lamp::OnAir
-    } else if queued > 0 {
-        Lamp::Queued(queued)
-    } else {
-        Lamp::Idle
-    };
-    let _ = app.emit("lamp", lamp);
-}
-
-pub fn emit_queue(app: &AppHandle) {
-    let state = app.state::<AppState>();
-    let jobs = state.queue.lock().unwrap().jobs().to_vec();
-    let _ = app.emit("queue-changed", jobs);
-}
-
-pub fn log_and_emit(app: &AppHandle, entry: LogEntry) {
-    let state = app.state::<AppState>();
-    if let Err(e) = append_log(&state.config_dir, entry.clone()) {
-        eprintln!("failed to append log: {e}");
-    }
-    let _ = app.emit("log-appended", entry);
 }
 
 async fn render_job(app: &AppHandle, job: &Job) -> Result<(), RenderErr> {
@@ -111,36 +76,24 @@ pub fn spawn(app: AppHandle, mut wake: UnboundedReceiver<()>) {
                 // Fresh cancel flag for this job; a stray Cancel from before
                 // must not abort the one that just started.
                 app.state::<AppState>().cancel_flag.store(false, Ordering::Relaxed);
-                emit_lamp(&app);
-                emit_queue(&app);
+                Narrate::refresh(&app);
 
                 let result = render_job(&app, &job).await;
 
-                let (queue_status, log_status, detail) = match result {
-                    Ok(()) => (JobStatus::Done, LogStatus::Done, String::new()),
-                    Err(RenderErr::Cancelled) => {
-                        (JobStatus::Cancelled, LogStatus::Cancelled, "Cancelled".to_string())
-                    }
-                    Err(RenderErr::Failed(e)) => (JobStatus::Failed, LogStatus::Failed, e),
+                let (status, detail) = match result {
+                    Ok(()) => (JobStatus::Done, String::new()),
+                    Err(RenderErr::Cancelled) => (JobStatus::Cancelled, "Cancelled".to_string()),
+                    Err(RenderErr::Failed(e)) => (JobStatus::Failed, e),
                 };
-                {
+                let settled = {
                     let state = app.state::<AppState>();
                     let mut q = state.queue.lock().unwrap();
-                    q.finish(&job.id, queue_status, detail.clone());
+                    q.finish(&job.id, status, detail)
+                };
+                if let Some(entry) = settled.as_ref().and_then(Job::log_entry) {
+                    Narrate::log_and_emit(&app, entry);
                 }
-                log_and_emit(
-                    &app,
-                    LogEntry {
-                        timestamp: chrono::Utc::now(),
-                        status: log_status,
-                        title: job.title.clone(),
-                        voice: job.voice.short_name.clone(),
-                        filename: job.filename.clone(),
-                        detail,
-                    },
-                );
-                emit_lamp(&app);
-                emit_queue(&app);
+                Narrate::refresh(&app);
             }
         }
     });

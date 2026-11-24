@@ -153,6 +153,7 @@ impl Queue {
             if job.status == JobStatus::Queued {
                 job.status = JobStatus::Cancelled;
                 job.finished = Some(Utc::now());
+                job.detail = "Cancelled".into();
                 job.cookies = None;
                 cancelled.push(job.clone());
             }
@@ -296,6 +297,16 @@ mod tests {
         assert_eq!(cancelled.len(), 1);
         assert!(cancelled[0].cookies.is_none());
         assert!(q.jobs()[0].cookies.is_none());
+    }
+
+    #[test]
+    fn cleared_job_logs_cancelled_with_url_title() {
+        let mut q = Queue::default();
+        q.enqueue("https://youtu.be/a", None).unwrap();
+        let row = q.clear_pending()[0].log_entry().unwrap();
+        assert!(matches!(row.status, LogStatus::Cancelled));
+        assert_eq!(row.detail, "Cancelled");
+        assert_eq!(row.title, "https://youtu.be/a");
     }
 
     #[test]

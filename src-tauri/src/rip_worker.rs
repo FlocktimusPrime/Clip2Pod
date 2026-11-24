@@ -1,10 +1,10 @@
 // RIP mode background worker: drains the rip queue one URL at a time, spawning
-// yt-dlp and streaming its `--newline` progress to the frontend. Events are
-// namespaced `rip:*` so they don't collide with the narrate worker's, and the
-// yt-dlp binary is whatever the user configured (defaults to `yt-dlp` on PATH).
+// yt-dlp and streaming its `--newline` progress to the frontend. Lamp, queue
+// and log events go through `mode::Rip` (prefixed `rip:`), and the yt-dlp
+// binary is whatever the user configured (defaults to `yt-dlp` on PATH).
 
+use crate::mode::{Mode, Rip};
 use crate::state::AppState;
-use clip2pod_rip::config::{append_log, LogEntry};
 use clip2pod_rip::cookies::CookieFile;
 use clip2pod_rip::queue::{Job, JobProgress};
 use clip2pod_rip::ytdlp::{build_args, parse_line, ProgressEvent};
@@ -13,41 +13,6 @@ use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::UnboundedReceiver;
-
-#[derive(Serialize, Clone)]
-#[serde(tag = "state", content = "queued")]
-pub enum Lamp {
-    Idle,
-    Queued(usize),
-    OnAir,
-}
-
-pub fn emit_lamp(app: &AppHandle) {
-    let state = app.state::<AppState>();
-    let (processing, queued) = state.rip_queue.lock().unwrap().lamp();
-    let lamp = if processing {
-        Lamp::OnAir
-    } else if queued > 0 {
-        Lamp::Queued(queued)
-    } else {
-        Lamp::Idle
-    };
-    let _ = app.emit("rip:lamp", lamp);
-}
-
-pub fn emit_queue(app: &AppHandle) {
-    let state = app.state::<AppState>();
-    let jobs = state.rip_queue.lock().unwrap().jobs().to_vec();
-    let _ = app.emit("rip:queue-changed", jobs);
-}
-
-pub fn log_and_emit(app: &AppHandle, entry: LogEntry) {
-    let state = app.state::<AppState>();
-    if let Err(e) = append_log(&state.rip_config_dir, entry.clone()) {
-        eprintln!("failed to append rip log: {e}");
-    }
-    let _ = app.emit("rip:log-appended", entry);
-}
 
 #[derive(Serialize, Clone)]
 struct ProgressPayload {
@@ -180,7 +145,7 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
             Some(ProgressEvent::Destination(name)) => {
                 let state = app.state::<AppState>();
                 state.rip_queue.lock().unwrap().set_filename(&job.id, &name);
-                emit_queue(app);
+                Rip::emit_queue(app);
             }
             None => {}
         }
@@ -232,7 +197,7 @@ fn run_job(app: &AppHandle, job: &Job) -> Result<String, String> {
                 .lock()
                 .unwrap()
                 .set_filename(&job.id, &fixed);
-            emit_queue(app);
+            Rip::emit_queue(app);
         }
     }
 
@@ -257,8 +222,7 @@ pub fn spawn(app: AppHandle, mut wake: UnboundedReceiver<()>) {
                     q.start_next()
                 };
                 let Some(job) = job else { break };
-                emit_lamp(&app);
-                emit_queue(&app);
+                Rip::refresh(&app);
 
                 let run_app = app.clone();
                 let run_job_ref = job.clone();
@@ -275,10 +239,9 @@ pub fn spawn(app: AppHandle, mut wake: UnboundedReceiver<()>) {
                     q.finish(&job.id, result)
                 };
                 if let Some(entry) = settled.as_ref().and_then(Job::log_entry) {
-                    log_and_emit(&app, entry);
+                    Rip::log_and_emit(&app, entry);
                 }
-                emit_lamp(&app);
-                emit_queue(&app);
+                Rip::refresh(&app);
             }
         }
     });

@@ -3,8 +3,8 @@
 // slice of AppState. Theme / startup / firewall commands live on the narrate
 // side, which owns them app-wide.
 
-use crate::rip_worker::{emit_lamp, emit_queue, log_and_emit};
-use clip2pod_rip::config::{self, LogEntry, LogStatus};
+use crate::mode::{Mode, Rip};
+use clip2pod_rip::config::{LogEntry, LogStatus};
 use clip2pod_rip::cookies::CookieJar;
 use clip2pod_rip::queue::Job;
 use clip2pod_rip::ytdlp;
@@ -26,7 +26,7 @@ pub fn do_enqueue(app: &AppHandle, url: String, cookies: Option<CookieJar>) -> C
     }
     let state = app.state::<AppState>();
     let id = state.rip_queue.lock().unwrap().enqueue(&url, cookies)?;
-    log_and_emit(
+    Rip::log_and_emit(
         app,
         LogEntry {
             timestamp: chrono::Utc::now(),
@@ -35,9 +35,7 @@ pub fn do_enqueue(app: &AppHandle, url: String, cookies: Option<CookieJar>) -> C
             detail: String::new(),
         },
     );
-    emit_lamp(app);
-    emit_queue(app);
-    let _ = state.rip_wake.send(());
+    Rip::enqueued(app);
     Ok(id)
 }
 
@@ -48,29 +46,12 @@ pub fn rip_enqueue(app: AppHandle, url: String) -> CmdResult<String> {
 
 #[tauri::command]
 pub fn rip_get_queue(state: State<AppState>) -> Vec<Job> {
-    state.rip_queue.lock().unwrap().jobs().to_vec()
+    Rip::jobs(&state)
 }
 
 #[tauri::command]
 pub fn rip_clear_pending(app: AppHandle) {
-    let cancelled = {
-        let state = app.state::<AppState>();
-        let mut q = state.rip_queue.lock().unwrap();
-        q.clear_pending()
-    };
-    for job in cancelled {
-        log_and_emit(
-            &app,
-            LogEntry {
-                timestamp: chrono::Utc::now(),
-                status: LogStatus::Cancelled,
-                title: job.url,
-                detail: "Cancelled".into(),
-            },
-        );
-    }
-    emit_lamp(&app);
-    emit_queue(&app);
+    Rip::clear_pending(&app);
 }
 
 /// Mark the given job Cancelled if it's the one currently Processing, then
@@ -98,26 +79,17 @@ pub fn rip_stop_job(app: AppHandle, job_id: String) {
         return;
     }
     let _ = child.lock().unwrap().kill();
-    emit_lamp(&app);
-    emit_queue(&app);
+    Rip::refresh(&app);
 }
 
 #[tauri::command]
 pub fn rip_get_log(state: State<AppState>, query: String) -> Vec<LogEntry> {
-    let log = config::load_log(&state.rip_config_dir);
-    if query.trim().is_empty() {
-        log
-    } else {
-        let q = query.to_lowercase();
-        log.into_iter()
-            .filter(|e| e.title.to_lowercase().contains(&q))
-            .collect()
-    }
+    Rip::query_log(&state, &query)
 }
 
 #[tauri::command]
 pub fn rip_clear_log(state: State<AppState>) -> CmdResult<()> {
-    config::clear_log(&state.rip_config_dir).map_err(|e| e.to_string())
+    Rip::clear_log(&state)
 }
 
 #[derive(Serialize)]

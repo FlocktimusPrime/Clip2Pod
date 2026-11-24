@@ -2,6 +2,7 @@ mod capture;
 mod commands;
 mod feed;
 mod firewall;
+mod mode;
 mod rip_commands;
 mod rip_worker;
 mod secret;

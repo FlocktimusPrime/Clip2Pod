@@ -1,3 +1,4 @@
+use crate::config::{LogEntry, LogStatus};
 use crate::voices::VoiceInfo;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -26,6 +27,27 @@ pub struct Job {
     pub started: Option<DateTime<Utc>>,
     pub finished: Option<DateTime<Utc>>,
     pub detail: String,
+}
+
+impl Job {
+    /// The log row for a settled job. None while it is still Queued or
+    /// Processing.
+    pub fn log_entry(&self) -> Option<LogEntry> {
+        let status = match self.status {
+            JobStatus::Done => LogStatus::Done,
+            JobStatus::Failed => LogStatus::Failed,
+            JobStatus::Cancelled => LogStatus::Cancelled,
+            JobStatus::Queued | JobStatus::Processing => return None,
+        };
+        Some(LogEntry {
+            timestamp: self.finished.unwrap_or_else(Utc::now),
+            status,
+            title: self.title.clone(),
+            voice: self.voice.short_name.clone(),
+            filename: self.filename.clone(),
+            detail: self.detail.clone(),
+        })
+    }
 }
 
 /// In-memory job list. The Tauri layer wraps this in a mutex and drives a
@@ -71,15 +93,16 @@ impl Queue {
         Some(job.clone())
     }
 
-    /// Record a terminal state for the job. `status` is one of Done / Failed /
+    /// Record a terminal state for the job and return it as it now stands,
+    /// which is what the caller should log. `status` is one of Done / Failed /
     /// Cancelled; `detail` carries the error or cancellation note (empty for
     /// Done).
-    pub fn finish(&mut self, id: &str, status: JobStatus, detail: String) {
-        if let Some(job) = self.jobs.iter_mut().find(|j| j.id == id) {
-            job.finished = Some(Utc::now());
-            job.status = status;
-            job.detail = detail;
-        }
+    pub fn finish(&mut self, id: &str, status: JobStatus, detail: String) -> Option<Job> {
+        let job = self.jobs.iter_mut().find(|j| j.id == id)?;
+        job.finished = Some(Utc::now());
+        job.status = status;
+        job.detail = detail;
+        Some(job.clone())
     }
 
     /// Send a Failed or Cancelled job back to Queued, keeping its text, voice
@@ -109,6 +132,7 @@ impl Queue {
             if job.status == JobStatus::Queued {
                 job.status = JobStatus::Cancelled;
                 job.finished = Some(Utc::now());
+                job.detail = "Cancelled".into();
                 cancelled.push(job.clone());
             }
         }
@@ -271,5 +295,51 @@ mod tests {
         );
         let job = q.jobs().iter().find(|j| j.id == id).unwrap();
         assert_eq!(job.source_url.as_deref(), Some("https://example.com/a"));
+    }
+
+    #[test]
+    fn finish_returns_the_settled_job() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let j = q.start_next().unwrap();
+        let settled = q.finish(&j.id, JobStatus::Failed, "boom".into()).unwrap();
+        assert_eq!(settled.status, JobStatus::Failed);
+        assert_eq!(settled.detail, "boom");
+        assert!(q
+            .finish("no-such-id", JobStatus::Done, String::new())
+            .is_none());
+    }
+
+    #[test]
+    fn log_entry_maps_settled_jobs_only() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let j = q.start_next().unwrap();
+        assert!(q.jobs()[0].log_entry().is_none(), "Processing");
+        assert!(q.jobs()[1].log_entry().is_none(), "Queued");
+
+        let entry = q
+            .finish(&j.id, JobStatus::Done, String::new())
+            .and_then(|j| j.log_entry())
+            .unwrap();
+        assert!(matches!(entry.status, LogStatus::Done));
+        assert_eq!(entry.title, "t0");
+        assert_eq!(entry.voice, "en-US-GuyNeural");
+        assert_eq!(entry.filename, "t0.mp3");
+    }
+
+    #[test]
+    fn clear_pending_stores_cancelled_detail_for_the_log() {
+        let mut q = Queue::default();
+        setup_three(&mut q);
+        let rows: Vec<_> = q
+            .clear_pending()
+            .iter()
+            .filter_map(Job::log_entry)
+            .collect();
+        assert_eq!(rows.len(), 3);
+        assert!(rows
+            .iter()
+            .all(|r| matches!(r.status, LogStatus::Cancelled) && r.detail == "Cancelled"));
     }
 }
